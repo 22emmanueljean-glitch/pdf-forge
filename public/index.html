@@ -1,28 +1,243 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PDF Forge</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PDF Forge — Editor</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<style>
+  :root{--bg:#0f1115;--card:#151821;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#e7eaf0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  .shell{display:grid;grid-template-columns:360px 1fr;gap:16px;height:100vh}
+  @media (max-width: 980px){.shell{grid-template-columns:1fr;height:auto}}
+  .left{padding:16px;overflow:auto;background:var(--card);border-right:1px solid #1f2330}
+  .right{position:relative;overflow:auto;background:#0b0d13}
+  h1{font-size:18px;margin:6px 0 10px}
+  .card{background:#1a1f2b;border:1px solid #22283a;border-radius:12px;padding:12px;margin:10px 0}
+  label{font-size:12px;color:var(--muted)}
+  input,select,textarea,button{width:100%;margin-top:6px}
+  input,textarea,select{background:#121620;border:1px solid #2a3246;color:#e7eaf0;border-radius:10px;padding:10px}
+  textarea{min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  button{background:var(--accent);border:0;border-radius:10px;padding:12px;font-weight:700;color:#0b0d13;cursor:pointer}
+  button.secondary{background:#28304a;color:#e7eaf0}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#22283a;color:#c7d0e0;font-size:12px;margin-right:6px}
+  .status{margin-top:10px;font-size:12px;color:var(--muted)}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+  canvas{display:block;margin:0 auto}
+  .coords{position:absolute;left:12px;bottom:12px;background:#111523bd;padding:6px 10px;border-radius:8px;font-size:12px;color:#c7d0e0;border:1px solid #22283a}
+  .cross{position:absolute;width:14px;height:14px;border-left:2px solid #8fb1ff;border-top:2px solid #8fb1ff;transform:translate(-7px,-7px) rotate(45deg);pointer-events:none}
+  .toolbar{position:sticky;top:0;background:#0b0d13;z-index:2;padding:12px;border-bottom:1px solid #1a1f2b;display:flex;gap:8px;align-items:center}
+  .toolbar input[type=range]{width:160px}
+</style>
 </head>
 <body>
-  <h2>Upload PDF</h2>
-  <input type="file" id="pdf" accept="application/pdf"><br>
-  <textarea id="edits" rows="6" cols="80">[
-{"page":2,"x":72,"y":700,"text":"Epictetus — The Enchiridion"},
-{"page":3,"x":72,"y":700,"text":"Rumi — Masnavi"}
-]</textarea><br>
-  <button id="go">Generate v4</button>
-  <script>
-    const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
-    document.getElementById("go").onclick=async()=>{
-      const f=document.getElementById("pdf").files[0];
-      const e=JSON.parse(document.getElementById("edits").value);
-      const buf=await f.arrayBuffer();
-      const r=await fetch("/api/edit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({file:b64(buf),edits:e})});
-      const j=await r.json();const blob=new Blob([Uint8Array.from(atob(j.pdf),c=>c.charCodeAt(0))],{type:"application/pdf"});
-      const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="output.pdf";a.click();
-    };
-  </script>
+<div class="shell">
+  <div class="left">
+    <h1>PDF Forge — Style-Preserving Editor</h1>
+
+    <div class="card">
+      <label>Upload PDF (your v3)</label>
+      <input type="file" id="file" accept="application/pdf" />
+      <div class="row" style="margin-top:10px">
+        <button id="load">Load Preview</button>
+        <button id="reset" class="secondary">Clear</button>
+      </div>
+      <div class="status" id="stat">No file loaded.</div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Target Page</label>
+          <select id="page">
+            <option value="2">2 (Epictetus)</option>
+            <option value="3">3 (Rumi)</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+        <div>
+          <label>Font / Size</label>
+          <div class="row">
+            <input id="font" placeholder="Times-Roman" value="Times-Roman">
+            <input id="size" type="number" step="0.5" value="11">
+          </div>
+        </div>
+      </div>
+
+      <label>Text Block</label>
+      <textarea id="text"></textarea>
+
+      <div class="row">
+        <button id="add">Queue Block</button>
+        <button id="apply" class="secondary">Generate v4</button>
+      </div>
+      <div style="margin-top:6px">
+        <span class="pill" id="queued">0 queued</span>
+        <span class="pill">click on preview to set X/Y</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Prefill</label>
+      <div class="row" style="margin-top:8px">
+        <button id="prefEp">Epictetus → Page 2</button>
+        <button id="prefRu">Rumi → Page 3</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Edits JSON (advanced)</label>
+      <textarea id="jsonEdits" placeholder='[{"page":2,"x":72,"y":700,"text":"...","font":"Times-Roman","size":11}]'></textarea>
+      <button id="useJson" class="secondary">Use JSON Instead</button>
+    </div>
+
+  </div>
+
+  <div class="right">
+    <div class="toolbar">
+      <span class="pill" id="meta">Page 1 | scale 1.00</span>
+      <input type="range" id="zoom" min="50" max="200" value="100">
+      <button id="pPrev" class="secondary">◀</button>
+      <button id="pNext" class="secondary">▶</button>
+    </div>
+    <div id="stage" style="position:relative;min-height:60vh;display:flex;align-items:center;justify-content:center;">
+      <canvas id="cv"></canvas>
+      <div id="marker" class="cross" style="display:none"></div>
+      <div class="coords" id="xy">x: —, y: —</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const API = "/api/edit"; // change to your backend URL if not on the same origin
+
+// state
+let pdfDoc=null, pdfUrl=null, scale=1.0, pageNum=1, pageCount=1, ptPerPx=1, lastClick={x:null,y:null};
+const edits=[];
+
+// ui
+const $ = id => document.getElementById(id);
+const setQueued = () => { $('queued').textContent = edits.length + " queued"; $('jsonEdits').value = JSON.stringify(edits, null, 2); };
+const setMeta = () => $('meta').textContent = `Page ${pageNum} | scale ${scale.toFixed(2)}`;
+const setXY = () => $('xy').textContent = (lastClick.x==null) ? 'x: —, y: —' : `x: ${lastClick.x}, y: ${lastClick.y}`;
+
+// load preview
+$('load').onclick = async () => {
+  const f = $('file').files[0];
+  if(!f){ $('stat').textContent = "Choose a PDF."; return; }
+  $('stat').textContent = "Loading preview…";
+  const buf = await f.arrayBuffer();
+  pdfUrl = URL.createObjectURL(new Blob([buf],{type:"application/pdf"}));
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
+  pageCount = pdfDoc.numPages; pageNum = 1; scale = 1.0;
+  await renderPage();
+  $('stat').textContent = `Loaded ${pageCount} page(s). Click on the preview to set X/Y.`;
+};
+
+// render page
+async function renderPage(){
+  const page = await pdfDoc.getPage(pageNum);
+  const viewport = page.getViewport({ scale });
+  const canvas = $('cv'), ctx = canvas.getContext('2d');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  ptPerPx = page.getViewport({ scale: 1 }).width / viewport.width; // PDF points per pixel at current scale
+  const renderContext = { canvasContext: ctx, viewport };
+  await page.render(renderContext).promise;
+  setMeta(); setXY(); $('marker').style.display='none';
+}
+$('pPrev').onclick = async ()=>{ if(!pdfDoc) return; pageNum = Math.max(1, pageNum-1); await renderPage(); }
+$('pNext').onclick = async ()=>{ if(!pdfDoc) return; pageNum = Math.min(pageCount, pageNum+1); await renderPage(); }
+$('zoom').oninput = async e => { if(!pdfDoc) return; scale = +e.target.value/100; await renderPage(); }
+
+// click to set coords
+$('cv').addEventListener('click', e => {
+  const rect = $('cv').getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+  // convert to PDF coordinates: origin top-left in our insert_textbox config
+  const x = Math.round(px * ptPerPx);
+  const y = Math.round(py * ptPerPx);
+  lastClick = {x,y,page:pageNum};
+  const m = $('marker'); m.style.left = `${e.clientX}px`; m.style.top = `${e.clientY}px`; m.style.display='block';
+  setXY();
+});
+
+// prefills
+$('prefEp').onclick = ()=>{
+  $('page').value = "2";
+  $('text').value = `Epictetus — The Enchiridion
+“It’s not what happens to you, but how you react to it that matters.”
+Stoic acceptance turns chaos into composure. Control is limited to inner posture, not outer circumstance. Those who master interpretation become immovable.
+• Reframe difficulty as training.
+• Expect disruption; greet it with composure.
+• Respond, never react.
+Takeaway: Control begins where resistance ends.`;
+};
+$('prefRu').onclick = ()=>{
+  $('page').value = "3";
+  $('text').value = `Rumi — Masnavi
+“What you seek is seeking you.”
+Magnetic presence arises from sincerity of purpose. When desire is aligned with truth, others feel its pull. Stillness doesn’t chase — it attracts.
+• Align ambition with authenticity.
+• Speak from conviction, not comparison.
+• Let stillness signal strength.
+Takeaway: Alignment radiates further than effort.`;
+};
+
+// queue edit
+$('add').onclick = ()=>{
+  if(!lastClick.x){ alert("Click on the preview to set X/Y first."); return; }
+  const block = {
+    page: parseInt($('page').value,10),
+    x: lastClick.x,
+    y: lastClick.y,
+    text: $('text').value,
+    font: $('font').value || "Times-Roman",
+    size: parseFloat($('size').value) || 11
+  };
+  edits.push(block); setQueued();
+  $('text').value='';
+};
+
+// use raw JSON
+$('useJson').onclick = ()=>{
+  try{
+    const arr = JSON.parse($('jsonEdits').value);
+    edits.splice(0, edits.length, ...arr);
+    setQueued();
+    alert("Using custom JSON edits.");
+  }catch(e){ alert("Invalid JSON."); }
+};
+
+// apply edits (calls backend)
+$('apply').onclick = async ()=>{
+  try{
+    if(!pdfUrl){ alert("Load a PDF first."); return; }
+    if(edits.length===0){ alert("No edits queued."); return; }
+    $('stat').textContent = "Patching…";
+    const file = $('file').files[0];
+    const buf = await file.arrayBuffer();
+    const payload = { file: btoa(String.fromCharCode(...new Uint8Array(buf))), edits };
+    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if(!r.ok){ const t = await r.text(); throw new Error(t || r.statusText); }
+    const { pdf } = await r.json();
+    const blob = new Blob([Uint8Array.from(atob(pdf), c=>c.charCodeAt(0))], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='Gravitational_Aura_Masterclass_FINAL_CLEAN_v4.pdf'; a.click();
+    $('stat').textContent = "Done ✓ File downloaded."; $('stat').className = "status ok";
+  }catch(err){
+    $('stat').textContent = "Error: " + err.message; $('stat').className = "status err";
+  }
+};
+$('reset').onclick = ()=>{
+  edits.splice(0); setQueued();
+  $('text').value=''; lastClick={x:null,y:null}; setXY(); $('marker').style.display='none';
+};
+</script>
 </body>
 </html>

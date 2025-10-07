@@ -1,11 +1,8 @@
 {
-    "builds": [
-      { "src": "api/edit.py", "use": "@vercel/python" },
-      { "src": "src/App.jsx", "use": "@vercel/static-build" }
-    ],
-    "routes": [
-      { "src": "/api/.*", "dest": "/api/edit.py" },
-      { "src": "/(.*)", "dest": "/src/App.jsx" }
-    ]
+  "version": 2,
+  "functions": {
+    "api/*.py": {
+      "runtime": "python3.11"
+    }
   }
-  
+}

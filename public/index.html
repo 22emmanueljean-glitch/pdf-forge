@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF Forge</title>
+</head>
+<body>
+  <h2>Upload PDF</h2>
+  <input type="file" id="pdf" accept="application/pdf"><br>
+  <textarea id="edits" rows="6" cols="80">[
+{"page":2,"x":72,"y":700,"text":"Epictetus — The Enchiridion"},
+{"page":3,"x":72,"y":700,"text":"Rumi — Masnavi"}
+]</textarea><br>
+  <button id="go">Generate v4</button>
+  <script>
+    const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+    document.getElementById("go").onclick=async()=>{
+      const f=document.getElementById("pdf").files[0];
+      const e=JSON.parse(document.getElementById("edits").value);
+      const buf=await f.arrayBuffer();
+      const r=await fetch("/api/edit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({file:b64(buf),edits:e})});
+      const j=await r.json();const blob=new Blob([Uint8Array.from(atob(j.pdf),c=>c.charCodeAt(0))],{type:"application/pdf"});
+      const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="output.pdf";a.click();
+    };
+  </script>
+</body>
+</html>

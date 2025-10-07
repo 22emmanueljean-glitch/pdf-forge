@@ -33,7 +33,6 @@
   .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;background:#111523d0;border:1px dashed #7aa2ff;border-radius:6px;color:#e7eaf0;pointer-events:auto;cursor:move;white-space:pre-wrap;line-height:1.35}
   .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize}
   .coords{position:absolute;left:12px;bottom:12px;background:#111523bd;padding:6px 10px;border-radius:8px;font-size:12px;color:#c7d0e0;border:1px solid #22283a}
-  .marker{position:absolute;width:12px;height:12px;border:2px solid #8fb1ff;border-radius:50%;transform:translate(-6px,-6px);pointer-events:none}
   .list{font-size:12px;margin-top:8px}
   .list button{padding:6px 8px;margin-top:6px}
 </style>
@@ -116,12 +115,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-const API_EDIT = "/api/edit"; // your backend endpoint
+const API_EDIT = "/api/edit";
 
 // state
 let pdfDoc=null, pageNum=1, pageCount=1, scale=1.10, ptPerPx=1;
 let fileB64=null, lastClickPx=null, lastClickPt=null;
-let blocks=[]; // {id,page,xPt,yPt,widthPt,text,font,size,colorHex,pxWidth,pxHeight}
+let blocks=[]; // {id,page,xPt,yPt,widthPt,text,font,size,colorHex}
 
 // helpers
 const $ = id => document.getElementById(id);
@@ -144,17 +143,16 @@ $('load').onclick = async () => {
     pageCount = pdfDoc.numPages; pageNum = 1;
     await renderPage();
     $('tools').style.display = '';
-    // build page selector
     const sel = $('pageSelect'); sel.innerHTML="";
     for(let i=1;i<=pageCount;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent=String(i); sel.appendChild(o); }
     sel.value="2";
-    setStat(`Loaded ${pageCount} page(s). Click the canvas to set placement, then "Add Block".`, "ok");
+    setStat(`Loaded ${pageCount} page(s). Click the canvas to place, drag to adjust.`, "ok");
   }catch(e){ setStat("Error: "+e.message, "err"); }
 };
 
 $('reset').onclick = ()=>{
   pdfDoc=null; pageNum=1; pageCount=1; fileB64=null; blocks=[]; lastClickPx=null; lastClickPt=null;
-  $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
+  const cv=$('cv'); cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
   $('overlay').innerHTML=""; $('tools').style.display='none'; setQueued(); setStat("Cleared.");
 };
 
@@ -170,34 +168,40 @@ async function renderPage(){
   const cv = $('cv'), ctx = cv.getContext('2d');
   cv.width = viewport.width; cv.height = viewport.height;
   const baseViewport = page.getViewport({ scale: 1 });
-  ptPerPx = baseViewport.width / viewport.width; // PDF points per pixel (at current scale)
+  ptPerPx = baseViewport.width / viewport.width; // points per pixel
   await page.render({ canvasContext: ctx, viewport }).promise;
   setMeta();
+  // position overlay to canvas
+  const rect = cv.getBoundingClientRect();
+  const ov = $('overlay');
+  ov.style.left = rect.left + 'px';
+  ov.style.top  = rect.top + 'px';
+  ov.style.width  = rect.width + 'px';
+  ov.style.height = rect.height + 'px';
 }
 
-// click to set placement
-$('cv').addEventListener('click', e=>{
+// click to set placement (no global listeners; per action only)
+$('cv').addEventListener('pointerdown', e=>{
   const rect = $('cv').getBoundingClientRect();
   const pxX = e.clientX - rect.left;
   const pxY = e.clientY - rect.top;
   lastClickPx = {x:pxX, y:pxY};
   lastClickPt = {x:Math.round(pxX*ptPerPx), y:Math.round(pxY*ptPerPx)};
-  showMarker(pxX, pxY);
+  showMarker(pxX, pxY, rect);
 });
 
-function showMarker(pxX, pxY){
-  let m = document.querySelector('.marker');
-  if(!m){ m = document.createElement('div'); m.className='marker'; $('stage').appendChild(m); }
-  const rect = $('cv').getBoundingClientRect();
-  m.style.left = (rect.left + pxX) + 'px';
-  m.style.top  = (rect.top + pxY) + 'px';
+function showMarker(pxX, pxY, rect){
+  let m = document.getElementById('marker');
+  if(!m){ m = document.createElement('div'); m.id='marker'; m.style.position='absolute'; m.style.width='12px'; m.style.height='12px'; m.style.border='2px solid #8fb1ff'; m.style.borderRadius='50%'; m.style.pointerEvents='none'; $('stage').appendChild(m); }
+  m.style.left = (rect.left + pxX - 6) + 'px';
+  m.style.top  = (rect.top  + pxY - 6) + 'px';
 }
 
 // add block
 $('add').onclick = ()=>{
   if(!fileB64){ setStat("Load a PDF first.", "err"); return; }
   const pg = Number($('pageSelect').value)||pageNum;
-  if(!lastClickPx){ setStat("Click the canvas to choose a position first.", "err"); return; }
+  if(!lastClickPt){ setStat("Click the canvas to choose a position first.", "err"); return; }
   const text = $('text').value||"";
   const font = $('font').value||"Times-Roman";
   const size = parseFloat($('size').value)||11;
@@ -205,94 +209,90 @@ $('add').onclick = ()=>{
   const widthPt = parseFloat($('width').value)||460;
   const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random());
 
-  const block = {
-    id, page: pg,
-    xPt: lastClickPt.x, yPt: lastClickPt.y,
-    widthPt, text, font, size, colorHex
-  };
+  const block = { id, page: pg, xPt:lastClickPt.x, yPt:lastClickPt.y, widthPt, text, font, size, colorHex };
   blocks.push(block);
   setQueued();
   drawBlocks();
-  appendBlockRow(block);
+  appendRow(block);
   $('text').value="";
-  setStat("Block added. Drag it to fine-tune.", "ok");
+  setStat("Block added. Drag to move; drag corner to resize width.", "ok");
 };
 
-// draw overlay blocks (for current page only)
+// draw overlay blocks (only current page) — NO global window listeners; pointer capture per element
 function drawBlocks(){
   const ov = $('overlay'); ov.innerHTML="";
-  const rect = $('cv').getBoundingClientRect();
-  ov.style.left = rect.left + 'px';
-  ov.style.top  = rect.top  + 'px';
-  ov.style.width  = rect.width + 'px';
-  ov.style.height = rect.height + 'px';
+  const cv = $('cv'), rect = cv.getBoundingClientRect();
 
   blocks.filter(b=>b.page===pageNum).forEach(b=>{
     const div = document.createElement('div');
     div.className = 'block';
-    const pxX = b.xPt/ptPerPx;
-    const pxY = b.yPt/ptPerPx;
-    const pxW = b.widthPt/ptPerPx;
-
-    div.style.left = pxX+'px';
-    div.style.top  = pxY+'px';
-    div.style.width= pxW+'px';
+    div.style.left  = (b.xPt/ptPerPx) + 'px';
+    div.style.top   = (b.yPt/ptPerPx) + 'px';
+    div.style.width = (b.widthPt/ptPerPx) + 'px';
     div.style.fontFamily = b.font;
-    div.style.fontSize   = (b.size/ptPerPx)+'px'; // approximate preview
-    div.style.color = b.colorHex;
+    div.style.fontSize   = (b.size/ptPerPx) + 'px';
+    div.style.color      = b.colorHex;
     div.textContent = b.text;
 
     const handle = document.createElement('div');
     handle.className='handle';
     div.appendChild(handle);
 
-    // dragging
-    let drag=false, sx=0, sy=0, startLeft=0, startTop=0;
-    div.addEventListener('mousedown', ev=>{
-      drag=true; sx=ev.clientX; sy=ev.clientY;
-      startLeft = parseFloat(div.style.left); startTop = parseFloat(div.style.top);
-      ev.preventDefault();
-    });
-    window.addEventListener('mousemove', ev=>{
-      if(!drag) return;
-      const dx=ev.clientX-sx, dy=ev.clientY-sy;
-      div.style.left = (startLeft+dx)+'px';
-      div.style.top  = (startTop+dy)+'px';
-    });
-    window.addEventListener('mouseup', ev=>{
-      if(!drag) return; drag=false;
-      // update block pt coords
-      const newPxX = parseFloat(div.style.left);
-      const newPxY = parseFloat(div.style.top);
-      b.xPt = Math.round(newPxX*ptPerPx);
-      b.yPt = Math.round(newPxY*ptPerPx);
-      updateBlockRow(b);
+    // move (pointer events with capture; no accumulation)
+    div.addEventListener('pointerdown', ev=>{
+      if(ev.target===handle) return; // resizing handled below
+      div.setPointerCapture(ev.pointerId);
+      const startX = ev.clientX, startY = ev.clientY;
+      const startLeft = parseFloat(div.style.left), startTop = parseFloat(div.style.top);
+      const move = (e)=>{
+        const dx=e.clientX-startX, dy=e.clientY-startY;
+        div.style.left = (startLeft+dx)+'px';
+        div.style.top  = (startTop+dy)+'px';
+      };
+      const up = (e)=>{
+        div.releasePointerCapture(ev.pointerId);
+        div.removeEventListener('pointermove', move);
+        div.removeEventListener('pointerup', up);
+        b.xPt = Math.round(parseFloat(div.style.left)*ptPerPx);
+        b.yPt = Math.round(parseFloat(div.style.top)*ptPerPx);
+        updateRow(b);
+      };
+      div.addEventListener('pointermove', move);
+      div.addEventListener('pointerup', up);
     });
 
-    // resize via handle
-    let rdrag=false, rsx=0, startW=0;
-    handle.addEventListener('mousedown', ev=>{
-      rdrag=true; rsx=ev.clientX; startW=parseFloat(div.style.width);
-      ev.stopPropagation(); ev.preventDefault();
-    });
-    window.addEventListener('mousemove', ev=>{
-      if(!rdrag) return;
-      const dx=ev.clientX-rsx;
-      const newW = Math.max(60, startW+dx);
-      div.style.width = newW+'px';
-    });
-    window.addEventListener('mouseup', ev=>{
-      if(!rdrag) return; rdrag=false;
-      b.widthPt = Math.round(parseFloat(div.style.width)*ptPerPx);
-      updateBlockRow(b);
+    // resize width
+    handle.addEventListener('pointerdown', ev=>{
+      ev.stopPropagation();
+      div.setPointerCapture(ev.pointerId);
+      const startX = ev.clientX;
+      const startW = parseFloat(div.style.width);
+      const move = (e)=>{
+        const dx=e.clientX-startX;
+        const newW=Math.max(60, startW+dx);
+        div.style.width = newW+'px';
+      };
+      const up = (e)=>{
+        div.releasePointerCapture(ev.pointerId);
+        div.removeEventListener('pointermove', move);
+        div.removeEventListener('pointerup', up);
+        b.widthPt = Math.round(parseFloat(div.style.width)*ptPerPx);
+        updateRow(b);
+      };
+      div.addEventListener('pointermove', move);
+      div.addEventListener('pointerup', up);
     });
 
     ov.appendChild(div);
   });
+
+  // align overlay to canvas every time
+  ov.style.pointerEvents = 'none';
+  Array.from(ov.children).forEach(ch=>ch.style.pointerEvents='auto');
 }
 
 // list rows
-function appendBlockRow(b){
+function appendRow(b){
   const list = $('blocksList');
   const row = document.createElement('div');
   row.id = 'row-'+b.id;
@@ -310,7 +310,6 @@ function appendBlockRow(b){
   row.querySelector('.secondary').onclick = ()=>{
     $('pageSelect').value = String(b.page);
     pageNum = b.page; renderPage().then(drawBlocks);
-    // flash?
   };
   row.querySelector('.del').onclick = ()=>{
     blocks = blocks.filter(x=>x.id!==b.id);
@@ -318,11 +317,9 @@ function appendBlockRow(b){
     drawBlocks(); setQueued();
   };
 }
-function updateBlockRow(b){
+function updateRow(b){
   const row = $('row-'+b.id);
-  if(row){
-    row.querySelectorAll('.pill')[1].textContent = `x:${b.xPt} y:${b.yPt}`;
-  }
+  if(row){ row.querySelectorAll('.pill')[1].textContent = `x:${b.xPt} y:${b.yPt}`; }
 }
 
 // apply
@@ -333,11 +330,7 @@ $('apply').onclick = async ()=>{
     setStat("Generating…");
     const edits = blocks.map(b=>{
       const rgb = hexToRgb(b.colorHex);
-      return {
-        page: b.page, x: b.xPt, y: b.yPt,
-        text: b.text, font: b.font, size: b.size,
-        color: rgb, width: b.widthPt
-      };
+      return { page:b.page, x:b.xPt, y:b.yPt, text:b.text, font:b.font, size:b.size, color:rgb, width:b.widthPt };
     });
     const payload = { file: fileB64, edits };
     const r = await fetch(API_EDIT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
@@ -347,7 +340,7 @@ $('apply').onclick = async ()=>{
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href=url; a.download='Gravitational_Aura_Masterclass_FINAL_CLEAN_v4.pdf'; a.click();
     setStat("Done ✓ File downloaded.", "ok");
-  }catch(e){ setStat("Error: "+e.message, "err"); }
+  }catch(e){ setStat("Error: " + e.message, "err"); }
 };
 
 function hexToRgb(hex){

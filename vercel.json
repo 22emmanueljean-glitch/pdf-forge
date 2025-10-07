@@ -1,13 +1,4 @@
 {
-  "version": 3,
-  "functions": {
-    "api/edit.py": {
-      "runtime": "python3.11"
-    }
-  },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "api/edit.py" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/public/$1" }
-  ]
-}
+    "version": 2
+  }
+  

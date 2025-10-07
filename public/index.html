@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PDF Forge — Stable Editor</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PDF Forge — Editor Pro</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:#e7eaf0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  .wrap{display:grid;grid-template-columns:360px 1fr;gap:16px;height:100vh}
+  .wrap{display:grid;grid-template-columns:380px 1fr;gap:16px;height:100vh}
   @media (max-width:980px){.wrap{grid-template-columns:1fr;height:auto}}
   .left{padding:16px;overflow:auto;background:#151821;border-right:1px solid #1f2330}
   .right{padding:0 0 16px 0;overflow:auto;background:#0b0d13}
@@ -25,24 +25,27 @@
   .status{margin-top:8px;font-size:12px;color:#9aa3b2}
   .status.ok{color:#3ecf8e} .status.err{color:#ff6b6b}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#22283a;color:#c7d0e0;font-size:12px;margin-right:6px}
-
+  .toolbar{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid #1a1f2b;background:#0b0d13}
   .stage {display:flex;justify-content:center}
   .pageWrap {position:relative; display:inline-block; margin:12px auto; background:#0b0d13; border:1px solid #1a1f2b; border-radius:6px;}
   canvas {display:block}
   .overlay {position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:none}
-  .block {position:absolute; min-width:80px; min-height:30px; padding:6px 8px;
-          background:#111523d0; border:1px dashed #7aa2ff; border-radius:6px;
-          color:#e7eaf0; pointer-events:auto; cursor:move; white-space:pre-wrap; line-height:1.35}
-  .handle {position:absolute; right:-8px; bottom:-8px; width:14px; height:14px;
-           border:2px solid #7aa2ff; border-radius:3px; background:#111523; cursor:nwse-resize}
-  .toolbar{position:sticky; top:0; z-index:2; display:flex; gap:8px; align-items:center;
-           padding:12px; border-bottom:1px solid #1a1f2b; background:#0b0d13}
+  .block{position:absolute; min-width:80px; min-height:30px; padding:6px 8px; border-radius:6px; pointer-events:auto; cursor:move; white-space:pre-wrap; line-height:1.35}
+  .block .close{position:absolute; top:-9px; left:-9px; width:18px; height:18px; border-radius:50%; background:#ff6b6b; color:#0b0d13; font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid #ff9a9a}
+  .handle{position:absolute; right:-8px; bottom:-8px; width:14px; height:14px; border:2px solid #7aa2ff; border-radius:3px; background:#111523; cursor:nwse-resize}
+  /* Guides ON (default) */
+  body.guides .block{background:#111523d0; border:1px dashed #7aa2ff; color:#e7eaf0}
+  /* Guides OFF */
+  body:not(.guides) .block{background:transparent; border:1px dashed transparent}
+  .coords{font-size:12px;color:#9aa3b2;margin-left:auto}
+  .tinyrow{display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:8px}
+  .tinyrow label{display:flex; align-items:center; gap:6px}
 </style>
 </head>
-<body>
+<body class="guides">
 <div class="wrap">
   <div class="left">
-    <h1>PDF Forge — Stable</h1>
+    <h1>PDF Forge — Editor Pro</h1>
 
     <div class="card">
       <label>Upload PDF</label>
@@ -66,6 +69,12 @@
         </div>
       </div>
 
+      <div class="tinyrow">
+        <label><input type="checkbox" id="toggleGuides" checked> Show guides</label>
+        <button id="eyedrop" class="secondary" style="padding:8px 10px">Eyedropper (pick style)</button>
+        <span class="pill" id="picked">style: —</span>
+      </div>
+
       <div class="row">
         <div>
           <label>Font</label>
@@ -81,6 +90,11 @@
         <div>
           <label>Color</label>
           <input id="color" type="color" value="#000000">
+          <div class="tinyrow">
+            <button id="quickRed" class="secondary" style="padding:6px 8px">Red</button>
+            <button id="quickBlue" class="secondary" style="padding:6px 8px">Blue</button>
+            <button id="quickBody" class="secondary" style="padding:6px 8px">Body</button>
+          </div>
         </div>
         <div>
           <label>Width (pt)</label>
@@ -92,11 +106,27 @@
       <textarea id="text" placeholder="Type your text to insert…"></textarea>
 
       <div class="row">
-        <button id="add">Add Block (click preview to place)</button>
-        <button id="apply" class="secondary">Generate v4</button>
+        <button id="addText">Add Text (click preview to place)</button>
+        <button id="addLine" class="secondary">Add Line (click to place)</button>
       </div>
 
-      <div class="status" id="queued">0 queued</div>
+      <div class="row" style="margin-top:6px">
+        <div>
+          <label>Line Width (pt)</label>
+          <input id="lineWidth" type="number" value="460">
+        </div>
+        <div>
+          <label>Line Thickness (pt)</label>
+          <input id="lineThick" type="number" value="2">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button id="apply" class="secondary">Generate v4</button>
+        <button id="clearBlocks" class="secondary">Remove All</button>
+      </div>
+
+      <div class="status" id="queued">0 items queued</div>
     </div>
   </div>
 
@@ -105,6 +135,7 @@
       <span class="pill" id="meta">Page — | scale 1.00</span>
       <button id="prev" class="secondary">◀</button>
       <button id="next" class="secondary">▶</button>
+      <span class="coords" id="coords">x: —  y: —</span>
     </div>
     <div class="stage">
       <div class="pageWrap" id="pageWrap" style="display:none">
@@ -117,179 +148,290 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-// --- helpers ---
-async function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => {
-      const res = String(fr.result || '');
-      const base64 = res.includes(',') ? res.split(',')[1] : res;
-      resolve(base64);
-    };
-    fr.onerror = reject;
+const API_EDIT="/api/edit";
+
+// ===== Helpers =====
+async function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{const s=String(fr.result||""); resolve(s.includes(",")?s.split(",")[1]:s);};
+    fr.onerror=reject;
     fr.readAsDataURL(file);
   });
 }
 function hexToRgb01(hex){
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if(!m) return [0,0,0];
-  return [ parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255 ];
+  return [parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255];
 }
+const $=id=>document.getElementById(id);
+const setStat=(t,cls="")=>{const el=$('stat'); el.textContent=t; el.className="status "+cls;};
+const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`;
+const setQueued=()=>$('queued').textContent=items.length+" items queued";
 
-// --- state ---
-const API_EDIT = "/api/edit";
+// ===== State =====
 let pdfDoc=null, pageNum=1, pageCount=1, scale=1.10, ptPerPx=1;
-let fileB64=null, lastClickPx=null, lastClickPt=null;
-let blocks=[];
+let fileB64=null, lastClickPt=null;
+let items=[]; // {id,type:'text'|'line',page, ...}
 
-const $ = id => document.getElementById(id);
-const setStat = (t,cls="") => { const el=$('stat'); el.textContent=t; el.className="status "+cls; };
-const setMeta = () => $('meta').textContent = `Page ${pageNum} | scale ${scale.toFixed(2)}`;
-const setQueued = () => $('queued').textContent = blocks.length + " queued";
+// pdf.js
+const pdfjsLib=window['pdfjs-dist/build/pdf'];
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-// --- Load ---
-$('load').onclick = async () => {
+// ===== Load Preview =====
+$('load').onclick=async()=>{
   try{
-    const f = $('file').files[0]; if(!f){ setStat("Choose a PDF."); return; }
-    fileB64 = await fileToBase64(f);
-    const buf = await f.arrayBuffer();
-    pdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
-    pageCount = pdfDoc.numPages; pageNum = 1;
+    const f=$('file').files[0]; if(!f){setStat("Choose a PDF."); return;}
+    fileB64=await fileToBase64(f);
+    const buf=await f.arrayBuffer();
+    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+    pageCount=pdfDoc.numPages; pageNum=1;
     $('tools').style.display='';
     const sel=$('pageSelect'); sel.innerHTML="";
-    for(let i=1;i<=pageCount;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent=String(i); sel.appendChild(o); }
+    for(let i=1;i<=pageCount;i++){const o=document.createElement('option'); o.value=String(i); o.textContent=String(i); sel.appendChild(o);}
     sel.value="1";
-    await renderPage(); drawBlocks();
-    setStat(`Loaded ${pageCount} page(s).`, "ok");
-  }catch(e){ setStat("Error: "+e.message, "err"); }
+    await renderPage();
+    drawOverlay();
+    setStat(`Loaded ${pageCount} page(s).`,"ok");
+  }catch(e){ setStat("Error: "+e.message,"err"); }
 };
-
-$('reset').onclick = ()=>{
-  pdfDoc=null; fileB64=null; blocks=[]; $('tools').style.display='none';
+$('reset').onclick=()=>{
+  pdfDoc=null; fileB64=null; items=[]; $('tools').style.display='none';
   $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
   $('overlay').innerHTML=""; $('pageWrap').style.display='none';
   setQueued(); setStat("Cleared.");
 };
 
-$('prev').onclick = async()=>{ if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); drawBlocks(); };
-$('next').onclick = async()=>{ if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); drawBlocks(); };
-$('zoom').oninput = async e=>{ if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); drawBlocks(); };
-$('pageSelect').onchange = async e=>{ pageNum=Number(e.target.value)||1; await renderPage(); drawBlocks(); };
+// ===== Navigation / Zoom =====
+$('prev').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); drawOverlay();};
+$('next').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); drawOverlay();};
+$('zoom').oninput=async e=>{if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); drawOverlay();};
+$('pageSelect').onchange=async e=>{pageNum=Number(e.target.value)||1; await renderPage(); drawOverlay();};
 
+// ===== Render Page =====
 async function renderPage(){
-  const page = await pdfDoc.getPage(pageNum);
-  const viewport = page.getViewport({ scale });
+  const page=await pdfDoc.getPage(pageNum);
+  const viewport=page.getViewport({scale});
   const cv=$('cv'), ctx=cv.getContext('2d');
   cv.width=viewport.width; cv.height=viewport.height;
-  const baseViewport = page.getViewport({ scale:1 });
-  ptPerPx = baseViewport.width / viewport.width;
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  const baseViewport=page.getViewport({scale:1});
+  ptPerPx=baseViewport.width/viewport.width; // points per pixel
+  await page.render({canvasContext:ctx, viewport}).promise;
   $('pageWrap').style.display='';
   setMeta();
+  // show pointer coordinates
+  cv.onpointermove=(e)=>{
+    const r=cv.getBoundingClientRect();
+    const x=Math.round((e.clientX-r.left)*ptPerPx);
+    const y=Math.round((e.clientY-r.top)*ptPerPx);
+    $('coords').textContent=`x: ${x}  y: ${y}`;
+  };
 }
 
-// --- Click for placement ---
-$('cv').addEventListener('pointerdown', e=>{
-  const rect = $('cv').getBoundingClientRect();
-  const pxX = e.clientX - rect.left;
-  const pxY = e.clientY - rect.top;
-  lastClickPx = {x:pxX, y:pxY};
-  lastClickPt = {x:Math.round(pxX*ptPerPx), y:Math.round(pxY*ptPerPx)};
-});
-
-// --- Add block ---
-$('add').onclick = ()=>{
-  if(!fileB64){ setStat("Load a PDF first.","err"); return; }
-  if(!lastClickPt){ setStat("Click preview first.","err"); return; }
-  const pg = Number($('pageSelect').value)||pageNum;
-  const text=$('text').value||"";
-  const font=$('font').value||"Times-Roman";
-  const size=parseFloat($('size').value)||11;
-  const colorHex=$('color').value||"#000000";
-  const widthPt=parseFloat($('width').value)||460;
-  const id=Date.now()+"-"+Math.random();
-  blocks.push({id,page:pg,xPt:lastClickPt.x,yPt:lastClickPt.y,widthPt,text,font,size,colorHex});
-  setQueued(); drawBlocks();
-  $('text').value=""; setStat("Block added.","ok");
+// ===== Guides toggle =====
+$('toggleGuides').onchange=(e)=>{
+  if(e.target.checked) document.body.classList.add('guides');
+  else document.body.classList.remove('guides');
 };
 
-// --- Draw overlay blocks ---
-function drawBlocks(){
+// ===== Quick Colors =====
+$('quickRed').onclick=()=>{ $('color').value='#c62828'; };
+$('quickBlue').onclick=()=>{ $('color').value='#1565c0'; };
+$('quickBody').onclick=()=>{ $('color').value='#000000'; };
+
+// ===== Eyedropper (client-side, font-size approximation using pdf.js textContent) =====
+let eyedropActive=false;
+$('eyedrop').onclick=()=>{
+  if(!pdfDoc){ setStat("Load a PDF first."); return; }
+  eyedropActive=!eyedropActive;
+  $('eyedrop').textContent = eyedropActive ? "Eyedropper (ON)" : "Eyedropper (pick style)";
+  setStat(eyedropActive ? "Click near existing text to pick its style." : "Eyedropper off.","ok");
+};
+async function pickStyleAtPoint(pt){
+  const page=await pdfDoc.getPage(pageNum);
+  const tc=await page.getTextContent();
+  // choose nearest item center
+  let best=null, bestD=1e15;
+  for(const item of tc.items){
+    // item.transform: [a,b,c,d,e,f]; approx size ~ |a| or |d|
+    const a=item.transform[0], d=item.transform[3], e=item.transform[4], f=item.transform[5];
+    const w=item.width; const h=Math.abs(d);
+    const cx=e + (w/2); const cy=f;
+    const dx=cx-pt.x, dy=cy-pt.y; const dd=dx*dx+dy*dy;
+    if(dd<bestD){bestD=dd; best={size:Math.max(Math.abs(a),Math.abs(d)), text:item.str};}
+  }
+  if(best){
+    $('size').value = Math.max(6, Math.round(best.size));
+    $('picked').textContent = `style: ~${Math.round(best.size)}pt`;
+    setStat(`Picked ~${Math.round(best.size)}pt from "${(best.text||'').slice(0,20)}"`, "ok");
+  } else {
+    setStat("Couldn't detect style here.","err");
+  }
+}
+
+// ===== Canvas clicks: set lastClickPt or eyedrop =====
+$('cv').addEventListener('pointerdown', async (e)=>{
+  const r=$('cv').getBoundingClientRect();
+  const xPt=Math.round((e.clientX-r.left)*ptPerPx);
+  const yPt=Math.round((e.clientY-r.top)*ptPerPx);
+  if(eyedropActive){ await pickStyleAtPoint({x:xPt,y:yPt}); eyedropActive=false; $('eyedrop').textContent="Eyedropper (pick style)"; return; }
+  lastClickPt={x:xPt,y:yPt};
+  setStat(`Placement set at (${xPt}, ${yPt}).`,"ok");
+});
+
+// ===== Add Text =====
+$('addText').onclick=()=>{
+  if(!fileB64){ setStat("Load a PDF first.","err"); return; }
+  if(!lastClickPt){ setStat("Click preview to choose a position first.","err"); return; }
+  const pg=Number($('pageSelect').value)||pageNum;
+  const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  const it={
+    id, type:'text', page:pg,
+    x:lastClickPt.x, y:lastClickPt.y,
+    width: parseFloat($('width').value)||460,
+    text: $('text').value||"",
+    font: $('font').value||"Times-Roman",
+    size: parseFloat($('size').value)||11,
+    colorHex: $('color').value||"#000000"
+  };
+  items.push(it); setQueued(); $('text').value="";
+  drawOverlay(); setStat("Text block added. Drag/resize as needed.","ok");
+};
+
+// ===== Add Line (horizontal, draggable) =====
+$('addLine').onclick=()=>{
+  if(!fileB64){ setStat("Load a PDF first.","err"); return; }
+  if(!lastClickPt){ setStat("Click preview to choose a position first.","err"); return; }
+  const pg=Number($('pageSelect').value)||pageNum;
+  const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  const it={
+    id, type:'line', page:pg,
+    x:lastClickPt.x, y:lastClickPt.y,
+    width: parseFloat($('lineWidth').value)||460,
+    thick: parseFloat($('lineThick').value)||2,
+    colorHex: $('color').value||"#000000"
+  };
+  items.push(it); setQueued();
+  drawOverlay(); setStat("Line added. Drag/resize width as needed.","ok");
+};
+
+// ===== Remove All =====
+$('clearBlocks').onclick=()=>{ items=[]; drawOverlay(); setQueued(); setStat("All items removed.","ok"); };
+
+// ===== Draw Overlay (blocks + lines, with delete, drag, resize) =====
+function drawOverlay(){
   const ov=$('overlay'); ov.innerHTML="";
-  blocks.filter(b=>b.page===pageNum).forEach(b=>{
+  const onPage=items.filter(it=>it.page===pageNum);
+
+  onPage.forEach(it=>{
     const div=document.createElement('div');
     div.className='block';
-    div.style.left=(b.xPt/ptPerPx)+'px';
-    div.style.top=(b.yPt/ptPerPx)+'px';
-    div.style.width=(b.widthPt/ptPerPx)+'px';
-    div.style.fontFamily=b.font;
-    div.style.fontSize=(b.size/ptPerPx)+'px';
-    div.style.color=b.colorHex;
-    div.textContent=b.text;
-    const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
 
-    // Move
+    // shared UI
+    const close=document.createElement('div');
+    close.className='close';
+    close.textContent='×';
+    close.title='Delete';
+    close.onclick=(ev)=>{ ev.stopPropagation(); items=items.filter(x=>x.id!==it.id); drawOverlay(); setQueued(); };
+    div.appendChild(close);
+
+    const handle=document.createElement('div');
+    handle.className='handle';
+    div.appendChild(handle);
+
+    // specific render
+    if(it.type==='text'){
+      div.style.left=(it.x/ptPerPx)+'px';
+      div.style.top=(it.y/ptPerPx)+'px';
+      div.style.width=(it.width/ptPerPx)+'px';
+      div.style.fontFamily=it.font;
+      div.style.fontSize=(it.size/ptPerPx)+'px';
+      div.style.color=it.colorHex;
+      div.textContent=it.text;
+    } else if(it.type==='line'){
+      div.style.left=(it.x/ptPerPx)+'px';
+      // approximate line height on-screen
+      const pxH=Math.max(1, it.thick/ptPerPx);
+      div.style.top=((it.y/ptPerPx)-(pxH/2))+'px';
+      div.style.width=(it.width/ptPerPx)+'px';
+      div.style.height=pxH+'px';
+      // fake line look in preview
+      div.style.background=it.colorHex;
+      div.style.border='1px dashed transparent';
+      div.textContent='';
+    }
+
+    // MOVE
     div.addEventListener('pointerdown',ev=>{
-      if(ev.target===handle)return;
+      if(ev.target===handle || ev.target===close) return;
       div.setPointerCapture(ev.pointerId);
       const sx=ev.clientX, sy=ev.clientY;
       const sl=parseFloat(div.style.left), st=parseFloat(div.style.top);
-      const move=e=>{
-        div.style.left=(sl+(e.clientX-sx))+'px';
-        div.style.top=(st+(e.clientY-sy))+'px';
+      const onMove=e=>{
+        const dx=e.clientX-sx, dy=e.clientY-sy;
+        div.style.left=(sl+dx)+'px';
+        div.style.top=(st+dy)+'px';
       };
-      const up=e=>{
+      const onUp=e=>{
         div.releasePointerCapture(ev.pointerId);
-        div.removeEventListener('pointermove',move);
-        div.removeEventListener('pointerup',up);
-        b.xPt=Math.round(parseFloat(div.style.left)*ptPerPx);
-        b.yPt=Math.round(parseFloat(div.style.top)*ptPerPx);
+        div.removeEventListener('pointermove',onMove);
+        div.removeEventListener('pointerup',onUp);
+        it.x=Math.round(parseFloat(div.style.left)*ptPerPx);
+        if(it.type==='text'){
+          it.y=Math.round(parseFloat(div.style.top)*ptPerPx);
+        }else{
+          const pxH=Math.max(1, it.thick/ptPerPx);
+          it.y=Math.round((parseFloat(div.style.top)+pxH/2)*ptPerPx);
+        }
       };
-      div.addEventListener('pointermove',move);
-      div.addEventListener('pointerup',up);
+      div.addEventListener('pointermove',onMove);
+      div.addEventListener('pointerup',onUp);
     });
 
-    // Resize
+    // RESIZE (width only)
     handle.addEventListener('pointerdown',ev=>{
       ev.stopPropagation();
       div.setPointerCapture(ev.pointerId);
       const sx=ev.clientX; const sw=parseFloat(div.style.width);
-      const move=e=>{
+      const onMove=e=>{
         const dx=e.clientX-sx;
-        div.style.width=Math.max(60,sw+dx)+'px';
+        div.style.width=Math.max(20, sw+dx)+'px';
       };
-      const up=e=>{
+      const onUp=e=>{
         div.releasePointerCapture(ev.pointerId);
-        div.removeEventListener('pointermove',move);
-        div.removeEventListener('pointerup',up);
-        b.widthPt=Math.round(parseFloat(div.style.width)*ptPerPx);
+        div.removeEventListener('pointermove',onMove);
+        div.removeEventListener('pointerup',onUp);
+        it.width=Math.round(parseFloat(div.style.width)*ptPerPx);
       };
-      div.addEventListener('pointermove',move);
-      div.addEventListener('pointerup',up);
+      div.addEventListener('pointermove',onMove);
+      div.addEventListener('pointerup',onUp);
     });
 
     ov.appendChild(div);
   });
+
   ov.style.pointerEvents='none';
   Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
-// --- Generate v4 ---
-$('apply').onclick = async ()=>{
+// ===== Generate v4 (send both text and line items) =====
+$('apply').onclick=async()=>{
   try{
     if(!fileB64){ setStat("Load a PDF first.","err"); return; }
-    if(blocks.length===0){ setStat("No edits queued.","err"); return; }
+    if(items.length===0){ setStat("No items queued.","err"); return; }
     setStat("Generating…");
-    const edits=blocks.map(b=>{
-      const [r,g,bx]=hexToRgb01(b.colorHex);
-      return {page:b.page,x:b.xPt,y:b.yPt,text:b.text,font:b.font,size:b.size,color:[r,g,bx],width:b.widthPt};
+    const edits = items.map(it=>{
+      if(it.type==='text'){
+        const [r,g,b]=hexToRgb01(it.colorHex);
+        return { type:'text', page:it.page, x:it.x, y:it.y, width:it.width, text:it.text, font:it.font, size:it.size, color:[r,g,b] };
+      } else {
+        const [r,g,b]=hexToRgb01(it.colorHex);
+        return { type:'line', page:it.page, x:it.x, y:it.y, width:it.width, thick:it.thick, color:[r,g,b] };
+      }
     });
-    const r=await fetch(API_EDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:fileB64,edits})});
-    if(!r.ok){const t=await r.text();throw new Error(t||r.statusText);}
-    const {pdf}=await r.json();
+    const r=await fetch(API_EDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:fileB64, edits})});
+    if(!r.ok){ const t=await r.text(); throw new Error(t||r.statusText); }
+    const { pdf }=await r.json();
     const blob=new Blob([Uint8Array.from(atob(pdf),c=>c.charCodeAt(0))],{type:'application/pdf'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download='Gravitational_Aura_Masterclass_FINAL_CLEAN_v4.pdf'; a.click();

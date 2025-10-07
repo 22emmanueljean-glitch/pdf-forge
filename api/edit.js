@@ -1,46 +1,119 @@
 // api/edit.js
-import { PythonShell } from 'python-shell';
+// Node serverless function (no Python needed). Uses pdf-lib to add text to existing PDFs.
+// Expects JSON: { file: <base64>, edits: [{page,x,y,text,width,size,font,color}] }
+// - page: 1-based page number
+// - x,y: TOP-LEFT PDF coordinates in points (same as your UI). We'll convert to pdf-lib's bottom-left.
+// - width: wrap width in points (default 460)
+// - size: font size (default 11)
+// - font: one of ["Times-Roman","Times-Bold","Times-Italic","Times-BoldItalic","Helvetica","Helvetica-Bold","Helvetica-Oblique","Helvetica-BoldOblique","Courier","Courier-Bold","Courier-Oblique","Courier-BoldOblique"] (default Times-Roman)
+// - color: [r,g,b] either 0..1 or 0..255 (default black)
 
-export default async function handler(req, res) {
-  try {
-    const body = await new Promise((resolve) => {
-      let b=''; req.on('data', c => b += c); req.on('end', () => resolve(b));
-    });
-    const data = JSON.parse(body); // { file: b64, edits: [{page,x,y,text,font?,size?,color?,style_ref?}] , styles? }
-    const code = `
-import sys, json, base64, fitz, io
-d = json.loads(${JSON.stringify(body)})
-pdf = base64.b64decode(d["file"])
-doc = fitz.open(stream=pdf, filetype="pdf")
-styles = d.get("styles", {})  # { "2": { "0": {font,size,color}, "1": {...} }, ... }
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
-for e in d["edits"]:
-    p = doc[e["page"]-1]
-    x,y = float(e["x"]), float(e["y"])
-    text = e["text"]
-    font = e.get("font"); size = e.get("size"); color = e.get("color")
-    sr = e.get("style_ref")
-    if sr is not None:
-        # sr like {"page": 2, "id": 0}
-        pg = str(sr.get("page"))
-        sid = str(sr.get("id"))
-        if pg in styles and sid in styles[pg]:
-            st = styles[pg][sid]
-            font = st.get("font", font)
-            size = st.get("size", size)
-            color = st.get("color", color)
-    if color is None: color=(0,0,0)
-    elif isinstance(color, int):
-        # convert 0xRRGGBB int to tuple
-        r = (color>>16) & 255; g = (color>>8) & 255; b = color & 255
-        color = (r/255, g/255, b/255)
-    rect = fitz.Rect(x, y, x+460, y+160)
-    p.insert_textbox(rect, text, fontsize=float(size or 11), fontname=(font or "Times-Roman"), color=color)
-out = io.BytesIO(); doc.save(out); print(json.dumps({"pdf": base64.b64encode(out.getvalue()).decode()}))
-`;
-    const result = await PythonShell.runString(code, { mode: 'text', pythonOptions: ['-u'] });
-    res.status(200).json(JSON.parse(result.join('')));
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
+function mapFont(name) {
+  const m = {
+    'Times-Roman': StandardFonts.TimesRoman,
+    'Times-Bold': StandardFonts.TimesBold,
+    'Times-Italic': StandardFonts.TimesItalic,
+    'Times-BoldItalic': StandardFonts.TimesBoldItalic,
+    'Helvetica': StandardFonts.Helvetica,
+    'Helvetica-Bold': StandardFonts.HelveticaBold,
+    'Helvetica-Oblique': StandardFonts.HelveticaOblique,
+    'Helvetica-BoldOblique': StandardFonts.HelveticaBoldOblique,
+    'Courier': StandardFonts.Courier,
+    'Courier-Bold': StandardFonts.CourierBold,
+    'Courier-Oblique': StandardFonts.CourierOblique,
+    'Courier-BoldOblique': StandardFonts.CourierBoldOblique,
+  };
+  return m[name] || StandardFonts.TimesRoman;
 }
+
+function colorToRgb(c) {
+  if (!Array.isArray(c) || c.length !== 3) return rgb(0, 0, 0);
+  // allow either [0..1] or [0..255]
+  const scale = (c[0] > 1 || c[1] > 1 || c[2] > 1) ? 255 : 1;
+  return rgb(c[0] / scale, c[1] / scale, c[2] / scale);
+}
+
+// simple word-wrapper
+function wrapText(text, font, fontSize, maxWidth) {
+  const words = (text || '').split(/(\s+)/); // keep spaces
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    const test = line + w;
+    const width = font.widthOfTextAtSize(test, fontSize);
+    if (width <= maxWidth || line.length === 0) {
+      line = test;
+    } else {
+      lines.push(line.trimEnd());
+      line = w.trimStart();
+    }
+  }
+  if (line.length) lines.push(line.trimEnd());
+  return lines;
+}
+
+module.exports = async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Use POST' });
+      return;
+    }
+    const chunks = [];
+    for await (const ch of req) chunks.push(ch);
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+
+    const pdfBytes = Buffer.from(body.file, 'base64');
+    const edits = Array.isArray(body.edits) ? body.edits : [];
+
+    const pdf = await PDFDocument.load(pdfBytes, { updateMetadata: false });
+
+    // Pre-embed any fonts we need
+    const neededFonts = new Map();
+    for (const e of edits) {
+      const name = e.font || 'Times-Roman';
+      neededFonts.set(name, mapFont(name));
+    }
+    const embedded = {};
+    for (const [name, stdFont] of neededFonts.entries()) {
+      embedded[name] = await pdf.embedFont(stdFont);
+    }
+
+    for (const e of edits) {
+      const pageIndex = Math.max(0, (e.page || 1) - 1);
+      const page = pdf.getPage(pageIndex);
+      const pageHeight = page.getHeight();
+
+      const fontName = e.font || 'Times-Roman';
+      const fontSize = Number(e.size || 11);
+      const width = Number(e.width || 460);
+      const color = colorToRgb(e.color || [0, 0, 0]);
+      const font = embedded[fontName] || embedded['Times-Roman'];
+
+      // Incoming coordinates are TOP-LEFT. pdf-lib uses BOTTOM-LEFT.
+      // We'll draw line by line from the top-left (x,y) downward.
+      const x = Number(e.x || 72);
+      let yTop = Number(e.y || 700);
+
+      const lineHeight = fontSize * 1.35; // approximate leading
+      const paragraphs = String(e.text || '').split(/\r?\n/);
+
+      for (const para of paragraphs) {
+        const lines = wrapText(para, font, fontSize, width);
+        for (const line of lines) {
+          const yFromBottom = pageHeight - yTop - fontSize; // baseline correction
+          page.drawText(line, { x, y: yFromBottom, font, size: fontSize, color, maxWidth: width });
+          yTop += lineHeight;
+        }
+        // paragraph spacing (slightly larger)
+        yTop += (lineHeight * 0.15);
+      }
+    }
+
+    const out = await pdf.save({ updateFieldAppearances: false, useObjectStreams: false });
+    res.status(200).json({ pdf: Buffer.from(out).toString('base64') });
+  } catch (err) {
+    res.status(500).json({ error: String(err?.message || err) });
+  }
+};

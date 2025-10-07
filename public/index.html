@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Editor Pro</title>
+<title>PDF Forge — Editor Pro (Selectable)</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
@@ -31,11 +31,12 @@
   canvas{display:block}
   .overlay{position:absolute;inset:0;pointer-events:none}
 
-  /* Blocks & lines — outline only so colors show true */
+  /* blocks: outline only so real color shows */
   .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:move;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff}
+  .block.selected{border:2px solid var(--accent)}
   .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize}
   .close{position:absolute;top:-9px;left:-9px;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
-  /* guides toggle to hide outlines entirely */
+  .close.hidden{display:none}
   body.noguides .block{border-color:transparent}
   .coords{font-size:12px;color:#9aa3b2;margin-left:auto}
   .tinyrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
@@ -73,8 +74,6 @@
         <label><input type="checkbox" id="toggleGuides" checked> Show outlines</label>
         <button id="eyedrop" class="secondary" style="padding:8px 10px">Eyedrop (size+font+color)</button>
         <button id="selectExisting" class="secondary" style="padding:8px 10px">Select Existing (clone paragraph)</button>
-      </div>
-      <div class="tinyrow">
         <span class="pill" id="picked">picked: —</span>
       </div>
 
@@ -106,7 +105,7 @@
       </div>
 
       <label>Text</label>
-      <textarea id="text" placeholder="Type your text to insert…"></textarea>
+      <textarea id="text" placeholder="Type your text to insert or edit…"></textarea>
 
       <div class="row">
         <button id="addText">Add Text (click preview to place)</button>
@@ -167,10 +166,6 @@ function hexToRgb01(hex){
   if(!m) return [0,0,0];
   return [parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255];
 }
-function rgbToHex([r,g,b]){
-  const to = v => Math.max(0, Math.min(255, Math.round(v*255))).toString(16).padStart(2,'0');
-  return '#'+to(r)+to(g)+to(b);
-}
 const $=id=>document.getElementById(id);
 const setStat=(t,cls="")=>{const el=$('stat'); el.textContent=t; el.className="status "+cls;};
 const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`;
@@ -180,6 +175,7 @@ const setQueued=()=>$('queued').textContent=items.length+" items queued";
 let pdfDoc=null, pageNum=1, pageCount=1, scale=1.10, ptPerPx=1;
 let fileB64=null, lastClickPt=null;
 let items=[]; // {id,type:'text'|'line',page, x,y,width,text,font,size,colorHex,thick}
+let selectedId=null;
 
 // pdf.js
 const pdfjsLib=window['pdfjs-dist/build/pdf'];
@@ -203,7 +199,7 @@ $('load').onclick=async()=>{
   }catch(e){ setStat("Error: "+e.message,"err"); }
 };
 $('reset').onclick=()=>{
-  pdfDoc=null; fileB64=null; items=[]; $('tools').style.display='none';
+  pdfDoc=null; fileB64=null; items=[]; selectedId=null; $('tools').style.display='none';
   $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
   $('overlay').innerHTML=""; $('pageWrap').style.display='none';
   setQueued(); setStat("Cleared.");
@@ -215,18 +211,16 @@ $('next').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNu
 $('zoom').oninput=async e=>{if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); drawOverlay();};
 $('pageSelect').onchange=async e=>{pageNum=Number(e.target.value)||1; await renderPage(); drawOverlay();};
 
-// ===== Render Page =====
 async function renderPage(){
   const page=await pdfDoc.getPage(pageNum);
   const viewport=page.getViewport({scale});
   const cv=$('cv'), ctx=cv.getContext('2d');
   cv.width=viewport.width; cv.height=viewport.height;
   const baseViewport=page.getViewport({scale:1});
-  ptPerPx=baseViewport.width/viewport.width; // points per pixel
+  ptPerPx=baseViewport.width/viewport.width;
   await page.render({canvasContext:ctx, viewport}).promise;
   $('pageWrap').style.display='';
   setMeta();
-  // coords readout
   cv.onpointermove=(e)=>{
     const r=cv.getBoundingClientRect();
     const x=Math.round((e.clientX-r.left)*ptPerPx);
@@ -235,18 +229,13 @@ async function renderPage(){
   };
 }
 
-// ===== Toggle outlines =====
+// ===== Guides toggle =====
 $('toggleGuides').onchange=(e)=>{
   if(e.target.checked) document.body.classList.remove('noguides');
   else document.body.classList.add('noguides');
 };
 
-// ===== Quick colors =====
-$('quickRed').onclick=()=>{ $('color').value='#c62828'; };
-$('quickBlue').onclick=()=>{ $('color').value='#1565c0'; };
-$('quickBody').onclick=()=>{ $('color').value='#000000'; };
-
-// ===== Canvas click modes =====
+// ===== Eyedropper & Clone (same as before, but selects the new item) =====
 let eyedropMode=false, selectCloneMode=false;
 $('eyedrop').onclick=()=>{
   eyedropMode=!eyedropMode; selectCloneMode=false;
@@ -260,47 +249,38 @@ $('selectExisting').onclick=()=>{
   $('eyedrop').textContent = "Eyedrop (size+font+color)";
   setStat(selectCloneMode ? "Click a paragraph to clone it." : "Paragraph selection off.","ok");
 };
-
-// sample average color around a click (client-side using the rendered canvas)
+async function nearestTextInfoAt(pt){
+  const page=await pdfDoc.getPage(pageNum);
+  const tc=await page.getTextContent();
+  let best=null, bestD=1e15;
+  for(const it of tc.items){
+    const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
+    const w=it.width, size=Math.max(Math.abs(a),Math.abs(d));
+    const cx=ex + (w/2), cy=ey;
+    const dx=cx-pt.x, dy=cy-pt.y; const dd=dx*dx+dy*dy;
+    if(dd<bestD){ bestD=dd; best={ text:it.str, size, font:(it.fontName||'Times-Roman') }; }
+  }
+  return best;
+}
 function sampleCanvasColorAt(pxX, pxY){
-  const cv=$('cv'); const ctx=cv.getContext('2d');
-  const r=cv.getBoundingClientRect();
-  // Coordinates already in CSS pixels relative to canvas element
+  const cv=$('cv'), ctx=cv.getContext('2d');
   const ix=Math.round(pxX), iy=Math.round(pxY);
-  const s=6; // sample 6x6 neighborhood
-  const x0=Math.max(0, ix - Math.floor(s/2));
-  const y0=Math.max(0, iy - Math.floor(s/2));
-  const w=Math.min(s, cv.width - x0);
-  const h=Math.min(s, cv.height - y0);
+  const s=6, x0=Math.max(0, ix - Math.floor(s/2)), y0=Math.max(0, iy - Math.floor(s/2));
+  const w=Math.min(s, cv.width - x0), h=Math.min(s, cv.height - y0);
   const img=ctx.getImageData(x0,y0,w,h).data;
   let R=0,G=0,B=0,N=0;
   for(let i=0;i<img.length;i+=4){
     const r=img[i], g=img[i+1], b=img[i+2];
-    // ignore very light backgrounds (likely the beige paper)
     const lum = 0.2126*r + 0.7152*g + 0.0722*b;
     if(lum>235) continue;
     R+=r; G+=g; B+=b; N++;
   }
   if(N===0) return '#000000';
-  return '#'+[R/N,G/N,B/N].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+  const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
+  return '#'+toHex(R/N)+toHex(G/N)+toHex(B/N);
 }
 
-// find nearest text item using pdf.js textContent
-async function nearestTextInfoAt(pt){
-  const page=await pdfDoc.getPage(pageNum);
-  const tc=await page.getTextContent(); // items with transform & width
-  let best=null, bestD=1e15;
-  for(const it of tc.items){
-    const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
-    const w=it.width, size=Math.max(Math.abs(a),Math.abs(d));
-    const cx=ex + (w/2), cy=ey; // approx baseline center
-    const dx=cx-pt.x, dy=cy-pt.y; const dd=dx*dx+dy*dy;
-    if(dd<bestD){ bestD=dd; best={ text:it.str, size, font:(it.fontName||'Times-Roman') }; }
-  }
-  return best; // {text,size,font}
-}
-
-// capture clicks
+// ===== Canvas click handling =====
 $('cv').addEventListener('pointerdown', async (e)=>{
   const r=$('cv').getBoundingClientRect();
   const pxX = e.clientX - r.left;
@@ -308,20 +288,16 @@ $('cv').addEventListener('pointerdown', async (e)=>{
   const xPt=Math.round(pxX*ptPerPx);
   const yPt=Math.round(pxY*ptPerPx);
 
-  // modes
   if(eyedropMode){
     const info = await nearestTextInfoAt({x:xPt,y:yPt});
     if(info){
       $('size').value = Math.max(6, Math.round(info.size));
       $('font').value = (''+info.font).includes('Helvetica') ? 'Helvetica' :
                         (''+info.font).includes('Courier') ? 'Courier' : 'Times-Roman';
-      const hex = sampleCanvasColorAt(pxX, pxY);
-      $('color').value = hex;
-      $('picked').textContent = `picked: ${$('font').value}, ${$('size').value}pt, ${hex}`;
+      $('color').value = sampleCanvasColorAt(pxX, pxY);
+      $('picked').textContent = `picked: ${$('font').value}, ${$('size').value}pt, ${$('color').value}`;
       setStat("Style picked.","ok");
-    } else {
-      setStat("No text near click.","err");
-    }
+    } else setStat("No text near click.","err");
     eyedropMode=false; $('eyedrop').textContent="Eyedrop (size+font+color)";
     return;
   }
@@ -330,27 +306,67 @@ $('cv').addEventListener('pointerdown', async (e)=>{
     if(info){
       const hex = sampleCanvasColorAt(pxX, pxY);
       const id = crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-      items.push({
+      const it = {
         id, type:'text', page:pageNum,
         x:xPt, y:yPt, width:460,
         text: info.text || "",
         font: (''+info.font).includes('Helvetica')?'Helvetica':((''+info.font).includes('Courier')?'Courier':'Times-Roman'),
         size: Math.max(6, Math.round(info.size)),
         colorHex: hex
-      });
-      setQueued(); drawOverlay();
-      setStat("Paragraph cloned. Edit text & reposition as needed.","ok");
-    } else {
-      setStat("Couldn't find a paragraph here.","err");
-    }
+      };
+      items.push(it); setQueued(); setSelected(it.id); drawOverlay();
+      setStat("Paragraph cloned & selected. Edit on the left.","ok");
+    } else setStat("Couldn't find a paragraph here.","err");
     selectCloneMode=false; $('selectExisting').textContent="Select Existing (clone paragraph)";
     return;
   }
 
-  // default placement
+  // default: set placement for next Add Text/Line
   lastClickPt={x:xPt,y:yPt};
   setStat(`Placement set at (${xPt}, ${yPt}).`,"ok");
 });
+
+// ===== Selection Handling =====
+function setSelected(id){
+  selectedId = id;
+  // update sidebar with selected data (if text)
+  const it = items.find(x=>x.id===selectedId);
+  if(!it){ $('text').value=""; return; }
+  if(it.type==='text'){
+    $('text').value = it.text || "";
+    $('font').value = it.font || 'Times-Roman';
+    $('size').value = it.size || 11;
+    $('color').value = it.colorHex || '#000000';
+    $('width').value = it.width || 460;
+  } else {
+    $('text').value = "";
+  }
+  drawOverlay(); // to refresh selected visuals and close icon
+}
+function updateSelectedFromSidebar(){
+  const it = items.find(x=>x.id===selectedId);
+  if(!it) return;
+  if(it.type==='text'){
+    it.text = $('text').value || "";
+    it.font = $('font').value || "Times-Roman";
+    it.size = parseFloat($('size').value)||11;
+    it.colorHex = $('color').value || "#000000";
+    it.width = parseFloat($('width').value)||460;
+  } else {
+    // lines ignore text/font/size; allow color change from color input if desired
+    it.colorHex = $('color').value || it.colorHex || "#000000";
+    it.width = parseFloat($('lineWidth').value)||it.width||460;
+    it.thick = parseFloat($('lineThick').value)||it.thick||2;
+  }
+  drawOverlay();
+}
+
+// bind live updates
+$('text').addEventListener('input', updateSelectedFromSidebar);
+$('font').addEventListener('change', updateSelectedFromSidebar);
+$('size').addEventListener('change', updateSelectedFromSidebar);
+$('color').addEventListener('change', updateSelectedFromSidebar);
+$('width').addEventListener('change', updateSelectedFromSidebar);
 
 // ===== Add Text =====
 $('addText').onclick=()=>{
@@ -358,7 +374,7 @@ $('addText').onclick=()=>{
   if(!lastClickPt){ setStat("Click preview to choose a position first.","err"); return; }
   const pg=Number($('pageSelect').value)||pageNum;
   const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-  items.push({
+  const it = {
     id, type:'text', page:pg,
     x:lastClickPt.x, y:lastClickPt.y,
     width: parseFloat($('width').value)||460,
@@ -366,9 +382,9 @@ $('addText').onclick=()=>{
     font: $('font').value||"Times-Roman",
     size: parseFloat($('size').value)||11,
     colorHex: $('color').value||"#000000"
-  });
-  setQueued(); $('text').value="";
-  drawOverlay(); setStat("Text block added. Drag/resize as needed.","ok");
+  };
+  items.push(it); setQueued(); setSelected(it.id); drawOverlay();
+  setStat("Text block added & selected.","ok");
 };
 
 // ===== Add Line =====
@@ -377,21 +393,21 @@ $('addLine').onclick=()=>{
   if(!lastClickPt){ setStat("Click preview to choose a position first.","err"); return; }
   const pg=Number($('pageSelect').value)||pageNum;
   const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-  items.push({
+  const it = {
     id, type:'line', page:pg,
     x:lastClickPt.x, y:lastClickPt.y,
     width: parseFloat($('lineWidth').value)||460,
     thick: parseFloat($('lineThick').value)||2,
     colorHex: $('color').value||"#000000"
-  });
-  setQueued();
-  drawOverlay(); setStat("Line added. Drag/resize width as needed.","ok");
+  };
+  items.push(it); setQueued(); setSelected(it.id); drawOverlay();
+  setStat("Line added & selected.","ok");
 };
 
 // ===== Remove All =====
-$('clearBlocks').onclick=()=>{ items=[]; drawOverlay(); setQueued(); setStat("All items removed.","ok"); };
+$('clearBlocks').onclick=()=>{ items=[]; selectedId=null; drawOverlay(); setQueued(); setStat("All items removed.","ok"); };
 
-// ===== Draw Overlay (per-item delete works) =====
+// ===== Draw Overlay (per-item delete and select) =====
 function drawOverlay(){
   const ov=$('overlay'); ov.innerHTML="";
   const pageItems=items.filter(it=>it.page===pageNum);
@@ -399,12 +415,13 @@ function drawOverlay(){
   pageItems.forEach(it=>{
     const div=document.createElement('div');
     div.className='block';
+    if(it.id===selectedId) div.classList.add('selected');
 
     const close=document.createElement('div');
-    close.className='close';
+    close.className='close' + (it.id===selectedId ? '' : ' hidden');
     close.textContent='×';
     close.title='Delete this';
-    close.onclick=(ev)=>{ ev.stopPropagation(); items = items.filter(x=>x.id!==it.id); drawOverlay(); setQueued(); };
+    close.onclick=(ev)=>{ ev.stopPropagation(); items = items.filter(x=>x.id!==it.id); if(selectedId===it.id) selectedId=null; drawOverlay(); setQueued(); };
     div.appendChild(close);
 
     const handle=document.createElement('div');
@@ -420,18 +437,23 @@ function drawOverlay(){
       div.style.color=it.colorHex;
       div.textContent=it.text;
     } else {
-      // line (preview as colored strip, outline stays)
       const pxH=Math.max(1, it.thick/ptPerPx);
       div.style.left=(it.x/ptPerPx)+'px';
       div.style.top=((it.y/ptPerPx)-(pxH/2))+'px';
       div.style.width=(it.width/ptPerPx)+'px';
       div.style.height=pxH+'px';
       div.style.background=it.colorHex;
-      div.style.borderStyle='dashed'; /* keep outline for visibility */
       div.textContent='';
     }
 
-    // MOVE (pointer capture; no global leaks)
+    // SELECT on click (but allow drag/resize too)
+    div.addEventListener('pointerdown',ev=>{
+      if(ev.target!==handle && ev.target!==close){
+        setSelected(it.id);
+      }
+    });
+
+    // MOVE
     div.addEventListener('pointerdown',ev=>{
       if(ev.target===handle || ev.target===close) return;
       div.setPointerCapture(ev.pointerId);
@@ -459,9 +481,10 @@ function drawOverlay(){
       div.addEventListener('pointerup',up);
     });
 
-    // RESIZE width only
+    // RESIZE width
     handle.addEventListener('pointerdown',ev=>{
       ev.stopPropagation();
+      setSelected(it.id);
       div.setPointerCapture(ev.pointerId);
       const sx=ev.clientX; const sw=parseFloat(div.style.width);
       const move=e=>{
@@ -473,6 +496,7 @@ function drawOverlay(){
         div.removeEventListener('pointermove',move);
         div.removeEventListener('pointerup',up);
         it.width=Math.round(parseFloat(div.style.width)*ptPerPx);
+        if(it.id===selectedId) $('width').value = it.width;
       };
       div.addEventListener('pointermove',move);
       div.addEventListener('pointerup',up);
@@ -508,6 +532,11 @@ $('apply').onclick=async()=>{
     setStat("Done ✓ File downloaded.","ok");
   }catch(e){ setStat("Error: "+e.message,"err"); }
 };
+
+// quick colors
+$('quickRed').onclick=()=>{ $('color').value='#c62828'; updateSelectedFromSidebar(); };
+$('quickBlue').onclick=()=>{ $('color').value='#1565c0'; updateSelectedFromSidebar(); };
+$('quickBody').onclick=()=>{ $('color').value='#000000'; updateSelectedFromSidebar(); };
 </script>
 </body>
 </html>

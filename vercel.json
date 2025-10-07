@@ -1,8 +1,13 @@
 {
-  "version": 2,
+  "version": 3,
   "functions": {
-    "api/*.py": {
-      "runtime": "vercel-python@0.6.1"
+    "api/edit.py": {
+      "runtime": "python3.11"
     }
-  }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "api/edit.py" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
 }

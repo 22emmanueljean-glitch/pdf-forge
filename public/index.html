@@ -8,7 +8,8 @@
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:#e7eaf0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:#e7eaf0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;user-select:none}
   .wrap{display:grid;grid-template-columns:380px 1fr;gap:16px;height:100vh}
   @media (max-width:980px){.wrap{grid-template-columns:1fr;height:auto}}
   .left{padding:16px;overflow:auto;background:#151821;border-right:1px solid #1f2330}
@@ -18,7 +19,7 @@
   label{font-size:12px;color:#9aa3b2}
   input,textarea,select,button{width:100%;margin-top:6px}
   input,textarea,select{background:#121620;border:1px solid #2a3246;color:#e7eaf0;border-radius:10px;padding:10px}
-  textarea{min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+  textarea{min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;user-select:text}
   button{background:#7aa2ff;border:0;border-radius:10px;padding:12px;font-weight:700;color:#0b0d13;cursor:pointer}
   button.secondary{background:#28304a;color:#e7eaf0}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -72,15 +73,28 @@
 
       <div class="tinyrow">
         <label><input type="checkbox" id="toggleGuides" checked> Show outlines</label>
-        <button id="eyedrop" class="secondary" style="padding:8px 10px">Eyedrop (size+font+color)</button>
-        <button id="selectExisting" class="secondary" style="padding:8px 10px">Select Existing (clone paragraph)</button>
+        <button id="eyedrop" class="secondary" style="padding:8px 10px">Eyedrop (style+color)</button>
+        <button id="selectExisting" class="secondary" style="padding:8px 10px">Select Existing (clone)</button>
         <span class="pill" id="picked">picked: —</span>
       </div>
 
       <div class="row">
         <div>
           <label>Font</label>
-          <input id="font" value="Times-Roman">
+          <select id="font">
+            <option>Times-Roman</option>
+            <option>Times-Bold</option>
+            <option>Times-Italic</option>
+            <option>Times-BoldItalic</option>
+            <option>Helvetica</option>
+            <option>Helvetica-Bold</option>
+            <option>Helvetica-Oblique</option>
+            <option>Helvetica-BoldOblique</option>
+            <option>Courier</option>
+            <option>Courier-Bold</option>
+            <option>Courier-Oblique</option>
+            <option>Courier-BoldOblique</option>
+          </select>
         </div>
         <div>
           <label>Size (pt)</label>
@@ -235,20 +249,22 @@ $('toggleGuides').onchange=(e)=>{
   else document.body.classList.add('noguides');
 };
 
-// ===== Eyedropper & Clone (same as before, but selects the new item) =====
+// ===== Eyedropper & Clone =====
 let eyedropMode=false, selectCloneMode=false;
 $('eyedrop').onclick=()=>{
   eyedropMode=!eyedropMode; selectCloneMode=false;
-  $('eyedrop').textContent = eyedropMode ? "Eyedrop (ON)" : "Eyedrop (size+font+color)";
-  $('selectExisting').textContent = "Select Existing (clone paragraph)";
+  $('eyedrop').textContent = eyedropMode ? "Eyedrop (ON)" : "Eyedrop (style+color)";
+  $('selectExisting').textContent = "Select Existing (clone)";
   setStat(eyedropMode ? "Click near text to pick style & color." : "Eyedrop off.","ok");
 };
 $('selectExisting').onclick=()=>{
   selectCloneMode=!selectCloneMode; eyedropMode=false;
-  $('selectExisting').textContent = selectCloneMode ? "Select Existing (ON)" : "Select Existing (clone paragraph)";
-  $('eyedrop').textContent = "Eyedrop (size+font+color)";
+  $('selectExisting').textContent = selectCloneMode ? "Select Existing (ON)" : "Select Existing (clone)";
+  $('eyedrop').textContent = "Eyedrop (style+color)";
   setStat(selectCloneMode ? "Click a paragraph to clone it." : "Paragraph selection off.","ok");
 };
+
+// get nearest text and map font weight/italic to standard font names
 async function nearestTextInfoAt(pt){
   const page=await pdfDoc.getPage(pageNum);
   const tc=await page.getTextContent();
@@ -258,10 +274,32 @@ async function nearestTextInfoAt(pt){
     const w=it.width, size=Math.max(Math.abs(a),Math.abs(d));
     const cx=ex + (w/2), cy=ey;
     const dx=cx-pt.x, dy=cy-pt.y; const dd=dx*dx+dy*dy;
-    if(dd<bestD){ bestD=dd; best={ text:it.str, size, font:(it.fontName||'Times-Roman') }; }
+    if(dd<bestD){
+      bestD=dd;
+      const fname = (it.fontName||'').toString();
+      // detect family + style
+      const isHelv = /helv/i.test(fname);
+      const isCour = /cour/i.test(fname);
+      const isTimes= /times|newroman|tnr|minion|garamond/i.test(fname) || (!isHelv && !isCour);
+      const isBold = /bold|bd/i.test(fname);
+      const isItal = /ital|oblique|it|obl/i.test(fname);
+      let font='Times-Roman';
+      if(isHelv) font = isBold && isItal ? 'Helvetica-BoldOblique' :
+                      isBold ? 'Helvetica-Bold' :
+                      isItal ? 'Helvetica-Oblique' : 'Helvetica';
+      else if(isCour) font = isBold && isItal ? 'Courier-BoldOblique' :
+                         isBold ? 'Courier-Bold' :
+                         isItal ? 'Courier-Oblique' : 'Courier';
+      else font = isBold && isItal ? 'Times-BoldItalic' :
+                   isBold ? 'Times-Bold' :
+                   isItal ? 'Times-Italic' : 'Times-Roman';
+      best={ text:it.str, size, font };
+    }
   }
   return best;
 }
+
+// sample average color around canvas point
 function sampleCanvasColorAt(pxX, pxY){
   const cv=$('cv'), ctx=cv.getContext('2d');
   const ix=Math.round(pxX), iy=Math.round(pxY);
@@ -272,16 +310,17 @@ function sampleCanvasColorAt(pxX, pxY){
   for(let i=0;i<img.length;i+=4){
     const r=img[i], g=img[i+1], b=img[i+2];
     const lum = 0.2126*r + 0.7152*g + 0.0722*b;
-    if(lum>235) continue;
+    if(lum>235) continue; // ignore very light background
     R+=r; G+=g; B+=b; N++;
   }
   if(N===0) return '#000000';
-  const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
-  return '#'+toHex(R/N)+toHex(G/N)+toHex(B/N);
+  const to=v=>Math.round(v).toString(16).padStart(2,'0');
+  return '#'+to(R/N)+to(G/N)+to(B/N);
 }
 
-// ===== Canvas click handling =====
+// canvas click: placement, eyedrop, or clone
 $('cv').addEventListener('pointerdown', async (e)=>{
+  e.preventDefault();
   const r=$('cv').getBoundingClientRect();
   const pxX = e.clientX - r.left;
   const pxY = e.clientY - r.top;
@@ -292,13 +331,12 @@ $('cv').addEventListener('pointerdown', async (e)=>{
     const info = await nearestTextInfoAt({x:xPt,y:yPt});
     if(info){
       $('size').value = Math.max(6, Math.round(info.size));
-      $('font').value = (''+info.font).includes('Helvetica') ? 'Helvetica' :
-                        (''+info.font).includes('Courier') ? 'Courier' : 'Times-Roman';
+      $('font').value = info.font;
       $('color').value = sampleCanvasColorAt(pxX, pxY);
-      $('picked').textContent = `picked: ${$('font').value}, ${$('size').value}pt, ${$('color').value}`;
-      setStat("Style picked.","ok");
+      $('picked').textContent = `picked: ${info.font}, ${$('size').value}pt, ${$('color').value}`;
+      setStat("Style picked (font/weight/italic, size, color).","ok");
     } else setStat("No text near click.","err");
-    eyedropMode=false; $('eyedrop').textContent="Eyedrop (size+font+color)";
+    eyedropMode=false; $('eyedrop').textContent="Eyedrop (style+color)";
     return;
   }
   if(selectCloneMode){
@@ -310,28 +348,27 @@ $('cv').addEventListener('pointerdown', async (e)=>{
         id, type:'text', page:pageNum,
         x:xPt, y:yPt, width:460,
         text: info.text || "",
-        font: (''+info.font).includes('Helvetica')?'Helvetica':((''+info.font).includes('Courier')?'Courier':'Times-Roman'),
+        font: info.font,
         size: Math.max(6, Math.round(info.size)),
         colorHex: hex
       };
       items.push(it); setQueued(); setSelected(it.id); drawOverlay();
       setStat("Paragraph cloned & selected. Edit on the left.","ok");
     } else setStat("Couldn't find a paragraph here.","err");
-    selectCloneMode=false; $('selectExisting').textContent="Select Existing (clone paragraph)";
+    selectCloneMode=false; $('selectExisting').textContent="Select Existing (clone)";
     return;
   }
 
-  // default: set placement for next Add Text/Line
+  // default: placement for next Add
   lastClickPt={x:xPt,y:yPt};
   setStat(`Placement set at (${xPt}, ${yPt}).`,"ok");
 });
 
-// ===== Selection Handling =====
+// ===== selection & sidebar sync =====
 function setSelected(id){
   selectedId = id;
-  // update sidebar with selected data (if text)
   const it = items.find(x=>x.id===selectedId);
-  if(!it){ $('text').value=""; return; }
+  if(!it){ $('text').value=""; drawOverlay(); return; }
   if(it.type==='text'){
     $('text').value = it.text || "";
     $('font').value = it.font || 'Times-Roman';
@@ -340,8 +377,11 @@ function setSelected(id){
     $('width').value = it.width || 460;
   } else {
     $('text').value = "";
+    $('color').value = it.colorHex || '#000000';
+    $('lineWidth').value = it.width || 460;
+    $('lineThick').value = it.thick || 2;
   }
-  drawOverlay(); // to refresh selected visuals and close icon
+  drawOverlay();
 }
 function updateSelectedFromSidebar(){
   const it = items.find(x=>x.id===selectedId);
@@ -353,22 +393,31 @@ function updateSelectedFromSidebar(){
     it.colorHex = $('color').value || "#000000";
     it.width = parseFloat($('width').value)||460;
   } else {
-    // lines ignore text/font/size; allow color change from color input if desired
     it.colorHex = $('color').value || it.colorHex || "#000000";
     it.width = parseFloat($('lineWidth').value)||it.width||460;
     it.thick = parseFloat($('lineThick').value)||it.thick||2;
   }
   drawOverlay();
 }
-
-// bind live updates
 $('text').addEventListener('input', updateSelectedFromSidebar);
 $('font').addEventListener('change', updateSelectedFromSidebar);
 $('size').addEventListener('change', updateSelectedFromSidebar);
 $('color').addEventListener('change', updateSelectedFromSidebar);
 $('width').addEventListener('change', updateSelectedFromSidebar);
+$('lineWidth').addEventListener('change', updateSelectedFromSidebar);
+$('lineThick').addEventListener('change', updateSelectedFromSidebar);
 
-// ===== Add Text =====
+// keyboard delete for selected
+window.addEventListener('keydown',(e)=>{
+  if(!selectedId) return;
+  if(e.key==='Delete' || e.key==='Backspace'){
+    items = items.filter(x=>x.id!==selectedId);
+    selectedId=null; drawOverlay(); setQueued(); setStat("Deleted selected item.","ok");
+    e.preventDefault();
+  }
+});
+
+// ===== Add Text / Line =====
 $('addText').onclick=()=>{
   if(!fileB64){ setStat("Load a PDF first.","err"); return; }
   if(!lastClickPt){ setStat("Click preview to choose a position first.","err"); return; }
@@ -386,8 +435,6 @@ $('addText').onclick=()=>{
   items.push(it); setQueued(); setSelected(it.id); drawOverlay();
   setStat("Text block added & selected.","ok");
 };
-
-// ===== Add Line =====
 $('addLine').onclick=()=>{
   if(!fileB64){ setStat("Load a PDF first.","err"); return; }
   if(!lastClickPt){ setStat("Click preview to choose a position first.","err"); return; }
@@ -407,7 +454,7 @@ $('addLine').onclick=()=>{
 // ===== Remove All =====
 $('clearBlocks').onclick=()=>{ items=[]; selectedId=null; drawOverlay(); setQueued(); setStat("All items removed.","ok"); };
 
-// ===== Draw Overlay (per-item delete and select) =====
+// ===== Draw Overlay (per-item delete + drag/resize stable) =====
 function drawOverlay(){
   const ov=$('overlay'); ov.innerHTML="";
   const pageItems=items.filter(it=>it.page===pageNum);
@@ -415,6 +462,7 @@ function drawOverlay(){
   pageItems.forEach(it=>{
     const div=document.createElement('div');
     div.className='block';
+    div.dataset.id = it.id;
     if(it.id===selectedId) div.classList.add('selected');
 
     const close=document.createElement('div');
@@ -446,16 +494,16 @@ function drawOverlay(){
       div.textContent='';
     }
 
-    // SELECT on click (but allow drag/resize too)
+    // focus/select on pointerdown
     div.addEventListener('pointerdown',ev=>{
-      if(ev.target!==handle && ev.target!==close){
-        setSelected(it.id);
-      }
+      ev.preventDefault();
+      if(ev.target!==handle && ev.target!==close){ setSelected(it.id); }
     });
 
     // MOVE
     div.addEventListener('pointerdown',ev=>{
       if(ev.target===handle || ev.target===close) return;
+      ev.preventDefault();
       div.setPointerCapture(ev.pointerId);
       const sx=ev.clientX, sy=ev.clientY;
       const sl=parseFloat(div.style.left), st=parseFloat(div.style.top);
@@ -481,10 +529,11 @@ function drawOverlay(){
       div.addEventListener('pointerup',up);
     });
 
-    // RESIZE width
+    // RESIZE (width)
     handle.addEventListener('pointerdown',ev=>{
       ev.stopPropagation();
       setSelected(it.id);
+      ev.preventDefault();
       div.setPointerCapture(ev.pointerId);
       const sx=ev.clientX; const sw=parseFloat(div.style.width);
       const move=e=>{
@@ -533,7 +582,7 @@ $('apply').onclick=async()=>{
   }catch(e){ setStat("Error: "+e.message,"err"); }
 };
 
-// quick colors
+// quick colors update selected immediately
 $('quickRed').onclick=()=>{ $('color').value='#c62828'; updateSelectedFromSidebar(); };
 $('quickBlue').onclick=()=>{ $('color').value='#1565c0'; updateSelectedFromSidebar(); };
 $('quickBody').onclick=()=>{ $('color').value='#000000'; updateSelectedFromSidebar(); };

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PDF Forge — Minimal Stable Editor</title>
+<title>PDF Forge — Stable Editor</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
@@ -26,7 +26,6 @@
   .status.ok{color:#3ecf8e} .status.err{color:#ff6b6b}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#22283a;color:#c7d0e0;font-size:12px;margin-right:6px}
 
-  /* Preview stage */
   .stage {display:flex;justify-content:center}
   .pageWrap {position:relative; display:inline-block; margin:12px auto; background:#0b0d13; border:1px solid #1a1f2b; border-radius:6px;}
   canvas {display:block}
@@ -43,7 +42,7 @@
 <body>
 <div class="wrap">
   <div class="left">
-    <h1>PDF Forge — Minimal</h1>
+    <h1>PDF Forge — Stable</h1>
 
     <div class="card">
       <label>Upload PDF</label>
@@ -118,30 +117,47 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-const API_EDIT = "/api/edit"; // Node backend with pdf-lib
+// --- helpers ---
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const res = String(fr.result || '');
+      const base64 = res.includes(',') ? res.split(',')[1] : res;
+      resolve(base64);
+    };
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+function hexToRgb01(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if(!m) return [0,0,0];
+  return [ parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255 ];
+}
 
-// --- State ---
+// --- state ---
+const API_EDIT = "/api/edit";
 let pdfDoc=null, pageNum=1, pageCount=1, scale=1.10, ptPerPx=1;
 let fileB64=null, lastClickPx=null, lastClickPt=null;
-let blocks=[]; // {id,page,xPt,yPt,widthPt,text,font,size,colorHex}
+let blocks=[];
 
-// --- DOM helpers ---
 const $ = id => document.getElementById(id);
 const setStat = (t,cls="") => { const el=$('stat'); el.textContent=t; el.className="status "+cls; };
 const setMeta = () => $('meta').textContent = `Page ${pageNum} | scale ${scale.toFixed(2)}`;
 const setQueued = () => $('queued').textContent = blocks.length + " queued";
 
-// pdf.js worker
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// --- Load Preview ---
+// --- Load ---
 $('load').onclick = async () => {
   try{
     const f = $('file').files[0]; if(!f){ setStat("Choose a PDF."); return; }
-    const buf = await f.arrayBuffer(); fileB64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    fileB64 = await fileToBase64(f);
+    const buf = await f.arrayBuffer();
     pdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
-    pageCount = pdfDoc.numPages; pageNum = Math.min(1, pageCount) || 1;
+    pageCount = pdfDoc.numPages; pageNum = 1;
     $('tools').style.display='';
     const sel=$('pageSelect'); sel.innerHTML="";
     for(let i=1;i<=pageCount;i++){ const o=document.createElement('option'); o.value=String(i); o.textContent=String(i); sel.appendChild(o); }
@@ -152,31 +168,30 @@ $('load').onclick = async () => {
 };
 
 $('reset').onclick = ()=>{
-  pdfDoc=null; pageNum=1; pageCount=1; fileB64=null; blocks=[]; lastClickPx=null; lastClickPt=null;
+  pdfDoc=null; fileB64=null; blocks=[]; $('tools').style.display='none';
   $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
   $('overlay').innerHTML=""; $('pageWrap').style.display='none';
-  $('tools').style.display='none'; setQueued(); setStat("Cleared.");
+  setQueued(); setStat("Cleared.");
 };
 
 $('prev').onclick = async()=>{ if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); drawBlocks(); };
 $('next').onclick = async()=>{ if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); drawBlocks(); };
-$('zoom').oninput = async e=>{ if(!pdfDoc) return; scale = Number(e.target.value)/100; await renderPage(); drawBlocks(); };
-$('pageSelect').onchange = async e=>{ pageNum = Number(e.target.value)||1; await renderPage(); drawBlocks(); };
+$('zoom').oninput = async e=>{ if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); drawBlocks(); };
+$('pageSelect').onchange = async e=>{ pageNum=Number(e.target.value)||1; await renderPage(); drawBlocks(); };
 
-// --- Render page ---
 async function renderPage(){
   const page = await pdfDoc.getPage(pageNum);
   const viewport = page.getViewport({ scale });
-  const cv = $('cv'), ctx = cv.getContext('2d');
-  cv.width = viewport.width; cv.height = viewport.height;
-  const baseViewport = page.getViewport({ scale: 1 });
-  ptPerPx = baseViewport.width / viewport.width; // points per pixel
+  const cv=$('cv'), ctx=cv.getContext('2d');
+  cv.width=viewport.width; cv.height=viewport.height;
+  const baseViewport = page.getViewport({ scale:1 });
+  ptPerPx = baseViewport.width / viewport.width;
   await page.render({ canvasContext: ctx, viewport }).promise;
   $('pageWrap').style.display='';
   setMeta();
 }
 
-// --- Click to place (on the canvas only; no globals) ---
+// --- Click for placement ---
 $('cv').addEventListener('pointerdown', e=>{
   const rect = $('cv').getBoundingClientRect();
   const pxX = e.clientX - rect.left;
@@ -187,119 +202,100 @@ $('cv').addEventListener('pointerdown', e=>{
 
 // --- Add block ---
 $('add').onclick = ()=>{
-  if(!fileB64){ setStat("Load a PDF first.", "err"); return; }
-  if(!lastClickPt){ setStat("Click the preview to choose a position first.", "err"); return; }
+  if(!fileB64){ setStat("Load a PDF first.","err"); return; }
+  if(!lastClickPt){ setStat("Click preview first.","err"); return; }
   const pg = Number($('pageSelect').value)||pageNum;
-  const text = $('text').value||"";
-  const font = $('font').value||"Times-Roman";
-  const size = parseFloat($('size').value)||11;
-  const colorHex = $('color').value||"#000000";
-  const widthPt = parseFloat($('width').value)||460;
-  const id = (crypto.randomUUID? crypto.randomUUID() : (Date.now()+"-"+Math.random()));
-
-  blocks.push({ id, page:pg, xPt:lastClickPt.x, yPt:lastClickPt.y, widthPt, text, font, size, colorHex });
-  setQueued();
-  drawBlocks();
-  $('text').value="";
-  setStat("Block added. Drag to move; drag corner to resize width.", "ok");
+  const text=$('text').value||"";
+  const font=$('font').value||"Times-Roman";
+  const size=parseFloat($('size').value)||11;
+  const colorHex=$('color').value||"#000000";
+  const widthPt=parseFloat($('width').value)||460;
+  const id=Date.now()+"-"+Math.random();
+  blocks.push({id,page:pg,xPt:lastClickPt.x,yPt:lastClickPt.y,widthPt,text,font,size,colorHex});
+  setQueued(); drawBlocks();
+  $('text').value=""; setStat("Block added.","ok");
 };
 
-// --- Draw overlay blocks (for current page), with per-element pointer capture ---
+// --- Draw overlay blocks ---
 function drawBlocks(){
-  const ov = $('overlay'); ov.innerHTML="";
-  const cv = $('cv');
-  const rect = {left:0, top:0, width:cv.width, height:cv.height}; // overlay is inside pageWrap, same coords as canvas
-
+  const ov=$('overlay'); ov.innerHTML="";
   blocks.filter(b=>b.page===pageNum).forEach(b=>{
-    const div = document.createElement('div');
-    div.className = 'block';
-    div.style.left  = (b.xPt/ptPerPx) + 'px';
-    div.style.top   = (b.yPt/ptPerPx) + 'px';
-    div.style.width = (b.widthPt/ptPerPx) + 'px';
-    div.style.fontFamily = b.font;
-    div.style.fontSize   = (b.size/ptPerPx) + 'px';
-    div.style.color      = b.colorHex;
-    div.textContent = b.text;
+    const div=document.createElement('div');
+    div.className='block';
+    div.style.left=(b.xPt/ptPerPx)+'px';
+    div.style.top=(b.yPt/ptPerPx)+'px';
+    div.style.width=(b.widthPt/ptPerPx)+'px';
+    div.style.fontFamily=b.font;
+    div.style.fontSize=(b.size/ptPerPx)+'px';
+    div.style.color=b.colorHex;
+    div.textContent=b.text;
+    const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
 
-    const handle = document.createElement('div');
-    handle.className='handle';
-    div.appendChild(handle);
-
-    // MOVE
-    div.addEventListener('pointerdown', ev=>{
-      if(ev.target===handle) return;
+    // Move
+    div.addEventListener('pointerdown',ev=>{
+      if(ev.target===handle)return;
       div.setPointerCapture(ev.pointerId);
-      const startX = ev.clientX, startY = ev.clientY;
-      const startLeft = parseFloat(div.style.left), startTop = parseFloat(div.style.top);
-      const onMove = (e)=>{
-        const dx=e.clientX-startX, dy=e.clientY-startY;
-        div.style.left = (startLeft+dx)+'px';
-        div.style.top  = (startTop+dy)+'px';
+      const sx=ev.clientX, sy=ev.clientY;
+      const sl=parseFloat(div.style.left), st=parseFloat(div.style.top);
+      const move=e=>{
+        div.style.left=(sl+(e.clientX-sx))+'px';
+        div.style.top=(st+(e.clientY-sy))+'px';
       };
-      const onUp = (e)=>{
+      const up=e=>{
         div.releasePointerCapture(ev.pointerId);
-        div.removeEventListener('pointermove', onMove);
-        div.removeEventListener('pointerup', onUp);
-        // sync back to points
-        b.xPt = Math.round(parseFloat(div.style.left)*ptPerPx);
-        b.yPt = Math.round(parseFloat(div.style.top)*ptPerPx);
+        div.removeEventListener('pointermove',move);
+        div.removeEventListener('pointerup',up);
+        b.xPt=Math.round(parseFloat(div.style.left)*ptPerPx);
+        b.yPt=Math.round(parseFloat(div.style.top)*ptPerPx);
       };
-      div.addEventListener('pointermove', onMove);
-      div.addEventListener('pointerup', onUp);
+      div.addEventListener('pointermove',move);
+      div.addEventListener('pointerup',up);
     });
 
-    // RESIZE (width only)
-    handle.addEventListener('pointerdown', ev=>{
+    // Resize
+    handle.addEventListener('pointerdown',ev=>{
       ev.stopPropagation();
       div.setPointerCapture(ev.pointerId);
-      const startX = ev.clientX;
-      const startW = parseFloat(div.style.width);
-      const onMove = (e)=>{
-        const dx=e.clientX-startX;
-        const newW=Math.max(60, startW+dx);
-        div.style.width = newW+'px';
+      const sx=ev.clientX; const sw=parseFloat(div.style.width);
+      const move=e=>{
+        const dx=e.clientX-sx;
+        div.style.width=Math.max(60,sw+dx)+'px';
       };
-      const onUp = (e)=>{
+      const up=e=>{
         div.releasePointerCapture(ev.pointerId);
-        div.removeEventListener('pointermove', onMove);
-        div.removeEventListener('pointerup', onUp);
-        b.widthPt = Math.round(parseFloat(div.style.width)*ptPerPx);
+        div.removeEventListener('pointermove',move);
+        div.removeEventListener('pointerup',up);
+        b.widthPt=Math.round(parseFloat(div.style.width)*ptPerPx);
       };
-      div.addEventListener('pointermove', onMove);
-      div.addEventListener('pointerup', onUp);
+      div.addEventListener('pointermove',move);
+      div.addEventListener('pointerup',up);
     });
 
     ov.appendChild(div);
   });
-  ov.style.pointerEvents = 'none';
-  Array.from(ov.children).forEach(ch=>ch.style.pointerEvents='auto');
+  ov.style.pointerEvents='none';
+  Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
-// --- Generate v4 (calls Node /api/edit) ---
+// --- Generate v4 ---
 $('apply').onclick = async ()=>{
   try{
-    if(!fileB64){ setStat("Load a PDF first.", "err"); return; }
-    if(blocks.length===0){ setStat("No edits queued.", "err"); return; }
+    if(!fileB64){ setStat("Load a PDF first.","err"); return; }
+    if(blocks.length===0){ setStat("No edits queued.","err"); return; }
     setStat("Generating…");
-    const edits = blocks.map(b=>{
-      const [r,g,bx] = hexToRgb01(b.colorHex);
-      return { page:b.page, x:b.xPt, y:b.yPt, text:b.text, font:b.font, size:b.size, color:[r,g,bx], width:b.widthPt };
+    const edits=blocks.map(b=>{
+      const [r,g,bx]=hexToRgb01(b.colorHex);
+      return {page:b.page,x:b.xPt,y:b.yPt,text:b.text,font:b.font,size:b.size,color:[r,g,bx],width:b.widthPt};
     });
-    const r = await fetch(API_EDIT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ file:fileB64, edits }) });
-    if(!r.ok){ const t=await r.text(); throw new Error(t||r.statusText); }
-    const { pdf } = await r.json();
-    const blob = new Blob([Uint8Array.from(atob(pdf), c=>c.charCodeAt(0))], {type:'application/pdf'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href=url; a.download='Gravitational_Aura_Masterclass_FINAL_CLEAN_v4.pdf'; a.click();
-    setStat("Done ✓ File downloaded.", "ok");
-  }catch(e){ setStat("Error: "+e.message, "err"); }
+    const r=await fetch(API_EDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:fileB64,edits})});
+    if(!r.ok){const t=await r.text();throw new Error(t||r.statusText);}
+    const {pdf}=await r.json();
+    const blob=new Blob([Uint8Array.from(atob(pdf),c=>c.charCodeAt(0))],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='Gravitational_Aura_Masterclass_FINAL_CLEAN_v4.pdf'; a.click();
+    setStat("Done ✓ File downloaded.","ok");
+  }catch(e){ setStat("Error: "+e.message,"err"); }
 };
-
-function hexToRgb01(hex){
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if(!m) return [0,0,0];
-  return [ parseInt(m[1],16)/255, parseInt(m[2],16)/255, parseInt(m[3],16)/255 ];
-}
 </script>
 </body>
 </html>

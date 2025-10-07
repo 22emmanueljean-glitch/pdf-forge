@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Editor Pro (Selectable)</title>
+<title>PDF Forge — Editor Pro (Drag-Fix)</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
@@ -28,14 +28,15 @@
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#22283a;color:#c7d0e0;font-size:12px;margin-right:6px}
   .toolbar{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid #1a1f2b;background:#0b0d13}
   .stage{display:flex;justify-content:center}
-  .pageWrap{position:relative;display:inline-block;margin:12px auto;background:#0b0d13;border:1px solid #1a1f2b;border-radius:6px}
-  canvas{display:block}
-  .overlay{position:absolute;inset:0;pointer-events:none}
+  .pageWrap{position:relative;display:inline-block;margin:12px auto;background:#0b0d13;border:1px solid #1a1f2b;border-radius:6px;touch-action:none}
+  canvas{display:block;touch-action:none}
+  .overlay{position:absolute;inset:0;pointer-events:none;touch-action:none}
 
   /* blocks: outline only so real color shows */
-  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:move;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff}
-  .block.selected{border:2px solid var(--accent)}
-  .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize}
+  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff;touch-action:none}
+  .block:active{cursor:grabbing}
+  .block.selected{border:2px solid var(--accent);z-index:10}
+  .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize;touch-action:none}
   .close{position:absolute;top:-9px;left:-9px;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
   .close.hidden{display:none}
   body.noguides .block{border-color:transparent}
@@ -277,7 +278,6 @@ async function nearestTextInfoAt(pt){
     if(dd<bestD){
       bestD=dd;
       const fname = (it.fontName||'').toString();
-      // detect family + style
       const isHelv = /helv/i.test(fname);
       const isCour = /cour/i.test(fname);
       const isTimes= /times|newroman|tnr|minion|garamond/i.test(fname) || (!isHelv && !isCour);
@@ -454,7 +454,7 @@ $('addLine').onclick=()=>{
 // ===== Remove All =====
 $('clearBlocks').onclick=()=>{ items=[]; selectedId=null; drawOverlay(); setQueued(); setStat("All items removed.","ok"); };
 
-// ===== Draw Overlay (per-item delete + drag/resize stable) =====
+// ===== Draw Overlay (global-drag fix) =====
 function drawOverlay(){
   const ov=$('overlay'); ov.innerHTML="";
   const pageItems=items.filter(it=>it.page===pageNum);
@@ -494,28 +494,23 @@ function drawOverlay(){
       div.textContent='';
     }
 
-    // focus/select on pointerdown
+    // unified pointerdown: select + (maybe) start drag
     div.addEventListener('pointerdown',ev=>{
       ev.preventDefault();
-      if(ev.target!==handle && ev.target!==close){ setSelected(it.id); }
-    });
-
-    // MOVE
-    div.addEventListener('pointerdown',ev=>{
+      setSelected(it.id);
       if(ev.target===handle || ev.target===close) return;
-      ev.preventDefault();
-      div.setPointerCapture(ev.pointerId);
-      const sx=ev.clientX, sy=ev.clientY;
-      const sl=parseFloat(div.style.left), st=parseFloat(div.style.top);
-      const move=e=>{
-        const dx=e.clientX-sx, dy=e.clientY-sy;
-        div.style.left=(sl+dx)+'px';
-        div.style.top=(st+dy)+'px';
+
+      // start global drag
+      let startX=ev.clientX, startY=ev.clientY;
+      const startLeft=parseFloat(div.style.left), startTop=parseFloat(div.style.top);
+      const move=(e)=>{
+        const dx=e.clientX-startX, dy=e.clientY-startY;
+        div.style.left=(startLeft+dx)+'px';
+        div.style.top=(startTop+dy)+'px';
       };
-      const up=e=>{
-        div.releasePointerCapture(ev.pointerId);
-        div.removeEventListener('pointermove',move);
-        div.removeEventListener('pointerup',up);
+      const up=(e)=>{
+        document.removeEventListener('pointermove',move);
+        document.removeEventListener('pointerup',up);
         if(it.type==='text'){
           it.x=Math.round(parseFloat(div.style.left)*ptPerPx);
           it.y=Math.round(parseFloat(div.style.top)*ptPerPx);
@@ -525,30 +520,27 @@ function drawOverlay(){
           it.y=Math.round((parseFloat(div.style.top)+pxH/2)*ptPerPx);
         }
       };
-      div.addEventListener('pointermove',move);
-      div.addEventListener('pointerup',up);
-    });
+      document.addEventListener('pointermove',move);
+      document.addEventListener('pointerup',up,{once:true});
+    }, {passive:false});
 
-    // RESIZE (width)
+    // width RESIZE
     handle.addEventListener('pointerdown',ev=>{
-      ev.stopPropagation();
+      ev.stopPropagation(); ev.preventDefault();
       setSelected(it.id);
-      ev.preventDefault();
-      div.setPointerCapture(ev.pointerId);
-      const sx=ev.clientX; const sw=parseFloat(div.style.width);
-      const move=e=>{
-        const dx=e.clientX-sx;
-        div.style.width=Math.max(20, sw+dx)+'px';
+      let startX=ev.clientX, startW=parseFloat(div.style.width);
+      const move=(e)=>{
+        const dx=e.clientX-startX;
+        div.style.width=Math.max(20, startW+dx)+'px';
       };
-      const up=e=>{
-        div.releasePointerCapture(ev.pointerId);
-        div.removeEventListener('pointermove',move);
-        div.removeEventListener('pointerup',up);
+      const up=(e)=>{
+        document.removeEventListener('pointermove',move);
+        document.removeEventListener('pointerup',up);
         it.width=Math.round(parseFloat(div.style.width)*ptPerPx);
         if(it.id===selectedId) $('width').value = it.width;
       };
-      div.addEventListener('pointermove',move);
-      div.addEventListener('pointerup',up);
+      document.addEventListener('pointermove',move);
+      document.addEventListener('pointerup',up,{once:true});
     });
 
     ov.appendChild(div);

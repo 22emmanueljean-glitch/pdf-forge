@@ -1,8 +1,8 @@
-// clone.js - area selection, building lines, creating items
-import { $, state, getPageTextItems, sampleColorMedianAtPx, guessFontFromName, setStat } from './pdf-engine.js';
+// clone.js - area selection, building lines, clipping to selection, creating items
+import { $, state, getPageTextItems, sampleColorForRect, guessFontFromName, setStat } from './pdf-engine.js';
 import { store, redraw, setSelected, setQueued } from './overlay.js';
 
-// marquee handlers
+// ===== marquee =====
 let marqueeEl=null,mStart=null;
 
 export function startMarquee(pxX,pxY){
@@ -15,9 +15,9 @@ export function startMarquee(pxX,pxY){
   const up=async ()=>{
     document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
     const rect=marqueeEl.getBoundingClientRect(), cvRect=$('cv').getBoundingClientRect();
-    const selPx={x:rect.left-cvRect.left,y:rect.top-cvRect.top,w:rect.width,h:rect.height};
-    if(selPx.w<5 || selPx.h<5){setStat("Selection too small.","err"); marqueeEl.remove(); marqueeEl=null; return;}
-    const selPt={x:Math.round(selPx.x*state.ptPerPx),y:Math.round(selPx.y*state.ptPerPx),w:Math.round(selPx.w*state.ptPerPx),h:Math.round(selPx.h*state.ptPerPx)};
+    const selPx={x:rect.left-cvRect.left, y:rect.top-cvRect.top, w:rect.width, h:rect.height};
+    if(selPx.w<5 || selPx.h<5){ setStat("Selection too small.","err"); marqueeEl.remove(); marqueeEl=null; return; }
+    const selPt={x:Math.round(selPx.x*state.ptPerPx), y:Math.round(selPx.y*state.ptPerPx), w:Math.round(selPx.w*state.ptPerPx), h:Math.round(selPx.h*state.ptPerPx)};
     await cloneFromAreaPx(selPt, selPx);
     marqueeEl.remove(); marqueeEl=null;
   };
@@ -25,11 +25,13 @@ export function startMarquee(pxX,pxY){
   document.addEventListener('pointerup',up,{once:true});
 }
 
-function med(arr){ const a=arr.slice().sort((x,y)=>x-y); return a.length?a[Math.floor(a.length/2)]:0; }
-function mode(arr){ const m=new Map(); let best=null,bestC=0; for(const v of arr){const c=(m.get(v)||0)+1; m.set(v,c); if(c>bestC){bestC=c; best=v;}} return best; }
+// ===== line builder (keeps segments so we can clip horizontally) =====
+const med = a => { const s=a.slice().sort((x,y)=>x-y); return s.length?s[Math.floor(s.length/2)]:0; };
+const mode= a => { const m=new Map(); let best=null,c=0; for(const v of a){const cc=(m.get(v)||0)+1; m.set(v,cc); if(cc>c){c=cc;best=v;}} return best; };
 
-function linesFromItems(items){
-  const its = items.slice().sort((A,B)=> (A.y - B.y) || (A.x - B.x));
+function buildLinesKeepSegments(spans){
+  // sort top→bottom, left→right
+  const its = spans.slice().sort((A,B)=> (A.y - B.y) || (A.x - B.x));
   const medSize = med(its.map(s=>s.size));
   const vTol = Math.max(0.6*medSize, 3);
 
@@ -39,78 +41,118 @@ function linesFromItems(items){
     const baseline = s.y + lineH*0.85;
     let ln=null,bestD=1e9;
     for(const L of lines){ const d=Math.abs(L.baseline-baseline); if(d<=vTol && d<bestD){ln=L;bestD=d;} }
-    if(!ln){ ln={baseline,segs:[],xMin:+Infinity,xMax:-Infinity,top:+Infinity,bottom:-Infinity}; lines.push(ln); }
-    ln.segs.push(s);
-    ln.xMin=Math.min(ln.xMin,s.x); ln.xMax=Math.max(ln.xMax,s.x+s.w);
-    ln.top=Math.min(ln.top,s.y); ln.bottom=Math.max(ln.bottom,s.y+(s.h||s.size*1.2));
+    if(!ln){
+      ln={ baseline, segs:[], xMin:+Infinity, xMax:-Infinity, top:+Infinity, bottom:-Infinity };
+      lines.push(ln);
+    }
+    ln.segs.push({ ...s }); // keep as-is
+    ln.xMin = Math.min(ln.xMin, s.x);
+    ln.xMax = Math.max(ln.xMax, s.x + s.w);
+    ln.top   = Math.min(ln.top,   s.y);
+    ln.bottom= Math.max(ln.bottom,s.y + (s.h||s.size*1.2));
   }
 
+  // finalize basic metrics
   for(const L of lines){
     L.segs.sort((a,b)=>a.x-b.x);
-    let text='', prev=null;
-    for(const s of L.segs){
-      if(prev){
-        const gap=s.x-(prev.x+prev.w);
-        const avg=(s.size+prev.size)*0.5;
-        if(gap>Math.max(0.55*avg,4)) text+=' ';
-      }
-      text += s.str;
-      prev=s;
-    }
-    L.text = text.trimEnd();
-    L.y = Math.round(L.top);
-    L.h = Math.round(L.bottom - L.top);
+    L.y    = Math.round(L.top);
+    L.h    = Math.round(L.bottom - L.top);
     L.size = Math.round(med(L.segs.map(s=>s.size)));
-    L.fontName = mode(L.segs.map(s=>s.fontName)) || 'Times-Roman';
-    L.xMin = Math.round(L.xMin);
-    L.xMax = Math.round(L.xMax);
+    L.font = guessFontFromName(mode(L.segs.map(s=>s.fontName)) || 'Times-Roman');
+    L.rawFont = mode(L.segs.map(s=>s.fontName)) || '';
+    L.xMin = Math.round(L.xMin); L.xMax = Math.round(L.xMax);
   }
   lines.sort((a,b)=> (a.y-b.y) || (a.xMin-b.xMin));
   return lines;
 }
 
-// tolerant hit-test + create items + group
-export async function cloneFromAreaPx(selPt){
-  const items = await getPageTextItems();
-  const sx1=selPt.x, sy1=selPt.y, sx2=sx1+selPt.w, sy2=sy1+selPt.h;
-  const overlapFrac=(ix1,iy1,ix2,iy2)=>{
-    const w=Math.max(0,Math.min(ix2,sx2)-Math.max(ix1,sx1));
-    const h=Math.max(0,Math.min(iy2,sy2)-Math.max(iy1,sy1));
-    const inter=w*h; const a=Math.max(1,(ix2-ix1)*(iy2-iy1));
-    return inter/a;
+// clip a line horizontally to selection and rebuild text from the remaining segments
+function clipLineToSelection(line, sx1, sx2){
+  const kept = [];
+  for(const s of line.segs){
+    const ix1=s.x, ix2=s.x+s.w;
+    const w=Math.max(0, Math.min(ix2,sx2)-Math.max(ix1,sx1));
+    const frac = w / Math.max(1,(ix2-ix1));
+    // keep the whole span if ≥ 65% inside selection (prevents chopped words)
+    if(frac >= 0.65 || ( (ix1+ix2)/2 >= sx1 && (ix1+ix2)/2 <= sx2 )) kept.push(s);
+  }
+  if(!kept.length) return null;
+
+  kept.sort((a,b)=>a.x-b.x);
+
+  // reconstruct text with space heuristics based on gaps between spans
+  let text='', prev=null;
+  for(const s of kept){
+    if(prev){
+      const gap=s.x-(prev.x+prev.w);
+      const avg=(s.size+prev.size)*0.5;
+      if(gap>Math.max(0.55*avg,4)) text+=' ';
+    }
+    text += s.str;
+    prev=s;
+  }
+
+  const nx1=Math.min(...kept.map(s=>s.x));
+  const nx2=Math.max(...kept.map(s=>s.x+s.w));
+  return {
+    text: text.trimEnd(),
+    xMin: Math.round(nx1),
+    width: Math.max(20, Math.round(nx2 - nx1)),
   };
-  const hits = items.filter(s=>{
+}
+
+// ===== main clone =====
+export async function cloneFromAreaPx(selPt, selPx){
+  const spans = await getPageTextItems();
+
+  // selection bounds in points
+  const sx1=selPt.x, sy1=selPt.y, sx2=sx1+selPt.w, sy2=sy1+selPt.h;
+
+  // tolerant vertical hit: take spans whose baseline or bbox intersects vertically
+  const hits = spans.filter(s=>{
     const ix1=s.x, iy1=s.y, ix2=s.x+s.w, iy2=s.y+s.h;
-    const cx=(ix1+ix2)/2, cy=(iy1+iy2)/2;
-    if (cx>=sx1 && cx<=sx2 && cy>=sy1 && cy<=sy2) return true;
-    return overlapFrac(ix1,iy1,ix2,iy2) >= 0.65;
+    const cy = s.y + (s.h||s.size*1.2)*0.6;
+    const verticalHit = !(iy2<sy1 || iy1>sy2) || (cy>=sy1 && cy<=sy2);
+    if(!verticalHit) return false;
+    // horizontal: any overlap at all (we'll clip later)
+    return !(ix2<sx1 || ix1>sx2);
   });
   if(!hits.length){ setStat("No text found in selection.","err"); return; }
 
-  const lines = linesFromItems(hits);
+  const lines = buildLinesKeepSegments(hits);
+
   const newIds=[];
   for(const L of lines){
-    const pxX = ((L.xMin + L.xMax)/2) / state.ptPerPx;
-    const pxY = (L.y + L.h*0.6) / state.ptPerPx;
-    const colorHex = sampleColorMedianAtPx(pxX, pxY);
+    // clip line to horizontal selection; if nothing remains, skip
+    const clipped = clipLineToSelection(L, sx1, sx2);
+    if(!clipped || !clipped.text) continue;
+
+    // color: sample across the *visible* part of line in pixels
+    const pxLeft = clipped.xMin / state.ptPerPx;
+    const pxTop  = (L.y + L.h*0.25) / state.ptPerPx;
+    const pxW    = clipped.width / state.ptPerPx;
+    const pxH    = Math.max(6, (L.h*0.6) / state.ptPerPx);
+    const colorHex = sampleColorForRect(pxLeft, pxTop, pxW, pxH);
 
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random());
-    const w  = Math.max(20, Math.round(L.xMax - L.xMin));
     const lineGap = Math.max(Math.round(L.size*1.25), Math.round(L.h*1.05));
 
     store.items.push({
       id, type:'text', page:state.pageNum,
-      x:Math.round(L.xMin), y:Math.round(L.y), width:w,
-      text:L.text, font:guessFontFromName(L.fontName), size:Math.round(L.size),
-      colorHex, lineHeight:lineGap,
-      fauxBold:/bold|semi|demi|medium/i.test(L.fontName)?1:0,
-      skewDeg:/ital|obl/i.test(L.fontName)?12:0,
+      x:clipped.xMin, y:L.y, width:clipped.width,
+      text:clipped.text,
+      font:L.font, size:L.size, colorHex,
+      lineHeight:lineGap,
+      fauxBold:/bold|semi|demi|medium/i.test(L.rawFont)?1:0,
+      skewDeg:/ital|obl/i.test(L.rawFont)?12:0,
       tracking:0
     });
     newIds.push(id);
   }
 
-  // Group tight
+  if(!newIds.length){ setStat("Nothing inside selection after clipping.","err"); return; }
+
+  // group tight
   const rects=newIds.map(id=>{
     const it=store.items.find(i=>i.id===id);
     const linesCount=(it.text.match(/\n/g)||[]).length+1;

@@ -1,9 +1,13 @@
+
 {
   "name": "pdf-forge",
   "private": true,
-  "version": "1.0.0",
-  "license": "UNLICENSED",
+  "scripts": {
+    "build": "echo skip",
+    "start": "node server.js"
+  },
   "dependencies": {
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "3.11.174"
   }
 }

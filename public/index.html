@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Area Clone Fixed</title>
+<title>PDF Forge — Pro (Fixed)</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
@@ -199,35 +199,59 @@
   </div>
 </div>
 
+<!-- pdf.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-  window.pdfjsLib = window["pdfjs-dist/build/pdf"];
+  // Ensure pdf.js is wired before anything else
+  window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+  if (!pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions = {};
   pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 </script>
 
 <script>
 const API_EDIT="/api/edit";
 
+// ---------- helpers ----------
 async function fileToBase64(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result||"");resolve(s.includes(",")?s.split(",")[1]:s)};fr.onerror=reject;fr.readAsDataURL(file);});}
 function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 const $=id=>document.getElementById(id);
 const setStat=(t,cls="")=>{const el=$('stat');el.textContent=t;el.className="status "+cls;}
 const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`
 const setQueued=()=>$('queued').textContent=items.length+" items queued"
+function guessFontFromName(name){
+  const fname=(name||'').toString();
+  const isHelv=/helv/i.test(fname),isCour=/cour/i.test(fname);
+  const isTimes=/times|newroman|tnr|minion|garamond|serif/i.test(fname)||(!isHelv&&!isCour);
+  const isBold=/bold|bd|semibold|demi|medium/i.test(fname);
+  const isItal=/ital|oblique|it|obl/i.test(fname);
+  if(isHelv) return isBold&&isItal?'Helvetica-BoldOblique':isBold?'Helvetica-Bold':isItal?'Helvetica-Oblique':'Helvetica';
+  if(isCour) return isBold&&isItal?'Courier-BoldOblique':isBold?'Courier-Bold':isItal?'Courier-Oblique':'Courier';
+  return isBold&&isItal?'Times-BoldItalic':isBold?'Times-Bold':isItal?'Times-Italic':'Times-Roman';
+}
+function sampleColorMedianAtPx(pxX,pxY){
+  const cv=$('cv'),ctx=cv.getContext('2d');
+  let radius=3,best='#000000';
+  const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
+  const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;}
+  while(radius<=10){
+    const x0=Math.max(0,Math.round(pxX)-radius),y0=Math.max(0,Math.round(pxY)-radius);
+    const w=Math.min(radius*2+1,cv.width-x0),h=Math.min(radius*2+1,cv.height-y0);
+    const d=ctx.getImageData(x0,y0,w,h).data; const Rs=[],Gs=[],Bs=[];
+    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];const lum=0.2126*r+0.7152*g+0.0722*b; if(lum>235)continue; Rs.push(r);Gs.push(g);Bs.push(b);}
+    if(Rs.length){best='#'+toHex(med(Rs))+toHex(med(Gs))+toHex(med(Bs)); break;}
+    radius+=2;
+  }
+  return best;
+}
+function isGroup(id){return typeof id==='string' && id.startsWith('g:');}
 
+// ---------- state ----------
 let pdfDoc=null,pageNum=1,pageCount=1,scale=1.10,ptPerPx=1,pageHeightPts=0;
 let fileB64=null,lastClickPt=null;
 let items=[],groups=[],selectedId=null,areaMode=false,eyedropMode=false;
 
-// --- PDF.js SETUP (stable v3.11.174) ---
-const pdfjsLib = window["pdfjs-dist/build/pdf"];
-if (!pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions = {};
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-// ---------------------------------------
-
-
+// ---------- load/render ----------
 $('load').onclick=async()=>{
   try{
     const f=$('file').files[0]; if(!f){setStat("Choose a PDF."); return;}
@@ -250,7 +274,6 @@ $('reset').onclick=()=>{
   $('overlay').innerHTML=""; $('pageWrap').style.display='none';
   setQueued(); setStat("Cleared.");
 };
-
 $('prev').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
 $('next').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
 $('zoom').oninput=async e=>{if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); redraw();};
@@ -263,112 +286,50 @@ async function renderPage(){
   const cv=$('cv'), ctx=cv.getContext('2d');
   cv.width=viewport.width; cv.height=viewport.height;
   ptPerPx=baseViewport.width/viewport.width;
-  pageHeightPts = baseViewport.height; // <- true page height in points (top-left is 0)
+  pageHeightPts = baseViewport.height; // top-left coordinate system: yTop = pageHeightPts - baseline - size
   await page.render({canvasContext:ctx, viewport}).promise;
   $('pageWrap').style.display='';
   setMeta();
   cv.onpointermove=(e)=>{const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)*ptPerPx); const y=Math.round((e.clientY-r.top)*ptPerPx); $('coords').textContent=`x: ${x}  y: ${y}`;}
 }
 
+// ---------- toggles ----------
 $('toggleGuides').onchange=(e)=>{ if(e.target.checked)document.body.classList.remove('noguides'); else document.body.classList.add('noguides'); };
-
 $('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
 $('areaClone').onclick=()=>{areaMode=!areaMode; eyedropMode=false; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; $('eyedrop').textContent="Eyedrop"; setStat(areaMode?"Drag a rectangle to clone just that area.":"Area clone off.","ok");};
 $('ungroup').onclick=()=>{ if(!isGroup(selectedId)){setStat("Select a section (group) first.","err");return;} const gid=selectedId.slice(2); groups=groups.filter(g=>g.id!==gid); selectedId=null; redraw(); setQueued(); setStat("Ungrouped.","ok"); };
 
-function guessFontFromName(name){
-  const fname=(name||'').toString();
-  const isHelv=/helv/i.test(fname),isCour=/cour/i.test(fname);
-  const isTimes=/times|newroman|tnr|minion|garamond|serif/i.test(fname)||(!isHelv&&!isCour);
-  const isBold=/bold|bd|semibold|demi|medium/i.test(fname);
-  const isItal=/ital|oblique|it|obl/i.test(fname);
-  if(isHelv) return isBold&&isItal?'Helvetica-BoldOblique':isBold?'Helvetica-Bold':isItal?'Helvetica-Oblique':'Helvetica';
-  if(isCour) return isBold&&isItal?'Courier-BoldOblique':isBold?'Courier-Bold':isItal?'Courier-Oblique':'Courier';
-  return isBold&&isItal?'Times-BoldItalic':isBold?'Times-Bold':isItal?'Times-Italic':'Times-Roman';
-}
-
-function sampleColorMedianAtPx(pxX,pxY){
-  const cv=$('cv'),ctx=cv.getContext('2d');
-  let radius=3,best='#000000';
-  const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
-  const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;}
-  while(radius<=10){
-    const x0=Math.max(0,Math.round(pxX)-radius),y0=Math.max(0,Math.round(pxY)-radius);
-    const w=Math.min(radius*2+1,cv.width-x0),h=Math.min(radius*2+1,cv.height-y0);
-    const d=ctx.getImageData(x0,y0,w,h).data; const Rs=[],Gs=[],Bs=[];
-    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];const lum=0.2126*r+0.7152*g+0.0722*b; if(lum>235)continue; Rs.push(r);Gs.push(g);Bs.push(b);}
-    if(Rs.length){best='#'+toHex(med(Rs))+toHex(med(Gs))+toHex(med(Bs)); break;}
-    radius+=2;
-  }
-  return best;
-}
-
-function isGroup(id){return typeof id==='string' && id.startsWith('g:');}
-
-async function getPageTextItems() {
-  const page = await pdfDoc.getPage(pageNum);
-  const tc = await page.getTextContent({ includeMarkedContent: true });
-  return tc.items.map(it => {
-    const [a,, ,d,e,f] = it.transform;
-    const size = Math.max(Math.abs(a), Math.abs(d));
-    const x = e;
-    const yTop = pageHeightPts - f - size;   // convert to top-left origin
-    return {
-      str: it.str,
-      x, y: yTop,
-      w: it.width,
-      h: size * 1.2,
-      size,
-      fontName: it.fontName || "Times-Roman"
-    };
+// ---------- text extraction & grouping ----------
+async function getPageTextItems(){
+  const page=await pdfDoc.getPage(pageNum);
+  const tc=await page.getTextContent({ includeMarkedContent: true });
+  return tc.items.map(it=>{
+    const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
+    const size=Math.max(Math.abs(a),Math.abs(d));
+    const x=ex, yTop = pageHeightPts - ey - size; // **top-left conversion**
+    const w=it.width, h=size*1.2;
+    return {str:it.str, x, y:yTop, w, h, size, fontName:it.fontName||"Times-Roman"};
   });
 }
-
-
-function linesFromItems(items) {
-  const sorted = items.slice().sort((a,b) => a.y - b.y || a.x - b.x);
-  const lines = [];
-  for (const s of sorted) {
-    let ln = lines.find(L => Math.abs(L.y - s.y) < s.size * 0.3);
-    if (!ln) {
-      ln = { y: s.y, size: s.size, fontName: s.fontName, segs: [] };
-      lines.push(ln);
-    }
-    ln.segs.push(s);
+function linesFromItems(items){
+  const sorted=items.slice().sort((a,b)=>a.y - b.y || a.x - b.x);
+  const lines=[];
+  for(const s of sorted){
+    let ln=lines.find(L=>Math.abs(L.y - s.y) < s.size * 0.3);
+    if(!ln){ ln={y:s.y, size:s.size, fontName:s.fontName, segs:[s]}; lines.push(ln); }
+    else{ ln.segs.push(s); }
   }
-  lines.forEach(L => L.segs.sort((a,b) => a.x - b.x));
+  lines.forEach(L=>L.segs.sort((a,b)=>a.x-b.x));
   return lines;
 }
 
-
-function blocksFromLines(lines){
-  const blocks=[]; let cur=null;
-  for(const L of lines){
-    const font=guessFontFromName(L.fontName);
-    if(!cur || Math.abs(cur.size-L.size)>0.6 || cur.font!==font){
-      cur={lines:[],size:L.size,font,rawFont:L.fontName,xMin:L.xMin,xMax:L.xMax,yTop:L.y,h:L.h};
-      blocks.push(cur);
-    }
-    cur.lines.push(L);
-    cur.xMin=Math.min(cur.xMin,L.xMin); cur.xMax=Math.max(cur.xMax,L.xMax);
-    cur.h += L.h;
-  }
-  // baseline gaps for lineHeight
-  blocks.forEach(b=>{
-    const gaps=[]; for(let i=1;i<b.lines.length;i++) gaps.push(b.lines[i].y - b.lines[i-1].y);
-    b.lineGap = gaps.length ? (gaps.reduce((a,c)=>a+c,0)/gaps.length) : b.size*1.35;
-  });
-  return blocks;
-}
-
+// ---------- overlay drawing ----------
 function redraw(){
   const ov=$('overlay'); ov.innerHTML="";
   drawGroups(ov);
   drawItems(ov);
-  if(areaMode) ; // marquee created on pointerdown
   setQueued();
 }
-
 function drawItems(ov){
   const pageItems=items.filter(it=>it.page===pageNum);
   pageItems.forEach(it=>{
@@ -442,7 +403,6 @@ function drawItems(ov){
   });
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
-
 function drawGroups(ov){
   const pageGroups=groups.filter(g=>g.page===pageNum);
   pageGroups.forEach(g=>{
@@ -466,6 +426,7 @@ function drawGroups(ov){
         const newLeft=baseLeft+dx,newTop=baseTop+dy;
         const dptX=Math.round(newLeft*ptPerPx)-g.x, dptY=Math.round(newTop*ptPerPx)-g.y;
         g.x+=dptX; g.y+=dptY;
+        if (!Array.isArray(g.children) || g.children.length === 0) { console.warn("Empty group; skip child translate"); redraw(); return; }
         g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x+=dptX; it.y+=dptY;}});
         redraw();
       };
@@ -498,6 +459,7 @@ function drawGroups(ov){
           const dGX=newGX-startGX, dGY=newGY-startGY;
           const centerX=startGX+startGW/2, centerY=startGY+startGH/2;
           g.x=newGX; g.y=newGY; g.w=Math.round(startGW*sX); g.h=Math.round(startGH*sY);
+          if (!Array.isArray(g.children) || g.children.length === 0) { console.warn("Empty group; skip child scale"); redraw(); return; }
           g.children.forEach(ch=>{
             const it=items.find(i=>i.id===ch.refId); if(!it) return;
             const relX=it.x-centerX, relY=it.y-centerY;
@@ -525,6 +487,7 @@ function drawGroups(ov){
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
+// ---------- selection + add ----------
 function setSelected(id){
   selectedId=id;
   if(isGroup(id)){ $('text').value=""; redraw(); return; }
@@ -549,7 +512,6 @@ function updateSelectedFromSidebar(){
 ;['text','font','size','color','width','lineHeight','fauxBold','skewDeg','tracking','lineWidth','lineThick'].forEach(id=>{
   $(id).addEventListener(id==='text'?'input':'change', updateSelectedFromSidebar);
 });
-
 window.addEventListener('keydown',(e)=>{
   if(!selectedId) return;
   if(e.key==='Delete'||e.key==='Backspace'){
@@ -577,7 +539,7 @@ $('addLine').onclick=()=>{
   setSelected(id); redraw(); setQueued(); setStat("Line added.","ok");
 };
 
-// Canvas interactions
+// ---------- canvas interactions ----------
 $('cv').addEventListener('pointerdown', async (e)=>{
   const r=$('cv').getBoundingClientRect();
   const pxX=e.clientX-r.left, pxY=e.clientY-r.top;
@@ -633,38 +595,30 @@ function startMarquee(pxX,pxY){
   document.addEventListener('pointerup',up,{once:true});
 }
 
+// ---------- area clone (FIXED) ----------
 async function cloneFromArea(selPt, selPx) {
   const pageItems = await getPageTextItems();
 
-  // convert everything to top-left coordinate system
+  // top-left coords for selection
   const sx1 = selPt.x, sy1 = selPt.y, sx2 = selPt.x + selPt.w, sy2 = selPt.y + selPt.h;
+
+  // filter hits strictly in points (same unit as items)
   const hits = pageItems.filter(s => {
     const ix1 = s.x, iy1 = s.y, ix2 = s.x + s.w, iy2 = s.y + s.h;
     return !(ix2 < sx1 || ix1 > sx2 || iy2 < sy1 || iy1 > sy2);
   });
 
-  if (!hits.length) {
-    setStat("No text found in selection.", "err");
-    return;
-  }
+  if (!hits.length) { setStat("No text found in selection.","err"); return; }
 
-  // Build lines/blocks from ONLY the hits
   const lines = linesFromItems(hits);
 
-  // Merge line segments that are close vertically (avoid one giant box)
+  // compact blocks: split by vertical gaps; prevents full-page giant box
   const blocks = [];
   let cur = null;
   for (const L of lines) {
     if (!cur || Math.abs(L.y - cur.lastY) > L.size * 1.8) {
-      cur = {
-        lines: [],
-        font: guessFontFromName(L.fontName),
-        size: L.size,
-        xMin: 1e9,
-        xMax: -1e9,
-        yMin: 1e9,
-        yMax: -1e9
-      };
+      cur = { lines: [], font: guessFontFromName(L.fontName), size: L.size,
+              xMin: +1e9, xMax: -1e9, yMin: +1e9, yMax: -1e9 };
       blocks.push(cur);
     }
     cur.lines.push(L);
@@ -677,27 +631,25 @@ async function cloneFromArea(selPt, selPx) {
     cur.lastY = L.y;
   }
 
-  // Create items per block with per-block color sampling
   const newIds = [];
   for (const b of blocks) {
     const text = b.lines.map(L => L.segs.map(s => s.str).join("")).join("\n");
-    const blockPxCenter = {
-      x: ((b.xMin + b.xMax) / 2) / ptPerPx,
-      y: ((b.yMin + b.yMax) / 2) / ptPerPx
-    };
+
+    // sample color at block center (in canvas pixels)
+    const blockPxCenter = { x: ((b.xMin + b.xMax) / 2) / ptPerPx, y: ((b.yMin + b.yMax) / 2) / ptPerPx };
     const colorHex = sampleColorMedianAtPx(blockPxCenter.x, blockPxCenter.y);
+
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
     const x = Math.round(b.xMin);
     const y = Math.round(b.yMin);
     const w = Math.round(b.xMax - b.xMin + 2);
     const lineHeight = Math.round(b.size * 1.35);
+
     items.push({
       id,
       type: "text",
       page: pageNum,
-      x,
-      y,
-      width: w,
+      x, y, width: w,
       text,
       font: b.font,
       size: Math.round(b.size),
@@ -710,39 +662,29 @@ async function cloneFromArea(selPt, selPx) {
     newIds.push(id);
   }
 
-  // Group bounds = tight union of new item rects
-  const rects = newIds.map(id => {
-    const it = items.find(i => i.id === id);
-    const h = (it.lineHeight || Math.round(it.size * 1.35)) *
-              ((it.text.match(/\n/g) || []).length + 1);
-    return { x: it.x, y: it.y, w: it.width, h };
+  // tight union of new item rects — all values are already in points
+  const rects = newIds.map(id=>{
+    const it=items.find(i=>i.id===id);
+    const h=(it.lineHeight||Math.round(it.size*1.35)) * ((it.text.match(/\n/g)||[]).length + 1);
+    return {x:it.x, y:it.y, w:it.width, h};
   });
-  const gx = Math.min(...rects.map(r => r.x));
-  const gy = Math.min(...rects.map(r => r.y));
-  const gxe = Math.max(...rects.map(r => r.x + r.w));
-  const gye = Math.max(...rects.map(r => r.y + r.h));
-  const gid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+  const gx=Math.min(...rects.map(r=>r.x));
+  const gy=Math.min(...rects.map(r=>r.y));
+  const gxe=Math.max(...rects.map(r=>r.x+r.w));
+  const gye=Math.max(...rects.map(r=>r.y+r.h));
+  const gid=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
 
   groups.push({
-    id: gid,
-    page: pageNum,
-    x: gx,
-    y: gy,
-    w: gxe - gx,
-    h: gye - gy,
-    children: newIds.map(id => ({ refId: id }))
+    id:gid,page:pageNum,x:gx,y:gy,w:gxe-gx,h:gye-gy,
+    children:newIds.map(id=>({refId:id}))
   });
 
-  setSelected("g:" + gid);
-  redraw();
-  setQueued();
-  setStat(
-    `Cloned ${newIds.length} block(s). Drag/resize the blue group; edit sub-blocks as needed.`,
-    "ok"
-  );
+  setSelected("g:"+gid);
+  redraw(); setQueued();
+  setStat(`Cloned ${newIds.length} block(s). Drag/resize the blue group; edit sub-blocks as needed.`,"ok");
 }
 
-
+// ---------- apply edits (export) ----------
 $('apply').onclick=async()=>{
   try{
     if(!fileB64){setStat("Load a PDF first.","err");return;}
@@ -757,7 +699,7 @@ $('apply').onclick=async()=>{
     if(!r.ok){const t=await r.text();throw new Error(t||r.statusText);}
     const {pdf}=await r.json();
     const blob=new Blob([Uint8Array.from(atob(pdf),c=>c.charCodeAt(0))],{type:'application/pdf'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Gravitational_Aura_Masterclass_FINAL_CLEAN_v4.pdf'; a.click();
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Edited.pdf'; a.click();
     setStat("Done ✓ File downloaded.","ok");
   }catch(e){setStat("Error: "+e.message,"err");}
 };

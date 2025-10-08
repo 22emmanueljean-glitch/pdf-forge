@@ -301,10 +301,29 @@ function guessFontFromName(name){
   const isTimes=/times|newroman|tnr|minion|garamond|serif/i.test(fname)||(!isHelv&&!isCour);
   const isBold=/bold|bd|semibold|demi|medium/i.test(fname);
   const isItal=/ital|oblique|it|obl/i.test(fname);
-  if(isHelv) return isBold&&isItal?'Helvetica-BoldOblique':isBold?'Helvetica-Bold':isItal?'Helvetica-Oblique':'Helvetica';
-  if(isCour) return isBold&&isItal?'Courier-BoldOblique':isBold?'Courier-Bold':isItal?'Courier-Oblique':'Courier';
-  return isBold&&isItal?'Times-BoldItalic':isBold?'Times-Bold':isItal?'Times-Italic':'Times-Roman';
+  const isBoldItal=/bolditalic|boldoblique/i.test(fname);
+
+  if(isHelv){
+    if(isBoldItal) return 'Helvetica-BoldOblique';
+    return isBold && isItal ? 'Helvetica-BoldOblique'
+         : isBold ? 'Helvetica-Bold'
+         : isItal ? 'Helvetica-Oblique'
+         : 'Helvetica';
+  }
+  if(isCour){
+    if(isBoldItal) return 'Courier-BoldOblique';
+    return isBold && isItal ? 'Courier-BoldOblique'
+         : isBold ? 'Courier-Bold'
+         : isItal ? 'Courier-Oblique'
+         : 'Courier';
+  }
+  if(isBoldItal) return 'Times-BoldItalic';
+  return isBold && isItal ? 'Times-BoldItalic'
+       : isBold ? 'Times-Bold'
+       : isItal ? 'Times-Italic'
+       : 'Times-Roman';
 }
+
 function sampleColorMedianAtPx(pxX, pxY){
   const cv = $('cv');
   const ctx = cv.getContext('2d', { willReadFrequently: true });
@@ -387,7 +406,7 @@ function buildLinesPx(itemsPx){
   const items=itemsPx.slice().sort((a,b)=> (a.y-b.y) || (a.x-b.x));
   const sizes=items.map(s=>s.sizePx).sort((a,b)=>a-b);
   const medSize=sizes[Math.floor(sizes.length/2)]||12;
-  const vTol=Math.max(0.75*medSize, 4);
+  const vTol=Math.max(0.9*medSize, 6);
 
   const lines=[];
   for(const s of items){
@@ -753,7 +772,7 @@ async function cloneFromAreaPx(selPx, includeRules){
   // strict containment (±1px tolerance)
   const hits=itemsPx.filter(s=>{
     const ix1=s.x, iy1=s.y, ix2=s.x+s.w, iy2=s.y+s.h;
-    return ix1>=sx1-1 && ix2<=sx2+1 && iy1>=sy1-1 && iy2<=sy2+1;
+    return !(ix2 < sx1 - 2 || ix1 > sx2 + 2 || iy2 < sy1 - 2 || iy1 > sy2 + 2);
   });
   if(!hits.length && !includeRules){ setStat("No text found in selection.","err"); return; }
 

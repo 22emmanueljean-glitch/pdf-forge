@@ -305,31 +305,41 @@ function sampleColorMedianAtPx(pxX,pxY){
 
 function isGroup(id){return typeof id==='string' && id.startsWith('g:');}
 
-async function getPageTextItems(){
-  const page=await pdfDoc.getPage(pageNum);
-  const tc=await page.getTextContent();
-  // Convert to TOP-LEFT coordinates: yTop = pageHeightPts - baselineY - size
-  return tc.items.map(it=>{
-    const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
-    const size=Math.max(Math.abs(a),Math.abs(d));
-    const x=ex, yTop = pageHeightPts - ey - size; // **the fix**
-    const w=it.width, h=size*1.2; // approx line box height
-    return {str:it.str, x, y:yTop, w, h, size, fontName:it.fontName};
+async function getPageTextItems() {
+  const page = await pdfDoc.getPage(pageNum);
+  const tc = await page.getTextContent({ includeMarkedContent: true });
+  return tc.items.map(it => {
+    const [a,, ,d,e,f] = it.transform;
+    const size = Math.max(Math.abs(a), Math.abs(d));
+    const x = e;
+    const yTop = pageHeightPts - f - size;   // convert to top-left origin
+    return {
+      str: it.str,
+      x, y: yTop,
+      w: it.width,
+      h: size * 1.2,
+      size,
+      fontName: it.fontName || "Times-Roman"
+    };
   });
 }
 
-function linesFromItems(its){
-  const sorted=its.slice().sort((A,B)=>A.y - B.y || A.x - B.x); // top-to-bottom
-  const lines=[];
-  const tolBase=s=>Math.max(1.5,s*0.35);
-  for(const s of sorted){
-    let ln=lines.find(L=>Math.abs(L.y - s.y) <= tolBase(s.size));
-    if(!ln){ ln={y:s.y, size:s.size, fontName:s.fontName, segs:[s], xMin:s.x, xMax:s.x+s.w, h:s.h}; lines.push(ln); }
-    else{ ln.segs.push(s); ln.xMin=Math.min(ln.xMin,s.x); ln.xMax=Math.max(ln.xMax,s.x+s.w); ln.h=Math.max(ln.h,s.h); }
+
+function linesFromItems(items) {
+  const sorted = items.slice().sort((a,b) => a.y - b.y || a.x - b.x);
+  const lines = [];
+  for (const s of sorted) {
+    let ln = lines.find(L => Math.abs(L.y - s.y) < s.size * 0.3);
+    if (!ln) {
+      ln = { y: s.y, size: s.size, fontName: s.fontName, segs: [] };
+      lines.push(ln);
+    }
+    ln.segs.push(s);
   }
-  lines.forEach(L=>L.segs.sort((a,b)=>a.x-b.x));
+  lines.forEach(L => L.segs.sort((a,b) => a.x - b.x));
   return lines;
 }
+
 
 function blocksFromLines(lines){
   const blocks=[]; let cur=null;
@@ -623,58 +633,115 @@ function startMarquee(pxX,pxY){
   document.addEventListener('pointerup',up,{once:true});
 }
 
-async function cloneFromArea(selPt, selPx){
-  const pageItems=await getPageTextItems();
-  // intersect any item whose bbox overlaps the selection (top-left coords)
-  const hits=pageItems.filter(s=>{
-    const ix1=s.x, iy1=s.y, ix2=s.x+s.w, iy2=s.y+s.h;
-    const sx1=selPt.x, sy1=selPt.y, sx2=selPt.x+selPt.w, sy2=selPt.y+selPt.h;
-    return !(ix2<sx1 || ix1>sx2 || iy2<sy1 || iy1>sy2);
+async function cloneFromArea(selPt, selPx) {
+  const pageItems = await getPageTextItems();
+
+  // convert everything to top-left coordinate system
+  const sx1 = selPt.x, sy1 = selPt.y, sx2 = selPt.x + selPt.w, sy2 = selPt.y + selPt.h;
+  const hits = pageItems.filter(s => {
+    const ix1 = s.x, iy1 = s.y, ix2 = s.x + s.w, iy2 = s.y + s.h;
+    return !(ix2 < sx1 || ix1 > sx2 || iy2 < sy1 || iy1 > sy2);
   });
-  if(!hits.length){setStat("No text found in selection.","err");return;}
+
+  if (!hits.length) {
+    setStat("No text found in selection.", "err");
+    return;
+  }
 
   // Build lines/blocks from ONLY the hits
-  const lines=linesFromItems(hits);
-  const blocks=blocksFromLines(lines);
+  const lines = linesFromItems(hits);
+
+  // Merge line segments that are close vertically (avoid one giant box)
+  const blocks = [];
+  let cur = null;
+  for (const L of lines) {
+    if (!cur || Math.abs(L.y - cur.lastY) > L.size * 1.8) {
+      cur = {
+        lines: [],
+        font: guessFontFromName(L.fontName),
+        size: L.size,
+        xMin: 1e9,
+        xMax: -1e9,
+        yMin: 1e9,
+        yMax: -1e9
+      };
+      blocks.push(cur);
+    }
+    cur.lines.push(L);
+    L.segs.forEach(s => {
+      cur.xMin = Math.min(cur.xMin, s.x);
+      cur.xMax = Math.max(cur.xMax, s.x + s.w);
+      cur.yMin = Math.min(cur.yMin, s.y);
+      cur.yMax = Math.max(cur.yMax, s.y + s.h);
+    });
+    cur.lastY = L.y;
+  }
 
   // Create items per block with per-block color sampling
-  const newIds=[];
-  blocks.forEach(b=>{
-    const text=b.lines.map(L=>L.segs.map(s=>s.str).join('')).join('\n');
-    const blockPxCenter={ x:( (b.xMin + b.xMax)/2 )/ptPerPx, y:( (b.lines[0].y + (b.lines[0].h||b.size))/ptPerPx ) };
-    const colorHex=sampleColorMedianAtPx(blockPxCenter.x, blockPxCenter.y);
-    const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-    const x=b.xMin;
-    const y=b.lines[0].y; // already top-left
-    const w=Math.round((b.xMax-b.xMin)+4);
-    const lineGap=Math.max(b.lineGap,b.size*1.2);
+  const newIds = [];
+  for (const b of blocks) {
+    const text = b.lines.map(L => L.segs.map(s => s.str).join("")).join("\n");
+    const blockPxCenter = {
+      x: ((b.xMin + b.xMax) / 2) / ptPerPx,
+      y: ((b.yMin + b.yMax) / 2) / ptPerPx
+    };
+    const colorHex = sampleColorMedianAtPx(blockPxCenter.x, blockPxCenter.y);
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+    const x = Math.round(b.xMin);
+    const y = Math.round(b.yMin);
+    const w = Math.round(b.xMax - b.xMin + 2);
+    const lineHeight = Math.round(b.size * 1.35);
     items.push({
-      id,type:'text',page:pageNum,x:Math.round(x),y:Math.round(y),
-      width:w,text, font:b.font, size:Math.round(b.size), colorHex,
-      lineHeight:Math.round(lineGap),
-      fauxBold:/bold|semi|demi|medium/i.test(b.rawFont)?1:0,
-      skewDeg:/ital|obl/i.test(b.rawFont)?12:0,
-      tracking:0
+      id,
+      type: "text",
+      page: pageNum,
+      x,
+      y,
+      width: w,
+      text,
+      font: b.font,
+      size: Math.round(b.size),
+      colorHex,
+      lineHeight,
+      fauxBold: /bold|semi|demi|medium/i.test(b.font) ? 1 : 0,
+      skewDeg: /ital|obl/i.test(b.font) ? 12 : 0,
+      tracking: 0
     });
     newIds.push(id);
-  });
+  }
 
   // Group bounds = tight union of new item rects
-  const rects=newIds.map(id=>{
-    const it=items.find(i=>i.id===id);
-    const h=(it.lineHeight||Math.round(it.size*1.35)) * ((it.text.match(/\n/g)||[]).length + 1);
-    return {x:it.x, y:it.y, w:it.width, h};
+  const rects = newIds.map(id => {
+    const it = items.find(i => i.id === id);
+    const h = (it.lineHeight || Math.round(it.size * 1.35)) *
+              ((it.text.match(/\n/g) || []).length + 1);
+    return { x: it.x, y: it.y, w: it.width, h };
   });
-  const gx=Math.min(...rects.map(r=>r.x));
-  const gy=Math.min(...rects.map(r=>r.y));
-  const gxe=Math.max(...rects.map(r=>r.x+r.w));
-  const gye=Math.max(...rects.map(r=>r.y+r.h));
-  const gid=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-  groups.push({id:gid,page:pageNum,x:gx,y:gy,w:gxe-gx,h:gye-gy,children:newIds.map(id=>({refId:id}))});
-  setSelected("g:"+gid);
-  redraw(); setQueued();
-  setStat(`Cloned ${newIds.length} block(s). Drag/resize the blue group; edit sub-blocks as needed.`,"ok");
+  const gx = Math.min(...rects.map(r => r.x));
+  const gy = Math.min(...rects.map(r => r.y));
+  const gxe = Math.max(...rects.map(r => r.x + r.w));
+  const gye = Math.max(...rects.map(r => r.y + r.h));
+  const gid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+
+  groups.push({
+    id: gid,
+    page: pageNum,
+    x: gx,
+    y: gy,
+    w: gxe - gx,
+    h: gye - gy,
+    children: newIds.map(id => ({ refId: id }))
+  });
+
+  setSelected("g:" + gid);
+  redraw();
+  setQueued();
+  setStat(
+    `Cloned ${newIds.length} block(s). Drag/resize the blue group; edit sub-blocks as needed.`,
+    "ok"
+  );
 }
+
 
 $('apply').onclick=async()=>{
   try{

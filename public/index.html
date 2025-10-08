@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Editor Pro (Drag-Fix)</title>
+<title>PDF Forge — Pro Clone & Smooth Drag</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
@@ -33,8 +33,8 @@
   .overlay{position:absolute;inset:0;pointer-events:none;touch-action:none}
 
   /* blocks: outline only so real color shows */
-  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff;touch-action:none}
-  .block:active{cursor:grabbing}
+  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff;touch-action:none;will-change:transform}
+  .block.dragging{cursor:grabbing}
   .block.selected{border:2px solid var(--accent);z-index:10}
   .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize;touch-action:none}
   .close{position:absolute;top:-9px;left:-9px;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
@@ -48,7 +48,7 @@
 <body>
 <div class="wrap">
   <div class="left">
-    <h1>PDF Forge — Editor Pro</h1>
+    <h1>PDF Forge — Pro</h1>
 
     <div class="card">
       <label>Upload PDF</label>
@@ -75,7 +75,7 @@
       <div class="tinyrow">
         <label><input type="checkbox" id="toggleGuides" checked> Show outlines</label>
         <button id="eyedrop" class="secondary" style="padding:8px 10px">Eyedrop (style+color)</button>
-        <button id="selectExisting" class="secondary" style="padding:8px 10px">Select Existing (clone)</button>
+        <button id="cloneSection" class="secondary" style="padding:8px 10px">Clone Section (auto)</button>
         <span class="pill" id="picked">picked: —</span>
       </div>
 
@@ -116,6 +116,28 @@
         <div>
           <label>Width (pt)</label>
           <input id="width" type="number" value="460">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Line Height (pt)</label>
+          <input id="lineHeight" type="number" step="0.1" value="15">
+        </div>
+        <div>
+          <label>Faux Bold (0–3)</label>
+          <input id="fauxBold" type="number" min="0" max="3" value="0">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Italic Skew (°)</label>
+          <input id="skewDeg" type="number" step="1" value="0">
+        </div>
+        <div>
+          <label>Tracking (pt/char)</label>
+          <input id="tracking" type="number" step="0.05" value="0">
         </div>
       </div>
 
@@ -189,10 +211,9 @@ const setQueued=()=>$('queued').textContent=items.length+" items queued";
 // ===== State =====
 let pdfDoc=null, pageNum=1, pageCount=1, scale=1.10, ptPerPx=1;
 let fileB64=null, lastClickPt=null;
-let items=[]; // {id,type:'text'|'line',page, x,y,width,text,font,size,colorHex,thick}
+let items=[]; // {id,type:'text'|'line',page,x,y,width,text,font,size,colorHex,thick,lineHeight,fauxBold,skewDeg,tracking}
 let selectedId=null;
 
-// pdf.js
 const pdfjsLib=window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -250,22 +271,35 @@ $('toggleGuides').onchange=(e)=>{
   else document.body.classList.add('noguides');
 };
 
-// ===== Eyedropper & Clone =====
-let eyedropMode=false, selectCloneMode=false;
+// ===== Eyedropper & Section Clone =====
+let eyedropMode=false, cloneSectionMode=false;
 $('eyedrop').onclick=()=>{
-  eyedropMode=!eyedropMode; selectCloneMode=false;
+  eyedropMode=!eyedropMode; cloneSectionMode=false;
   $('eyedrop').textContent = eyedropMode ? "Eyedrop (ON)" : "Eyedrop (style+color)";
-  $('selectExisting').textContent = "Select Existing (clone)";
+  $('cloneSection').textContent = "Clone Section (auto)";
   setStat(eyedropMode ? "Click near text to pick style & color." : "Eyedrop off.","ok");
 };
-$('selectExisting').onclick=()=>{
-  selectCloneMode=!selectCloneMode; eyedropMode=false;
-  $('selectExisting').textContent = selectCloneMode ? "Select Existing (ON)" : "Select Existing (clone)";
+$('cloneSection').onclick=()=>{
+  cloneSectionMode=!cloneSectionMode; eyedropMode=false;
+  $('cloneSection').textContent = cloneSectionMode ? "Clone Section (ON)" : "Clone Section (auto)";
   $('eyedrop').textContent = "Eyedrop (style+color)";
-  setStat(selectCloneMode ? "Click a paragraph to clone it." : "Paragraph selection off.","ok");
+  setStat(cloneSectionMode ? "Click somewhere inside a section (heading+para) to clone it." : "Section clone off.","ok");
 };
 
-// get nearest text and map font weight/italic to standard font names
+// Font mapping with weight/italic heuristics
+function guessFontFromName(name){
+  const fname = (name||'').toString();
+  const isHelv = /helv/i.test(fname);
+  const isCour = /cour/i.test(fname);
+  const isTimes= /times|newroman|tnr|minion|garamond|serif/i.test(fname) || (!isHelv && !isCour);
+  const isBold = /bold|bd|semibold|demi|medium/i.test(fname);
+  const isItal = /ital|oblique|it|obl/i.test(fname);
+  if(isHelv) return isBold && isItal ? 'Helvetica-BoldOblique' : isBold ? 'Helvetica-Bold' : isItal ? 'Helvetica-Oblique' : 'Helvetica';
+  if(isCour) return isBold && isItal ? 'Courier-BoldOblique'  : isBold ? 'Courier-Bold'  : isItal ? 'Courier-Oblique'  : 'Courier';
+  return isBold && isItal ? 'Times-BoldItalic' : isBold ? 'Times-Bold' : isItal ? 'Times-Italic' : 'Times-Roman';
+}
+
+// nearest text span
 async function nearestTextInfoAt(pt){
   const page=await pdfDoc.getPage(pageNum);
   const tc=await page.getTextContent();
@@ -277,48 +311,120 @@ async function nearestTextInfoAt(pt){
     const dx=cx-pt.x, dy=cy-pt.y; const dd=dx*dx+dy*dy;
     if(dd<bestD){
       bestD=dd;
-      const fname = (it.fontName||'').toString();
-      const isHelv = /helv/i.test(fname);
-      const isCour = /cour/i.test(fname);
-      const isTimes= /times|newroman|tnr|minion|garamond/i.test(fname) || (!isHelv && !isCour);
-      const isBold = /bold|bd/i.test(fname);
-      const isItal = /ital|oblique|it|obl/i.test(fname);
-      let font='Times-Roman';
-      if(isHelv) font = isBold && isItal ? 'Helvetica-BoldOblique' :
-                      isBold ? 'Helvetica-Bold' :
-                      isItal ? 'Helvetica-Oblique' : 'Helvetica';
-      else if(isCour) font = isBold && isItal ? 'Courier-BoldOblique' :
-                         isBold ? 'Courier-Bold' :
-                         isItal ? 'Courier-Oblique' : 'Courier';
-      else font = isBold && isItal ? 'Times-BoldItalic' :
-                   isBold ? 'Times-Bold' :
-                   isItal ? 'Times-Italic' : 'Times-Roman';
-      best={ text:it.str, size, font };
+      best={ text:it.str, size, font:guessFontFromName(it.fontName), x:ex, y:ey, width:w, fontName:it.fontName };
     }
   }
   return best;
 }
 
-// sample average color around canvas point
-function sampleCanvasColorAt(pxX, pxY){
-  const cv=$('cv'), ctx=cv.getContext('2d');
-  const ix=Math.round(pxX), iy=Math.round(pxY);
-  const s=6, x0=Math.max(0, ix - Math.floor(s/2)), y0=Math.max(0, iy - Math.floor(s/2));
-  const w=Math.min(s, cv.width - x0), h=Math.min(s, cv.height - y0);
-  const img=ctx.getImageData(x0,y0,w,h).data;
-  let R=0,G=0,B=0,N=0;
-  for(let i=0;i<img.length;i+=4){
-    const r=img[i], g=img[i+1], b=img[i+2];
-    const lum = 0.2126*r + 0.7152*g + 0.0722*b;
-    if(lum>235) continue; // ignore very light background
-    R+=r; G+=g; B+=b; N++;
+// group text into lines/paragraphs around a click (simple baseline grouping)
+async function sectionAround(pt){
+  const page=await pdfDoc.getPage(pageNum);
+  const tc=await page.getTextContent();
+  // Normalize items: baseline y, size, font
+  const its = tc.items.map(it=>{
+    const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
+    return { str:it.str, x:ex, y:ey, w:it.width, size:Math.max(Math.abs(a),Math.abs(d)), fontName:it.fontName };
+  }).sort((A,B)=>B.y - A.y || A.x - B.x);
+
+  // find clicked item
+  let idx=0, bestD=1e15;
+  for(let i=0;i<its.length;i++){
+    const cx=its[i].x + (its[i].w/2), cy=its[i].y;
+    const dx=cx-pt.x, dy=cy-pt.y; const dd=dx*dx+dy*dy;
+    if(dd<bestD){bestD=dd; idx=i;}
   }
-  if(N===0) return '#000000';
-  const to=v=>Math.round(v).toString(16).padStart(2,'0');
-  return '#'+to(R/N)+to(G/N)+to(B/N);
+  const center=its[idx]; if(!center) return [];
+
+  // baseline tolerance
+  const tol = Math.max(1.5, center.size*0.4);
+
+  // collect items within a vertical window around the center to form a section (up to ~10 lines)
+  const windowTop = center.y + center.size*6;
+  const windowBot = center.y - center.size*20;
+  const within = its.filter(s=>s.y<=windowTop && s.y>=windowBot);
+
+  // group by baselines
+  const lines=[];
+  within.forEach(s=>{
+    let ln = lines.find(L=>Math.abs(L.y - s.y) <= tol);
+    if(!ln){ ln={y:s.y, size:s.size, font:guessFontFromName(s.fontName), rawFont:s.fontName, segs:[], xMin:s.x, xMax:s.x+s.w}; lines.push(ln); }
+    ln.segs.push(s);
+    ln.xMin=Math.min(ln.xMin,s.x); ln.xMax=Math.max(ln.xMax,s.x+s.w);
+  });
+  lines.sort((a,b)=>b.y - a.y);
+
+  // split into blocks when font/size/color likely changes (we don't have color here; UI will sample)
+  const blocks=[]; let cur=null;
+  for(const L of lines){
+    if(!cur || Math.abs(cur.size - L.size) > 0.6 || cur.font !== L.font){
+      cur = { lines:[], size:L.size, font:L.font, rawFont:L.rawFont, xMin:L.xMin, xMax:L.xMax, yTop:L.y, lineGap:0 };
+      blocks.push(cur);
+    }
+    cur.lines.push(L);
+    cur.xMin=Math.min(cur.xMin,L.xMin); cur.xMax=Math.max(cur.xMax,L.xMax);
+  }
+  // estimate lineGap per block
+  blocks.forEach(b=>{
+    const gaps=[];
+    for(let i=1;i<b.lines.length;i++) gaps.push(b.lines[i-1].y - b.lines[i].y);
+    b.lineGap = gaps.length ? (gaps.reduce((a,c)=>a+c,0)/gaps.length) : b.size*1.35;
+  });
+
+  // build block models
+  const result = blocks.map(b=>{
+    const text = b.lines.map(L=>{
+      const sorted=L.segs.sort((a,b)=>a.x-b.x);
+      return sorted.map(s=>s.str).join('');
+    }).join('\n');
+    return {
+      type:'text',
+      font:b.font,
+      size:Math.round(b.size),
+      lineHeight: Math.max( b.lineGap, b.size*1.2 ),
+      width: Math.round((b.xMax - b.xMin)+4),
+      x: Math.round(b.xMin),
+      y: Math.round(b.lines[0].y),
+      text,
+      // faux defaults will be refined by color sampler when placed
+      fauxBold: /bold|semi|demi|medium/i.test(b.rawFont) ? 1 : 0,
+      skewDeg: /ital|obl/i.test(b.rawFont) ? 12 : 0,
+      tracking: 0
+    };
+  });
+
+  return result;
 }
 
-// canvas click: placement, eyedrop, or clone
+// adaptive, median-of-ink color sampler
+function sampleColorMedian(pxX, pxY){
+  const cv=$('cv'), ctx=cv.getContext('2d');
+  let radius=3, best='#000000';
+  const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
+  function med(arr){const a=arr.slice().sort((x,y)=>x-y), n=a.length; return n? a[Math.floor(n/2)] : 0;}
+  while(radius<=10){
+    const x0=Math.max(0, Math.round(pxX)-radius);
+    const y0=Math.max(0, Math.round(pxY)-radius);
+    const w=Math.min(radius*2+1, cv.width-x0);
+    const h=Math.min(radius*2+1, cv.height-y0);
+    const data=ctx.getImageData(x0,y0,w,h).data;
+    const Rs=[],Gs=[],Bs=[];
+    for(let i=0;i<data.length;i+=4){
+      const r=data[i], g=data[i+1], b=data[i+2];
+      const lum=0.2126*r+0.7152*g+0.0722*b;
+      if(lum>235) continue; // ignore paper
+      Rs.push(r); Gs.push(g); Bs.push(b);
+    }
+    if(Rs.length){
+      best = '#'+toHex(med(Rs))+toHex(med(Gs))+toHex(med(Bs));
+      break;
+    }
+    radius+=2;
+  }
+  return best;
+}
+
+// canvas click handler
 $('cv').addEventListener('pointerdown', async (e)=>{
   e.preventDefault();
   const r=$('cv').getBoundingClientRect();
@@ -332,34 +438,39 @@ $('cv').addEventListener('pointerdown', async (e)=>{
     if(info){
       $('size').value = Math.max(6, Math.round(info.size));
       $('font').value = info.font;
-      $('color').value = sampleCanvasColorAt(pxX, pxY);
+      $('color').value = sampleColorMedian(pxX, pxY);
       $('picked').textContent = `picked: ${info.font}, ${$('size').value}pt, ${$('color').value}`;
-      setStat("Style picked (font/weight/italic, size, color).","ok");
+      setStat("Style picked.","ok");
     } else setStat("No text near click.","err");
     eyedropMode=false; $('eyedrop').textContent="Eyedrop (style+color)";
     return;
   }
-  if(selectCloneMode){
-    const info = await nearestTextInfoAt({x:xPt,y:yPt});
-    if(info){
-      const hex = sampleCanvasColorAt(pxX, pxY);
+  if(cloneSectionMode){
+    const blocks = await sectionAround({x:xPt,y:yPt});
+    if(!blocks.length){ setStat("Couldn’t detect a section here.","err"); return; }
+    // place each block at click X, stacking with detected leading
+    let yCursor = yPt;
+    blocks.forEach(b=>{
       const id = crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+      const hex = sampleColorMedian(pxX, pxY);
       const it = {
         id, type:'text', page:pageNum,
-        x:xPt, y:yPt, width:460,
-        text: info.text || "",
-        font: info.font,
-        size: Math.max(6, Math.round(info.size)),
-        colorHex: hex
+        x:xPt, y:yCursor,
+        width:b.width, text:b.text,
+        font:b.font, size:b.size, colorHex:hex,
+        lineHeight: Math.round(b.lineHeight),
+        fauxBold: b.fauxBold||0, skewDeg: b.skewDeg||0, tracking: b.tracking||0
       };
-      items.push(it); setQueued(); setSelected(it.id); drawOverlay();
-      setStat("Paragraph cloned & selected. Edit on the left.","ok");
-    } else setStat("Couldn't find a paragraph here.","err");
-    selectCloneMode=false; $('selectExisting').textContent="Select Existing (clone)";
+      items.push(it);
+      yCursor += (b.lineHeight * (b.text.split('\n').length + 1));
+    });
+    setQueued(); setSelected(blocks.length ? items[items.length-1].id : null); drawOverlay();
+    setStat(`Cloned ${blocks.length} block(s). Edit or move freely.`, "ok");
+    cloneSectionMode=false; $('cloneSection').textContent="Clone Section (auto)";
     return;
   }
 
-  // default: placement for next Add
+  // default placement
   lastClickPt={x:xPt,y:yPt};
   setStat(`Placement set at (${xPt}, ${yPt}).`,"ok");
 });
@@ -375,6 +486,10 @@ function setSelected(id){
     $('size').value = it.size || 11;
     $('color').value = it.colorHex || '#000000';
     $('width').value = it.width || 460;
+    $('lineHeight').value = it.lineHeight || Math.round((it.size||11)*1.35);
+    $('fauxBold').value = it.fauxBold || 0;
+    $('skewDeg').value = it.skewDeg || 0;
+    $('tracking').value = it.tracking || 0;
   } else {
     $('text').value = "";
     $('color').value = it.colorHex || '#000000';
@@ -392,6 +507,10 @@ function updateSelectedFromSidebar(){
     it.size = parseFloat($('size').value)||11;
     it.colorHex = $('color').value || "#000000";
     it.width = parseFloat($('width').value)||460;
+    it.lineHeight = parseFloat($('lineHeight').value)||Math.round(it.size*1.35);
+    it.fauxBold = parseInt($('fauxBold').value)||0;
+    it.skewDeg = parseFloat($('skewDeg').value)||0;
+    it.tracking = parseFloat($('tracking').value)||0;
   } else {
     it.colorHex = $('color').value || it.colorHex || "#000000";
     it.width = parseFloat($('lineWidth').value)||it.width||460;
@@ -399,13 +518,9 @@ function updateSelectedFromSidebar(){
   }
   drawOverlay();
 }
-$('text').addEventListener('input', updateSelectedFromSidebar);
-$('font').addEventListener('change', updateSelectedFromSidebar);
-$('size').addEventListener('change', updateSelectedFromSidebar);
-$('color').addEventListener('change', updateSelectedFromSidebar);
-$('width').addEventListener('change', updateSelectedFromSidebar);
-$('lineWidth').addEventListener('change', updateSelectedFromSidebar);
-$('lineThick').addEventListener('change', updateSelectedFromSidebar);
+['text','font','size','color','width','lineHeight','fauxBold','skewDeg','tracking','lineWidth','lineThick'].forEach(id=>{
+  $(id).addEventListener(id==='text'?'input':'change', updateSelectedFromSidebar);
+});
 
 // keyboard delete for selected
 window.addEventListener('keydown',(e)=>{
@@ -430,7 +545,11 @@ $('addText').onclick=()=>{
     text: $('text').value||"",
     font: $('font').value||"Times-Roman",
     size: parseFloat($('size').value)||11,
-    colorHex: $('color').value||"#000000"
+    colorHex: $('color').value||"#000000",
+    lineHeight: parseFloat($('lineHeight').value)||Math.round((parseFloat($('size').value)||11)*1.35),
+    fauxBold: parseInt($('fauxBold').value)||0,
+    skewDeg: parseFloat($('skewDeg').value)||0,
+    tracking: parseFloat($('tracking').value)||0
   };
   items.push(it); setQueued(); setSelected(it.id); drawOverlay();
   setStat("Text block added & selected.","ok");
@@ -454,7 +573,7 @@ $('addLine').onclick=()=>{
 // ===== Remove All =====
 $('clearBlocks').onclick=()=>{ items=[]; selectedId=null; drawOverlay(); setQueued(); setStat("All items removed.","ok"); };
 
-// ===== Draw Overlay (global-drag fix) =====
+// ===== Overlay rendering with ultra-smooth drag (translate3d + RAF) =====
 function drawOverlay(){
   const ov=$('overlay'); ov.innerHTML="";
   const pageItems=items.filter(it=>it.page===pageNum);
@@ -476,17 +595,21 @@ function drawOverlay(){
     handle.className='handle';
     div.appendChild(handle);
 
+    // base position via left/top; live-drag via translate
+    const baseLeft = it.x/ptPerPx;
+    const baseTop  = it.y/ptPerPx;
+    div.style.left = baseLeft+'px';
+    div.style.top  = baseTop+'px';
+
     if(it.type==='text'){
-      div.style.left=(it.x/ptPerPx)+'px';
-      div.style.top=(it.y/ptPerPx)+'px';
       div.style.width=(it.width/ptPerPx)+'px';
       div.style.fontFamily=it.font;
       div.style.fontSize=(it.size/ptPerPx)+'px';
       div.style.color=it.colorHex;
+      div.style.lineHeight = (it.lineHeight/ptPerPx);
       div.textContent=it.text;
     } else {
       const pxH=Math.max(1, it.thick/ptPerPx);
-      div.style.left=(it.x/ptPerPx)+'px';
       div.style.top=((it.y/ptPerPx)-(pxH/2))+'px';
       div.style.width=(it.width/ptPerPx)+'px';
       div.style.height=pxH+'px';
@@ -494,52 +617,64 @@ function drawOverlay(){
       div.textContent='';
     }
 
-    // unified pointerdown: select + (maybe) start drag
+    // SELECT
     div.addEventListener('pointerdown',ev=>{
       ev.preventDefault();
-      setSelected(it.id);
-      if(ev.target===handle || ev.target===close) return;
+      if(ev.target!==handle && ev.target!==close) setSelected(it.id);
+    }, {passive:false});
 
-      // start global drag
-      let startX=ev.clientX, startY=ev.clientY;
-      const startLeft=parseFloat(div.style.left), startTop=parseFloat(div.style.top);
-      const move=(e)=>{
-        const dx=e.clientX-startX, dy=e.clientY-startY;
-        div.style.left=(startLeft+dx)+'px';
-        div.style.top=(startTop+dy)+'px';
-      };
-      const up=(e)=>{
+    // DRAG with RAF
+    div.addEventListener('pointerdown',ev=>{
+      if(ev.target===handle || ev.target===close) return;
+      ev.preventDefault();
+      setSelected(it.id);
+      div.classList.add('dragging');
+
+      const startX=ev.clientX, startY=ev.clientY;
+      let dx=0, dy=0, anim=false;
+
+      const move=(e)=>{ dx=e.clientX-startX; dy=e.clientY-startY; if(!anim){ anim=true; requestAnimationFrame(tick); } };
+      const tick=()=>{ div.style.transform=`translate3d(${dx}px,${dy}px,0)`; anim=false; };
+      const up=()=>{
         document.removeEventListener('pointermove',move);
         document.removeEventListener('pointerup',up);
+        div.classList.remove('dragging');
+        div.style.transform='translate3d(0,0,0)';
+        // commit to points
+        const newLeft = baseLeft + dx;
+        const newTop  = baseTop + dy;
         if(it.type==='text'){
-          it.x=Math.round(parseFloat(div.style.left)*ptPerPx);
-          it.y=Math.round(parseFloat(div.style.top)*ptPerPx);
+          it.x = Math.round(newLeft*ptPerPx);
+          it.y = Math.round(newTop*ptPerPx);
         } else {
           const pxH=Math.max(1, it.thick/ptPerPx);
-          it.x=Math.round(parseFloat(div.style.left)*ptPerPx);
-          it.y=Math.round((parseFloat(div.style.top)+pxH/2)*ptPerPx);
+          it.x = Math.round(newLeft*ptPerPx);
+          it.y = Math.round((newTop + pxH/2)*ptPerPx);
         }
+        // re-render base to avoid drift
+        drawOverlay();
       };
-      document.addEventListener('pointermove',move);
+      document.addEventListener('pointermove',move,{passive:false});
       document.addEventListener('pointerup',up,{once:true});
     }, {passive:false});
 
-    // width RESIZE
+    // RESIZE width (commit with RAF-like smoothness not needed)
     handle.addEventListener('pointerdown',ev=>{
       ev.stopPropagation(); ev.preventDefault();
       setSelected(it.id);
-      let startX=ev.clientX, startW=parseFloat(div.style.width);
+      const startX=ev.clientX, startW=parseFloat((it.width/ptPerPx).toFixed(2));
       const move=(e)=>{
-        const dx=e.clientX-startX;
-        div.style.width=Math.max(20, startW+dx)+'px';
+        const dw=e.clientX-startX;
+        const newW=Math.max(20, startW+dw);
+        div.style.width=newW+'px';
       };
-      const up=(e)=>{
+      const up=()=>{
         document.removeEventListener('pointermove',move);
         document.removeEventListener('pointerup',up);
         it.width=Math.round(parseFloat(div.style.width)*ptPerPx);
         if(it.id===selectedId) $('width').value = it.width;
       };
-      document.addEventListener('pointermove',move);
+      document.addEventListener('pointermove',move,{passive:false});
       document.addEventListener('pointerup',up,{once:true});
     });
 
@@ -559,7 +694,12 @@ $('apply').onclick=async()=>{
     const edits = items.map(it=>{
       const [r,g,b]=hexToRgb01(it.colorHex||'#000000');
       if(it.type==='text'){
-        return {type:'text', page:it.page, x:it.x, y:it.y, width:it.width, text:it.text, font:it.font, size:it.size, color:[r,g,b]};
+        return {
+          type:'text', page:it.page, x:it.x, y:it.y, width:it.width,
+          text:it.text, font:it.font, size:it.size, color:[r,g,b],
+          lineHeight: it.lineHeight || Math.round(it.size*1.35),
+          fauxBold: it.fauxBold||0, skewDeg: it.skewDeg||0, tracking: it.tracking||0
+        };
       } else {
         return {type:'line', page:it.page, x:it.x, y:it.y, width:it.width, thick:it.thick, color:[r,g,b]};
       }

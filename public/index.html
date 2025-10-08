@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Pro (Extended)</title>
+<title>PDF Forge — Pro (FINAL)</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{
@@ -60,15 +60,12 @@
 
   /* marquee */
   .marquee{position:absolute;border:1px solid var(--accent);background:rgba(122,162,255,0.15);pointer-events:none}
-
-  /* debug */
-  .dbg{position:absolute;inset:auto 10px 10px auto;background:#0f1115cc;border:1px solid #2a3246;border-radius:8px;padding:8px 10px;color:#c7d0e0;font-size:11px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="left">
-    <h1>PDF Forge — Pro (Extended)</h1>
+    <h1>PDF Forge — Pro (FINAL)</h1>
     <div class="card">
       <label>Upload PDF</label>
       <input type="file" id="file" accept="application/pdf"/>
@@ -87,7 +84,7 @@
         </div>
         <div>
           <label>Zoom</label>
-          <input type="range" id="zoom" min="50" max="240" value="110">
+          <input type="range" id="zoom" min="50" max="260" value="110">
         </div>
       </div>
 
@@ -201,7 +198,6 @@
       <div class="pageWrap" id="pageWrap" style="display:none">
         <canvas id="cv"></canvas>
         <div class="overlay" id="overlay"></div>
-        <div class="dbg" id="dbg" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -219,7 +215,8 @@ const setStat=(t,cls="")=>{const el=$('stat');el.textContent=t;el.className="sta
 const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`
 const setQueued=()=>$('queued').textContent=items.length+" items queued"
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const median=arr=>{const a=arr.slice().sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:0;}
+const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;}
+const mode=(arr)=>{const m=new Map(); for(const v of arr){m.set(v,(m.get(v)||0)+1)} let best=null,c=0; for(const [k,v] of m){if(v>c){c=v;best=k}} return best;}
 function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 
 /* =========================
@@ -230,7 +227,7 @@ let baseViewport=null,viewport=null;
 let ptPerPx=1, pxPerPt=1, pageHeightPts=0;
 let fileB64=null,lastClickPtPx=null;
 
-let items=[];         // stored in POINTS (top-left) for /api/edit
+let items=[];         // stored in POINTS (top-left)
 let groups=[];        // group frames stored in POINTS (top-left)
 let selectedId=null;
 let areaMode=false,eyedropMode=false;
@@ -298,7 +295,6 @@ async function fileToBase64(file){
     fr.onerror=reject; fr.readAsDataURL(file);
   });
 }
-
 function guessFontFromName(name){
   const fname=(name||'').toString();
   const isHelv=/helv/i.test(fname),isCour=/cour/i.test(fname);
@@ -309,12 +305,10 @@ function guessFontFromName(name){
   if(isCour) return isBold&&isItal?'Courier-BoldOblique':isBold?'Courier-Bold':isItal?'Courier-Oblique':'Courier';
   return isBold&&isItal?'Times-BoldItalic':isBold?'Times-Bold':isItal?'Times-Italic':'Times-Roman';
 }
-
 function sampleColorMedianAtPx(pxX,pxY){
   const cv=$('cv'),ctx=cv.getContext('2d',{ willReadFrequently:true });
   let radius=3,best='#000000';
   const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
-  const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;}
   while(radius<=12){
     const x0=Math.max(0,Math.round(pxX)-radius),y0=Math.max(0,Math.round(pxY)-radius);
     const w=Math.min(radius*2+1,cv.width-x0),h=Math.min(radius*2+1,cv.height-y0);
@@ -322,7 +316,7 @@ function sampleColorMedianAtPx(pxX,pxY){
     for(let i=0;i<d.length;i+=4){
       const r=d[i],g=d[i+1],b=d[i+2];
       const lum=0.2126*r+0.7152*g+0.0722*b;
-      if(lum>240)continue; // ignore very bright background/highlight
+      if(lum>240)continue;
       Rs.push(r);Gs.push(g);Bs.push(b);
     }
     if(Rs.length){best='#'+toHex(med(Rs))+toHex(med(Gs))+toHex(med(Bs)); break;}
@@ -332,80 +326,142 @@ function sampleColorMedianAtPx(pxX,pxY){
 }
 
 /* =========================
-   Text extraction (CANVAS PX)
+   Text extraction (CANVAS PX) + style
 ========================= */
 async function getPageTextItemsPx(){
-  const page = await pdfDoc.getPage(pageNum);
-  const tc = await page.getTextContent({ includeMarkedContent: true });
-  const ctx = $('cv').getContext('2d', { willReadFrequently: true });
+  const page=await pdfDoc.getPage(pageNum);
+  const tc=await page.getTextContent({ includeMarkedContent:true });
+  const ctx=$('cv').getContext('2d', { willReadFrequently:true });
 
-  return tc.items.map(it => {
-    const tr = it.transform;
-    const a = tr[0], d = tr[3], e = tr[4], f = tr[5];
-    const sizePts = Math.max(Math.abs(a), Math.abs(d));
-    const widthPts = it.width;
-    const xPts = e;
+  return tc.items.map(it=>{
+    const tr=it.transform; // [a,b,c,d,e,f]
+    const a=tr[0], d=tr[3], e=tr[4], f=tr[5];
+    const sizePts=Math.max(Math.abs(a),Math.abs(d));
+    const widthPts=it.width;
+    const xPts=e;
     const yTopPts = pageHeightPts - f - sizePts;
 
-    // pixel mapping
-    const x = xPts * pxPerPt;
-    const y = yTopPts * pxPerPt;
-    const w = widthPts * pxPerPt;
-    const h = sizePts * 1.2 * pxPerPt;
-    const sizePx = sizePts * pxPerPt;
+    // px mapping
+    const x = xPts*pxPerPt;
+    const y = yTopPts*pxPerPt;
+    const w = widthPts*pxPerPt;
+    const h = sizePts*1.2*pxPerPt;
+    const sizePx = sizePts*pxPerPt;
 
-    // sample color (median under baseline)
-    const imgData = ctx.getImageData(Math.max(0, Math.round(x)), Math.max(0, Math.round(y + h * 0.7)), Math.min(3, $('cv').width - x), Math.min(3, $('cv').height - y)).data;
-    const r = [], g = [], b = [];
-    for (let i = 0; i < imgData.length; i += 4) { r.push(imgData[i]); g.push(imgData[i + 1]); b.push(imgData[i + 2]); }
-    const med = a => { const s = a.sort((x,y)=>x-y); return s[Math.floor(s.length/2)]||0; };
-    const colorHex = `#${med(r).toString(16).padStart(2,'0')}${med(g).toString(16).padStart(2,'0')}${med(b).toString(16).padStart(2,'0')}`;
+    // color sample just below baseline
+    let colorHex='#000000';
+    try{
+      const sx=Math.max(0,Math.round(x)), sy=Math.max(0,Math.round(y+h*0.7));
+      const sw=Math.min(3, Math.max(1, $('cv').width - sx)), sh=Math.min(3, Math.max(1, $('cv').height - sy));
+      const data=ctx.getImageData(sx,sy,sw,sh).data;
+      const rs=[],gs=[],bs=[];
+      for(let i=0;i<data.length;i+=4){rs.push(data[i]);gs.push(data[i+1]);bs.push(data[i+2]);}
+      const r=med(rs), g=med(gs), b=med(bs);
+      colorHex='#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');
+    }catch{}
 
-    // font style inference
-    const fontName = it.fontName || 'Times-Roman';
-    const flags = it.fontDescriptor ? it.fontDescriptor.flags : 0;
+    const fontName=it.fontName||'Times-Roman';
+    const flags=(it.fontDescriptor && typeof it.fontDescriptor.flags==='number')?it.fontDescriptor.flags:0;
     const fauxBold = (flags & 4) ? 1 : (/bold|semi|demi|medium/i.test(fontName) ? 1 : 0);
     const skewDeg = (flags & 2) ? 12 : (/ital|obl/i.test(fontName) ? 12 : 0);
 
-    return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
+    return {str:it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg};
   });
 }
 
-
 /* =========================
-   Line & block building
+   Line / column / block building
 ========================= */
-function linesFromItemsPx(itemsPx){
-  const items=itemsPx.slice().sort((a,b)=>a.y-b.y||a.x-b.x);
-  if(!items.length)return [];
-
+function buildLinesPx(itemsPx){
+  const items=itemsPx.slice().sort((a,b)=> (a.y-b.y) || (a.x-b.x));
   const sizes=items.map(s=>s.sizePx).sort((a,b)=>a-b);
   const medSize=sizes[Math.floor(sizes.length/2)]||12;
-  const vTol=Math.max(1, medSize*0.35);
+  const vTol=Math.max(0.75*medSize, 4);
 
   const lines=[];
   for(const s of items){
-    let ln=lines.find(L=>Math.abs(L.y - s.y)<=vTol);
-    if(!ln){ ln={ y:s.y, sizePx:s.sizePx, fontName:s.fontName, segs:[s], xMin:s.x, xMax:s.x+s.w }; lines.push(ln); }
-    else{ ln.segs.push(s); ln.xMin=Math.min(ln.xMin,s.x); ln.xMax=Math.max(ln.xMax,s.x+s.w); }
+    let ln=lines.find(L=>Math.abs(L.baseline - (s.y + s.h*0.85))<=vTol);
+    if(!ln){
+      ln={ baseline:s.y + s.h*0.85, segs:[s] };
+      lines.push(ln);
+    }else{
+      ln.segs.push(s);
+    }
   }
 
   for(const L of lines){
     L.segs.sort((a,b)=>a.x-b.x);
-    // reinsert spaces if gap > 0.25em
-    let text=''; let prev=null;
+    // merge text with inferred spaces
+    let text='', prev=null, left=Infinity, right=-Infinity, top=Infinity, bottom=-Infinity, sizes=[], fonts=[], colors=[], bolds=[], ital=[];
     for(const s of L.segs){
       if(prev){
         const gap=s.x-(prev.x+prev.w);
-        if(gap>Math.max(1, L.sizePx*0.25)) text+=' ';
+        if(gap>Math.max(1, s.sizePx*0.25)) text+=' ';
       }
-      text+=s.str; prev=s;
+      text+=s.str;
+      prev=s;
+      left=Math.min(left,s.x); right=Math.max(right,s.x+s.w);
+      top=Math.min(top,s.y); bottom=Math.max(bottom,s.y+s.h);
+      sizes.push(s.sizePx); fonts.push(guessFontFromName(s.fontName)); colors.push(s.colorHex); bolds.push(s.fauxBold); ital.push(s.skewDeg?12:0);
     }
-    L.text=text;
-    L.top=Math.min(...L.segs.map(s=>s.y));
-    L.bottom=Math.max(...L.segs.map(s=>s.y+s.h));
+    L.text=text.trimEnd();
+    L.xMin=left; L.xMax=right; L.top=top; L.bottom=bottom;
+    L.sizePx=med(sizes); L.font=mode(fonts)||'Times-Roman'; L.colorHex=mode(colors)||'#000000';
+    L.fauxBold=med(bolds)>=1?1:0; L.skewDeg=med(ital)>=6?12:0;
   }
+  // sort top-to-bottom
+  lines.sort((a,b)=> (a.top-b.top) || (a.xMin-b.xMin));
   return lines;
+}
+
+function buildColumns(lines){
+  if(!lines.length) return [];
+  const lefts=lines.map(L=>L.xMin).sort((a,b)=>a-b);
+  const leftGaps=lefts.slice(1).map((v,i)=>v-lefts[i]);
+  const colGap=Math.max(16, (leftGaps.length?med(leftGaps):20) * 1.25);
+
+  const cols=[];
+  for(const L of lines){
+    let col=cols.find(c=>Math.abs(c.x - L.xMin)<=colGap);
+    if(!col){ col={x:L.xMin, lines:[]}; cols.push(col); }
+    col.lines.push(L);
+  }
+  cols.forEach(c=>c.lines.sort((a,b)=>a.top-b.top));
+  return cols;
+}
+
+function buildBlocks(cols){
+  const blocks=[];
+  for(const col of cols){
+    let cur=null;
+    for(const L of col.lines){
+      const vGap = cur ? (L.top - cur.lastBottom) : Infinity;
+      const sameStyle = cur && Math.abs(L.sizePx-cur.sizePx)<=Math.max(1,cur.sizePx*0.15) && L.font===cur.font;
+      if(!cur || vGap > Math.max(0.9*L.sizePx,6) || !sameStyle){
+        cur={
+          lines:[], left:L.xMin, right:L.xMax, top:L.top, bottom:L.bottom,
+          sizePx:L.sizePx, font:L.font, colorHex:L.colorHex, fauxBold:L.fauxBold, skewDeg:L.skewDeg,
+          sizes:[L.sizePx], fonts:[L.font], colors:[L.colorHex], bolds:[L.fauxBold], ital:[L.skewDeg?12:0],
+          lastBottom:L.bottom
+        };
+        blocks.push(cur);
+      }
+      cur.lines.push(L);
+      cur.left=Math.min(cur.left,L.xMin); cur.right=Math.max(cur.right,L.xMax);
+      cur.top=Math.min(cur.top,L.top); cur.bottom=Math.max(cur.bottom,L.bottom);
+      cur.lastBottom=L.bottom;
+      cur.sizes.push(L.sizePx); cur.fonts.push(L.font); cur.colors.push(L.colorHex); cur.bolds.push(L.fauxBold); cur.ital.push(L.skewDeg?12:0);
+    }
+  }
+  // finalize styles by mode/median
+  for(const b of blocks){
+    b.sizePx=med(b.sizes);
+    b.font=mode(b.fonts)||b.font;
+    b.colorHex=mode(b.colors)||b.colorHex;
+    b.fauxBold=med(b.bolds)>=1?1:0;
+    b.skewDeg=med(b.ital)>=6?12:0;
+  }
+  return blocks;
 }
 
 /* =========================
@@ -417,22 +473,19 @@ function redraw(){
   drawItems(ov);
   setQueued();
 }
-
 function drawItems(ov){
-  // draw items for current page only
   const pageItems=items.filter(it=>it.page===pageNum);
   for(const it of pageItems){
     const div=document.createElement('div');
     div.className='block';
     div.dataset.id=it.id;
 
-    // point->px
-    const leftPx = it.x*pxPerPt;
-    const isText = it.type==='text';
-    div.style.left = leftPx+'px';
+    const leftPx=it._tempX? it._tempX*pxPerPt : it.x*pxPerPt;
+    const topPx =it._tempY? it._tempY*pxPerPt : it.y*pxPerPt;
+    div.style.left=leftPx+'px';
 
-    if(isText){
-      div.style.top=(it.y*pxPerPt)+'px';
+    if(it.type==='text'){
+      div.style.top=topPx+'px';
       div.style.width=(it.width*pxPerPt)+'px';
       div.style.fontFamily=it.font;
       div.style.fontSize=(it.size*pxPerPt)+'px';
@@ -440,8 +493,8 @@ function drawItems(ov){
       div.style.lineHeight=((it.lineHeight||Math.round(it.size*1.35))*pxPerPt)+'px';
       div.textContent=it.text;
     }else{
-      const pxH=Math.max(1, (it.thick||1)*pxPerPt);
-      div.style.top=((it.y*pxPerPt)-(pxH/2))+'px';
+      const pxH=Math.max(1,(it.thick||1)*pxPerPt);
+      div.style.top=(topPx - pxH/2)+'px';
       div.style.width=(it.width*pxPerPt)+'px';
       div.style.height=pxH+'px';
       div.style.background=it.colorHex||'#000000';
@@ -450,40 +503,35 @@ function drawItems(ov){
 
     if(!isGroup(selectedId) && it.id===selectedId) div.classList.add('selected');
 
-    // close button
     const close=document.createElement('div'); close.className='close' + ((selectedId===it.id)?'':' hidden'); close.textContent='×';
     close.title='Delete'; close.onclick=(ev)=>{ev.stopPropagation(); items=items.filter(x=>x.id!==it.id); groups.forEach(g=>g.children=g.children.filter(ch=>ch.refId!==it.id)); if(selectedId===it.id)selectedId=null; redraw(); setQueued();};
     div.appendChild(close);
 
-    // resize handle
     const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
 
-    // selection
+    // select
     div.addEventListener('pointerdown',ev=>{
       ev.preventDefault();
       if(ev.target!==handle && ev.target!==close) setSelected(it.id);
     }, {passive:false});
 
-    // drag move
+    // drag
     div.addEventListener('pointerdown',ev=>{
       if(ev.target===handle || ev.target===close) return;
       ev.preventDefault();
       setSelected(it.id);
       div.classList.add('dragging');
       const startX=ev.clientX,startY=ev.clientY;
-      const baseLeft=parseFloat(div.style.left),baseTop=parseFloat(div.style.top);
+      const startXPx=leftPx, startYPx= (it.type==='text')?topPx:(topPx);
       let dx=0,dy=0,anim=false;
-      const move=e=>{dx=e.clientX-startX;dy=e.clientY-startY;if(!anim){anim=true;requestAnimationFrame(()=>{div.style.transform=`translate3d(${dx}px,${dy}px,0)`;anim=false;});}};
+      const move=e=>{dx=e.clientX-startX;dy=e.clientY-startY;if(!anim){anim=true;requestAnimationFrame(()=>{div.style.transform=`translate3d(${dx}px,${dy}px,0)`;anim=false;});}
+        it._tempX = it.x + dx*ptPerPx; it._tempY = it.y + dy*ptPerPx;
+      };
       const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);
-        div.classList.remove('dragging');div.style.transform='translate3d(0,0,0)';
-        if(isText){
-          it.x=Math.round((baseLeft+dx)*ptPerPx);
-          it.y=Math.round((baseTop+dy)*ptPerPx);
-        }else{
-          const pxH=Math.max(1,(it.thick||1)*pxPerPt);
-          it.x=Math.round((baseLeft+dx)*ptPerPx);
-          it.y=Math.round((baseTop+dy+pxH/2)*ptPerPx);
-        }
+        div.style.transform='translate3d(0,0,0)'; div.classList.remove('dragging');
+        it.x = Math.round((startXPx+dx)*ptPerPx);
+        it.y = Math.round((startYPx+dy)*ptPerPx);
+        delete it._tempX; delete it._tempY;
         redraw();
       };
       document.addEventListener('pointermove',move,{passive:false});
@@ -505,62 +553,42 @@ function drawItems(ov){
   }
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
-
 function drawGroups(ov){
   const pageGroups=groups.filter(g=>g.page===pageNum);
   for(const g of pageGroups){
     const div=document.createElement('div'); div.className='group'; div.dataset.id="g:"+g.id;
     if(isGroup(selectedId) && selectedId==="g:"+g.id) div.classList.add('selected');
-    div.style.left=(g.x*pxPerPt)+'px'; div.style.top=(g.y*pxPerPt)+'px'; div.style.width=(g.w*pxPerPt)+'px'; div.style.height=(g.h*pxPerPt)+'px';
+    div.style.left=((g._tempX??g.x)*pxPerPt)+'px'; div.style.top=((g._tempY??g.y)*pxPerPt)+'px'; div.style.width=(g.w*pxPerPt)+'px'; div.style.height=(g.h*pxPerPt)+'px';
 
     const close=document.createElement('div'); close.className='g-close'; close.textContent='×';
     close.title='Remove group (keeps contents)'; close.onclick=(ev)=>{ev.stopPropagation(); groups=groups.filter(x=>x.id!==g.id); if(selectedId==="g:"+g.id)selectedId=null; redraw(); setQueued();};
     div.appendChild(close);
     ['tl','tr','bl','br'].forEach(pos=>{const h=document.createElement('div'); h.className='g-handle '+pos; div.appendChild(h);});
 
-    // move group (fixed px <-> pt translation)
-div.addEventListener('pointerdown', ev => {
-  if (ev.target.classList.contains('g-handle') || ev.target === close) return;
-  ev.preventDefault();
-  setSelected("g:" + g.id);
-
-  const startX = ev.clientX, startY = ev.clientY;
-  const startGX = g.x, startGY = g.y;
-  const move = e => {
-    const dxPx = e.clientX - startX, dyPx = e.clientY - startY;
-    const dxPt = dxPx * ptPerPx, dyPt = dyPx * ptPerPx;
-    // visually move
-    div.style.transform = `translate3d(${dxPx}px, ${dyPx}px, 0)`;
-    g.children.forEach(ch => {
-      const it = items.find(i => i.id === ch.refId);
-      if (it) {
-        it._tempX = it.x + dxPt;
-        it._tempY = it.y + dyPt;
-      }
-    });
-  };
-  const up = e => {
-    document.removeEventListener('pointermove', move);
-    document.removeEventListener('pointerup', up);
-    div.style.transform = 'translate3d(0,0,0)';
-    const dxPt = (e.clientX - startX) * ptPerPx;
-    const dyPt = (e.clientY - startY) * ptPerPx;
-    g.x = startGX + dxPt;
-    g.y = startGY + dyPt;
-    g.children.forEach(ch => {
-      const it = items.find(i => i.id === ch.refId);
-      if (it) {
-        it.x += dxPt;
-        it.y += dyPt;
-        delete it._tempX; delete it._tempY;
-      }
-    });
-    redraw();
-  };
-  document.addEventListener('pointermove', move, { passive: false });
-  document.addEventListener('pointerup', up, { once: true });
-}, { passive: false });
-
+    // move group (px tracking, commit in pt)
+    div.addEventListener('pointerdown',ev=>{
+      if(ev.target.classList.contains('g-handle')||ev.target===close) return;
+      ev.preventDefault(); setSelected("g:"+g.id);
+      const startX=ev.clientX,startY=ev.clientY;
+      g._tempX=g.x; g._tempY=g.y;
+      const move=e=>{
+        const dxPx=e.clientX-startX, dyPx=e.clientY-startY;
+        g._tempX = g.x + dxPx*ptPerPx;
+        g._tempY = g.y + dyPx*ptPerPx;
+        div.style.transform=`translate3d(${dxPx}px,${dyPx}px,0)`;
+      };
+      const up=e=>{
+        document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
+        const dxPt = (e.clientX-startX)*ptPerPx, dyPt=(e.clientY-startY)*ptPerPx;
+        g.x=Math.round(g.x+dxPt); g.y=Math.round(g.y+dyPt);
+        delete g._tempX; delete g._tempY;
+        div.style.transform='translate3d(0,0,0)';
+        g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x=Math.round(it.x+dxPt); it.y=Math.round(it.y+dyPt);}});
+        redraw();
+      };
+      document.addEventListener('pointermove',move,{passive:false});
+      document.addEventListener('pointerup',up,{once:true});
+    }, {passive:false});
 
     // resize/scale group
     div.querySelectorAll('.g-handle').forEach(h=>{
@@ -613,7 +641,6 @@ div.addEventListener('pointerdown', ev => {
   }
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
-
 function isGroup(id){return typeof id==='string' && id.startsWith('g:');}
 function setSelected(id){
   selectedId=id;
@@ -639,7 +666,6 @@ function updateSelectedFromSidebar(){
 ;['text','font','size','color','width','lineHeight','fauxBold','skewDeg','tracking','lineWidth','lineThick'].forEach(id=>{
   $(id).addEventListener(id==='text'?'input':'change', updateSelectedFromSidebar);
 });
-
 window.addEventListener('keydown',(e)=>{
   if(!selectedId) return;
   if(e.key==='Delete'||e.key==='Backspace'){
@@ -652,7 +678,7 @@ window.addEventListener('keydown',(e)=>{
 /* =========================
    Canvas interactions
 ========================= */
-$('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
+$('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; $('picked').textContent='picked: —'; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
 $('areaClone').onclick=()=>{areaMode=!areaMode; eyedropMode=false; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; $('eyedrop').textContent="Eyedrop"; setStat(areaMode?"Drag a rectangle to clone just that area.":"Area clone off.","ok");};
 $('ungroup').onclick=()=>{ if(!isGroup(selectedId)){setStat("Select a section (group) first.","err");return;} const gid=selectedId.slice(2); groups=groups.filter(g=>g.id!==gid); selectedId=null; redraw(); setQueued(); setStat("Ungrouped.","ok"); };
 
@@ -661,26 +687,24 @@ $('cv').addEventListener('pointerdown', async (e)=>{
   const pxX=e.clientX-r.left, pxY=e.clientY-r.top;
 
   if(eyedropMode){
-    // nearest text char
     const itemsPx=await getPageTextItemsPx();
     let best=null,bestD=1e15;
     for(const it of itemsPx){
       const cx=it.x + it.w/2, cy=it.y + it.sizePx*0.6;
       const dx=cx-pxX, dy=cy-pxY; const dd=dx*dx+dy*dy;
-      if(dd<bestD){bestD=dd; best={sizePx:it.sizePx, font:guessFontFromName(it.fontName), px:[cx, cy]};}
+      if(dd<bestD){bestD=dd; best={sizePx:it.sizePx, font:guessFontFromName(it.fontName), px:[cx, cy], colorHex:it.colorHex};}
     }
     if(best){
       $('size').value=Math.max(6,Math.round(best.sizePx*ptPerPx));
       $('font').value=best.font;
-      $('color').value=sampleColorMedianAtPx(best.px[0],best.px[1]);
-      $('picked').textContent=`picked: ${best.font}, ${$('size').value}pt, ${$('color').value}`;
+      $('color').value=best.colorHex;
+      $('picked').textContent=`picked: ${best.font}, ${$('size').value}pt, ${best.colorHex}`;
       setStat("Style picked.","ok");
     }
     eyedropMode=false; $('eyedrop').textContent="Eyedrop"; return;
   }
 
   if(areaMode){ startMarquee(pxX,pxY); return; }
-
   lastClickPtPx={x:pxX,y:pxY};
   setStat(`Placement set at (${Math.round(pxX)}, ${Math.round(pxY)}).`,"ok");
 });
@@ -722,40 +746,12 @@ async function cloneFromAreaPx(selPx, includeRules){
   });
   if(!hits.length && !includeRules){ setStat("No text found in selection.","err"); return; }
 
-  // build lines, then columns
-  const lines=linesFromItemsPx(hits);
-  const lefts = lines.map(L=>L.xMin).sort((a,b)=>a-b);
-  const leftGaps = lefts.slice(1).map((v,i)=>v-lefts[i]);
-  const colGap = Math.max(16, (leftGaps.length? median(leftGaps) : 20) * 1.25);
+  // lines -> columns -> blocks
+  const lines=buildLinesPx(hits);
+  const cols=buildColumns(lines);
+  const blocks=buildBlocks(cols);
 
-  const cols=[];
-  for(const L of lines){
-    let col=cols.find(c=>Math.abs(c.x - L.xMin)<=colGap);
-    if(!col){ col={x:L.xMin, lines:[]}; cols.push(col); }
-    col.lines.push(L);
-  }
-
-  // paragraph blocks
-  const blocks=[];
-  for(const col of cols){
-    col.lines.sort((a,b)=>a.top-b.top);
-    let cur=null;
-    for(const L of col.lines){
-      if(!cur || Math.abs(L.top - cur.lastBottom)>Math.max(4, L.sizePx*0.9)){
-        cur={lines:[], top:L.top, bottom:L.bottom, left:L.xMin, right:L.xMax, sizePx:L.sizePx, fontName:L.fontName};
-        blocks.push(cur);
-      }
-      cur.lines.push(L);
-      cur.lastBottom=L.bottom;
-      cur.top=Math.min(cur.top,L.top);
-      cur.bottom=Math.max(cur.bottom,L.bottom);
-      cur.left=Math.min(cur.left,L.xMin);
-      cur.right=Math.max(cur.right,L.xMax);
-      cur.sizePx=(cur.sizePx + L.sizePx)/2;
-    }
-  }
-
-  // optional: detect horizontal rules within selection (cheap scan)
+  // optional: detect horizontal rules within selection
   const ruleLinesPx = includeRules ? detectHorizontalRulesPx(selPx) : [];
 
   const newIds=[];
@@ -766,18 +762,18 @@ async function cloneFromAreaPx(selPx, includeRules){
     const xPx=Math.round(b.left), yPx=Math.round(b.top), wPx=Math.round(b.right-b.left);
     const lineHeightPx=Math.round(b.sizePx*1.35);
 
-    // convert to POINTS for storage/export
     items.push({
       id,type:'text',page:pageNum,
       x:Math.round(xPx*ptPerPx),
       y:Math.round(yPx*ptPerPx),
       width:Math.round(wPx*ptPerPx),
-      text, font:guessFontFromName(b.fontName),
+      text,
+      font:b.font,
       size:Math.round(b.sizePx*ptPerPx),
-      colorHex:'#000000',
+      colorHex:b.colorHex||'#000000',
       lineHeight:Math.round(lineHeightPx*ptPerPx),
-      fauxBold:/bold|semi|demi|medium/i.test(b.fontName||"")?1:0,
-      skewDeg:/ital|obl/i.test(b.fontName||"")?12:0,
+      fauxBold:b.fauxBold||0,
+      skewDeg:b.skewDeg||0,
       tracking:0
     });
     newIds.push(id);
@@ -824,7 +820,6 @@ async function cloneFromAreaPx(selPx, includeRules){
 
 /* =========================
    Rule detection (PX)
-   - scans within selection for thin horizontal lines
 ========================= */
 function detectHorizontalRulesPx(selPx){
   const cv=$('cv'), ctx=cv.getContext('2d',{ willReadFrequently:true });
@@ -837,30 +832,27 @@ function detectHorizontalRulesPx(selPx){
 
   const lines=[];
   for(let y=0;y<height;y++){
-    // compute row darkness ratio
-    let dark=0, total=0;
-    for(let x=0;x<width;x+=1){
+    let dark=0,total=0;
+    for(let x=0;x<width;x++){
       const idx=(y*width+x)*4;
       const r=data[idx],g=data[idx+1],b=data[idx+2];
       const lum=0.2126*r+0.7152*g+0.0722*b;
-      if(lum<80) dark++; total++;
+      if(lum<60) dark++; total++;
     }
     const ratio=dark/total;
-    if(ratio>0.85){ // likely a horizontal rule on that row
-      // grow contiguous rows
+    if(ratio>0.88){
       let y2=y;
       while(y2+1<height){
-        let dark2=0, tot2=0;
+        let dark2=0,tot2=0;
         for(let x=0;x<width;x++){
           const idx=((y2+1)*width+x)*4;
           const r=data[idx],g=data[idx+1],b=data[idx+2];
-          const lum=0.2126*r+0.7152*g+0.0722*b; if(lum<80) dark2++; tot2++;
+          const lum=0.2126*r+0.7152*g+0.0722*b; if(lum<60) dark2++; tot2++;
         }
-        if(dark2/tot2>0.85){ y2++; } else break;
+        if(dark2/tot2>0.88){ y2++; } else break;
       }
-      const thick = (y2 - y) + 1;
-      // push as px rect
-      lines.push({ x:x0, y:y0+y + thick/2, w, h:thick });
+      const thick=(y2-y)+1;
+      lines.push({x:x0,y:y0+y+thick/2,w,h:thick});
       y=y2+1;
     }
   }

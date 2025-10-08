@@ -360,7 +360,10 @@ function sampleColorMedianAtPx(pxX, pxY){
 ========================= */
 async function getPageTextItemsPx(){
   const page=await pdfDoc.getPage(pageNum);
-  const tc=await page.getTextContent({ includeMarkedContent:true });
+  const tc = await page.getTextContent({
+  includeMarkedContent: true,
+  disableCombineTextItems: true
+});
   const ctx=$('cv').getContext('2d', { willReadFrequently:true });
 
   return tc.items.map(it=>{

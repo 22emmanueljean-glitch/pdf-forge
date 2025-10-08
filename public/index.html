@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Pro</title>
+<title>PDF Forge — Multi-Page</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
 body{margin:0;background:#0f1115;color:#e7eaf0;font-family:Inter,system-ui,sans-serif}
@@ -40,6 +40,11 @@ canvas{display:block}
     <div class="card" id="tools" style="display:none">
       <button id="areaClone">Select Area (Clone)</button>
       <button id="export" class="secondary">Generate PDF</button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="prev" class="secondary">Prev</button>
+        <button id="next" class="secondary">Next</button>
+      </div>
+      <div id="page-info" style="margin-top:6px;font-size:13px;color:#9aa3b2"></div>
       <div id="status" style="font-size:12px;margin-top:6px;color:#9aa3b2">Ready</div>
     </div>
   </div>
@@ -56,7 +61,7 @@ canvas{display:block}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let fileB64=null,pdf=null,page=1,scale=1.1,ptPerPx=1,pageH=0,items=[];
+let fileB64=null,pdf=null,currentPage=1,totalPages=1,scale=1.1,ptPerPx=1,pageH=0,items=[];
 const pdfjs=window['pdfjs-dist/build/pdf'];
 pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -69,13 +74,8 @@ async function toB64(f){
   });
 }
 
-$('load').onclick=async()=>{
-  const f=$('file').files[0];
-  if(!f)return;
-  fileB64=await toB64(f);
-  const buf=await f.arrayBuffer();
-  pdf=await pdfjs.getDocument({data:buf}).promise;
-  const p=await pdf.getPage(1);
+async function renderPage(num){
+  const p=await pdf.getPage(num);
   const vp=p.getViewport({scale});
   const base=p.getViewport({scale:1});
   const cv=$('cv');
@@ -84,7 +84,31 @@ $('load').onclick=async()=>{
   ptPerPx=base.width/vp.width;
   pageH=base.height;
   await p.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  $('page-info').textContent=`Page ${currentPage} / ${totalPages}`;
+  draw();
+}
+
+$('load').onclick=async()=>{
+  const f=$('file').files[0];
+  if(!f)return;
+  fileB64=await toB64(f);
+  const buf=await f.arrayBuffer();
+  pdf=await pdfjs.getDocument({data:buf}).promise;
+  totalPages=pdf.numPages;
+  currentPage=1;
+  await renderPage(currentPage);
   $('tools').style.display='block';
+};
+
+$('prev').onclick=async()=>{
+  if(currentPage<=1)return;
+  currentPage--;
+  await renderPage(currentPage);
+};
+$('next').onclick=async()=>{
+  if(currentPage>=totalPages)return;
+  currentPage++;
+  await renderPage(currentPage);
 };
 
 function pickColor(px,py){
@@ -110,12 +134,12 @@ function pickColor(px,py){
   return '#'+h2(R)+h2(G)+h2(B);
 }
 
+let areaMode=false,marquee=null,start=null;
+$('areaClone').onclick=()=>{areaMode=!areaMode;$('status').textContent=areaMode?"Drag to select area":"";}
+
 $('cv').addEventListener('pointerdown',e=>{
   if(areaMode)startMarquee(e);
 });
-
-let areaMode=false,marquee=null,start=null;
-$('areaClone').onclick=()=>{areaMode=!areaMode;$('status').textContent=areaMode?"Drag to select area":"";}
 
 function startMarquee(e){
   const r=$('cv').getBoundingClientRect();
@@ -126,7 +150,6 @@ function startMarquee(e){
   marquee.style.top=y+'px';
   $('overlay').appendChild(marquee);
   start={x,y};
-
   const move=ev=>{
     const cx=ev.clientX-r.left,cy=ev.clientY-r.top;
     marquee.style.left=Math.min(x,cx)+'px';
@@ -134,39 +157,20 @@ function startMarquee(e){
     marquee.style.width=Math.abs(cx-x)+'px';
     marquee.style.height=Math.abs(cy-y)+'px';
   };
-
   const up=()=>{
     document.removeEventListener('pointermove',move);
     document.removeEventListener('pointerup',up);
-    const rect=marquee.getBoundingClientRect(),cvR=r;
-    const sel={x:rect.left-cvR.left,y:rect.top-cvR.top,w:rect.width,h:rect.height};
-    const selPt={x:sel.x*ptPerPx,y:sel.y*ptPerPx,w:sel.w*ptPerPx,h:sel.h*ptPerPx};
-    clone(selPt);
     marquee.remove();marquee=null;areaMode=false;
+    $('status').textContent='';
   };
-
   document.addEventListener('pointermove',move);
   document.addEventListener('pointerup',up);
-}
-
-async function clone(rect){
-  const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({file_b64:fileB64,page,rect})});
-  const j=await r.json();
-  if(!j.spans?.length){$('status').textContent='No text';return;}
-  j.spans.sort((a,b)=>a.y-b.y||a.x-b.x);
-  for(const s of j.spans){
-    const color=pickColor((s.x+s.w/2)/ptPerPx,(s.y+s.size*0.7)/ptPerPx);
-    const id=crypto.randomUUID();
-    items.push({id,page,type:'text',x:s.x,y:s.y,width:s.w,text:s.text,font_mapped:s.font_mapped,size:s.size,colorHex:color,line_height:Math.round(s.size*1.35)});
-  }
-  draw();
 }
 
 function draw(){
   const ov=$('overlay');
   ov.innerHTML='';
-  for(const it of items.filter(i=>i.page===page)){
+  for(const it of items.filter(i=>i.page===currentPage)){
     const d=document.createElement('div');
     d.className='block';
     d.dataset.id=it.id;
@@ -177,25 +181,14 @@ function draw(){
     d.style.fontSize=(it.size/ptPerPx)+'px';
     d.style.color=it.colorHex;
     d.textContent=it.text;
-
     const c=document.createElement('div');
-    c.className='close';
-    c.textContent='×';
-    c.onclick=ev=>{
-      ev.stopPropagation();
-      items=items.filter(x=>x.id!==it.id);
-      draw();
-    };
+    c.className='close';c.textContent='×';
+    c.onclick=ev=>{ev.stopPropagation();items=items.filter(x=>x.id!==it.id);draw();};
     d.appendChild(c);
-
     ['h-tl','h-tr','h-bl','h-br'].forEach(hc=>{
-      const h=document.createElement('div');
-      h.className='handle '+hc;
-      d.appendChild(h);
+      const h=document.createElement('div');h.className='handle '+hc;d.appendChild(h);
     });
-
-    makeDrag(d,it);
-    makeResize(d,it);
+    makeDrag(d,it);makeResize(d,it);
     ov.appendChild(d);
   }
 }
@@ -238,10 +231,7 @@ function makeResize(d,it){
         if(corner==='h-tr'){nw=sw+dx;nh=sh-dy;nt=st+dy;}
         if(corner==='h-bl'){nw=sw-dx;nh=sh+dy;nl=sl+dx;}
         if(corner==='h-tl'){nw=sw-dx;nh=sh-dy;nl=sl+dx;nt=st+dy;}
-        d.style.left=nl+'px';
-        d.style.top=nt+'px';
-        d.style.width=nw+'px';
-        d.style.height=nh+'px';
+        d.style.left=nl+'px';d.style.top=nt+'px';d.style.width=nw+'px';d.style.height=nh+'px';
       };
       const up=()=>{
         document.removeEventListener('pointermove',move);
@@ -262,15 +252,14 @@ $('export').onclick=async()=>{
   if(!fileB64||!items.length){$('status').textContent='Nothing to export';return;}
   const payload=items.map(i=>{
     const rgb=i.colorHex.match(/[A-Fa-f0-9]{2}/g).map(x=>parseInt(x,16)/255);
-    return {type:'text',page:i.page,x:i.x,y:i.y,width:i.width,text:i.text,font_mapped:i.font_mapped,size:i.size,color:rgb,line_height:i.line_height};
+    return {type:'text',page:i.page,x:i.x,y:i.y,width:i.width,text:i.text,font_mapped:i.font_mapped,size:i.size,color:rgb};
   });
   $('status').textContent='Generating...';
   const r=await fetch('/api/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_b64:fileB64,blocks:payload})});
   const j=await r.json();
   const blob=new Blob([Uint8Array.from(atob(j.file_b64),c=>c.charCodeAt(0))],{type:'application/pdf'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='Edited.pdf';a.click();
+  const a=document.createElement('a');a.href=url;a.download='Edited.pdf';a.click();
   $('status').textContent='Done ✓';
 };
 </script>

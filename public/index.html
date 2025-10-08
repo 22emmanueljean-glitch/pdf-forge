@@ -1,30 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Pro (Fixed)</title>
+<title>PDF Forge — Pro (Extended)</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
-  :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
+  :root{
+    --bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;
+    --ok:#3ecf8e;--err:#ff6b6b;--border:#1f2330;--ink:#e7eaf0;
+  }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:#e7eaf0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;user-select:none}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;user-select:none}
   .wrap{display:grid;grid-template-columns:380px 1fr;gap:16px;height:100vh}
   @media (max-width:980px){.wrap{grid-template-columns:1fr;height:auto}}
-  .left{padding:16px;overflow:auto;background:#151821;border-right:1px solid #1f2330}
+  .left{padding:16px;overflow:auto;background:var(--panel);border-right:1px solid var(--border)}
   .right{padding:0 0 16px 0;overflow:auto;background:#0b0d13}
   h1{font-size:18px;margin:6px 0 10px}
-  .card{background:#1a1f2b;border:1px solid #22283a;border-radius:12px;padding:12px;margin:10px 0}
-  label{font-size:12px;color:#9aa3b2}
+  .card{background:var(--card);border:1px solid #22283a;border-radius:12px;padding:12px;margin:10px 0}
+  label{font-size:12px;color:var(--muted)}
   input,textarea,select,button{width:100%;margin-top:6px}
-  input,textarea,select{background:#121620;border:1px solid #2a3246;color:#e7eaf0;border-radius:10px;padding:10px}
+  input,textarea,select{background:#121620;border:1px solid #2a3246;color:var(--ink);border-radius:10px;padding:10px}
   textarea{min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;user-select:text}
-  button{background:#7aa2ff;border:0;border-radius:10px;padding:12px;font-weight:700;color:#0b0d13;cursor:pointer}
-  button.secondary{background:#28304a;color:#e7eaf0}
+  button{background:var(--accent);border:0;border-radius:10px;padding:12px;font-weight:700;color:#0b0d13;cursor:pointer}
+  button.secondary{background:#28304a;color:var(--ink)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .status{margin-top:8px;font-size:12px;color:#9aa3b2}
-  .status.ok{color:#3ecf8e} .status.err{color:#ff6b6b}
+  .status{margin-top:8px;font-size:12px;color:var(--muted)}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#22283a;color:#c7d0e0;font-size:12px;margin-right:6px}
   .toolbar{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid #1a1f2b;background:#0b0d13}
   .stage{display:flex;justify-content:center}
@@ -32,37 +35,40 @@
   canvas{display:block;touch-action:none}
   .overlay{position:absolute;inset:0;pointer-events:none;touch-action:none}
 
-  /* blocks */
-  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff;touch-action:none;will-change:transform}
+  /* item blocks (overlay) */
+  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed var(--accent);touch-action:none;will-change:transform}
   .block.dragging{cursor:grabbing}
   .block.selected{border:2px solid var(--accent);z-index:11}
-  .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize;touch-action:none}
-  .close{position:absolute;top:-9px;left:-9px;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
+  .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid var(--accent);border-radius:3px;background:#111523;cursor:nwse-resize;touch-action:none}
+  .close{position:absolute;top:-9px;left:-9px;width:18px;height:18px;border-radius:50%;background:var(--err);color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
   .close.hidden{display:none}
   body.noguides .block{border-color:transparent}
 
-  /* group */
+  /* group frame */
   .group{position:absolute;border:2px dashed #3b82f6;border-radius:8px;background:transparent;pointer-events:auto;touch-action:none;will-change:transform}
-  .group.selected{border-color:#7aa2ff;z-index:12}
-  .g-handle{position:absolute;width:14px;height:14px;background:#111523;border:2px solid #7aa2ff;border-radius:3px}
+  .group.selected{border-color:var(--accent);z-index:12}
+  .g-handle{position:absolute;width:14px;height:14px;background:#111523;border:2px solid var(--accent);border-radius:3px}
   .g-handle.br{right:-9px;bottom:-9px;cursor:nwse-resize}
   .g-handle.tl{left:-9px;top:-9px;cursor:nwse-resize}
   .g-handle.tr{right:-9px;top:-9px;cursor:nesw-resize}
   .g-handle.bl{left:-9px;bottom:-9px;cursor:nesw-resize}
-  .g-close{position:absolute;top:-11px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
+  .g-close{position:absolute;top:-11px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--err);color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
 
-  .coords{font-size:12px;color:#9aa3b2;margin-left:auto}
+  .coords{font-size:12px;color:var(--muted);margin-left:auto}
   .tinyrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
   .tinyrow label{display:flex;align-items:center;gap:6px}
 
   /* marquee */
-  .marquee{position:absolute;border:1px solid #7aa2ff;background:rgba(122,162,255,0.15);pointer-events:none}
+  .marquee{position:absolute;border:1px solid var(--accent);background:rgba(122,162,255,0.15);pointer-events:none}
+
+  /* debug */
+  .dbg{position:absolute;inset:auto 10px 10px auto;background:#0f1115cc;border:1px solid #2a3246;border-radius:8px;padding:8px 10px;color:#c7d0e0;font-size:11px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="left">
-    <h1>PDF Forge — Pro</h1>
+    <h1>PDF Forge — Pro (Extended)</h1>
     <div class="card">
       <label>Upload PDF</label>
       <input type="file" id="file" accept="application/pdf"/>
@@ -81,7 +87,7 @@
         </div>
         <div>
           <label>Zoom</label>
-          <input type="range" id="zoom" min="50" max="200" value="110">
+          <input type="range" id="zoom" min="50" max="240" value="110">
         </div>
       </div>
 
@@ -90,6 +96,7 @@
         <button id="eyedrop" class="secondary" style="padding:8px 10px">Eyedrop</button>
         <button id="areaClone" class="secondary" style="padding:8px 10px">Select Area (Clone)</button>
         <button id="ungroup" class="secondary" style="padding:8px 10px">Ungroup</button>
+        <label><input type="checkbox" id="detectRules" checked> Detect rules</label>
         <span class="pill" id="picked">picked: —</span>
       </div>
 
@@ -175,7 +182,7 @@
       </div>
 
       <div class="row" style="margin-top:10px">
-        <button id="apply" class="secondary">Generate v4</button>
+        <button id="apply" class="secondary">Generate PDF</button>
         <button id="clearBlocks" class="secondary">Remove All</button>
       </div>
 
@@ -194,6 +201,7 @@
       <div class="pageWrap" id="pageWrap" style="display:none">
         <canvas id="cv"></canvas>
         <div class="overlay" id="overlay"></div>
+        <div class="dbg" id="dbg" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -202,34 +210,37 @@
 <!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-  // robust pdf.js init
-  window.pdfjsLib = window["pdfjs-dist/build/pdf"];
-  if (!pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions = {};
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-</script>
-
-<script>
-/* ==========================
-   App State + Utilities
-   ========================== */
+/* =========================
+   Globals & utilities
+========================= */
 const API_EDIT="/api/edit";
-
-async function fileToBase64(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result||"");resolve(s.includes(",")?s.split(",")[1]:s)};fr.onerror=reject;fr.readAsDataURL(file);});}
-function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 const $=id=>document.getElementById(id);
 const setStat=(t,cls="")=>{const el=$('stat');el.textContent=t;el.className="status "+cls;}
 const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`
 const setQueued=()=>$('queued').textContent=items.length+" items queued"
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const median=arr=>{const a=arr.slice().sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:0;}
+function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 
-let pdfDoc=null,pageNum=1,pageCount=1,scale=1.10,ptPerPx=1,pageHeightPts=0;
-let fileB64=null,lastClickPt=null;
-let items=[],groups=[],selectedId=null,areaMode=false,eyedropMode=false;
+/* =========================
+   State
+========================= */
+let pdfDoc=null,pageNum=1,pageCount=1,scale=1.10;
+let baseViewport=null,viewport=null;
+let ptPerPx=1, pxPerPt=1, pageHeightPts=0;
+let fileB64=null,lastClickPtPx=null;
 
-const pdfjsLib = window.pdfjsLib;
+let items=[];         // stored in POINTS (top-left) for /api/edit
+let groups=[];        // group frames stored in POINTS (top-left)
+let selectedId=null;
+let areaMode=false,eyedropMode=false;
 
-/* ==========================
+const pdfjsLib=window['pdfjs-dist/build/pdf'];
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* =========================
    Load / Reset
-   ========================== */
+========================= */
 $('load').onclick=async()=>{
   try{
     const f=$('file').files[0]; if(!f){setStat("Choose a PDF."); return;}
@@ -246,48 +257,48 @@ $('load').onclick=async()=>{
     setStat(`Loaded ${pageCount} page(s).`,"ok");
   }catch(e){console.error(e);setStat("Error: "+e.message,"err")}
 };
-
 $('reset').onclick=()=>{
   pdfDoc=null; fileB64=null; items=[]; groups=[]; selectedId=null; $('tools').style.display='none';
-  $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
+  const cv=$('cv'); cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
   $('overlay').innerHTML=""; $('pageWrap').style.display='none';
   setQueued(); setStat("Cleared.");
 };
 
-/* ==========================
-   Paging / Zoom
-   ========================== */
 $('prev').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
 $('next').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
 $('zoom').oninput=async e=>{if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); redraw();};
 $('pageSelect').onchange=async e=>{pageNum=Number(e.target.value)||1; await renderPage(); redraw();};
+$('toggleGuides').onchange=(e)=>{ if(e.target.checked)document.body.classList.remove('noguides'); else document.body.classList.add('noguides'); };
 
+/* =========================
+   Page render & coordinates
+========================= */
 async function renderPage(){
   const page=await pdfDoc.getPage(pageNum);
-  const viewport=page.getViewport({scale});
-  const baseViewport=page.getViewport({scale:1});
-  const cv=$('cv'), ctx=cv.getContext('2d');
+  viewport=page.getViewport({scale});
+  baseViewport=page.getViewport({scale:1});
+  const cv=$('cv'), ctx=cv.getContext('2d', { willReadFrequently:true });
   cv.width=viewport.width; cv.height=viewport.height;
   ptPerPx=baseViewport.width/viewport.width;
-  pageHeightPts = baseViewport.height; // top-left coordinates reference
+  pxPerPt=1/ptPerPx;
+  pageHeightPts = baseViewport.height;
   await page.render({canvasContext:ctx, viewport}).promise;
   $('pageWrap').style.display='';
   setMeta();
-  cv.onpointermove=(e)=>{const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)*ptPerPx); const y=Math.round((e.clientY-r.top)*ptPerPx); $('coords').textContent=`x: ${x}  y: ${y}`;}
+  cv.onpointermove=(e)=>{const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)), y=Math.round((e.clientY-r.top)); $('coords').textContent=`x: ${x}  y: ${y}`;}
 }
 
-/* ==========================
-   Toggles
-   ========================== */
-$('toggleGuides').onchange=(e)=>{ if(e.target.checked)document.body.classList.remove('noguides'); else document.body.classList.add('noguides'); };
+/* =========================
+   Helpers
+========================= */
+async function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{const s=String(fr.result||"");resolve(s.includes(",")?s.split(",")[1]:s)};
+    fr.onerror=reject; fr.readAsDataURL(file);
+  });
+}
 
-$('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
-$('areaClone').onclick=()=>{areaMode=!areaMode; eyedropMode=false; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; $('eyedrop').textContent="Eyedrop"; setStat(areaMode?"Drag a rectangle to clone just that area.":"Area clone off.","ok");};
-$('ungroup').onclick=()=>{ if(!isGroup(selectedId)){setStat("Select a section (group) first.","err");return;} const gid=selectedId.slice(2); groups=groups.filter(g=>g.id!==gid); selectedId=null; redraw(); setQueued(); setStat("Ungrouped.","ok"); };
-
-/* ==========================
-   Font Guess + Color Sample
-   ========================== */
 function guessFontFromName(name){
   const fname=(name||'').toString();
   const isHelv=/helv/i.test(fname),isCour=/cour/i.test(fname);
@@ -300,57 +311,93 @@ function guessFontFromName(name){
 }
 
 function sampleColorMedianAtPx(pxX,pxY){
-  const cv=$('cv'),ctx=cv.getContext('2d');
+  const cv=$('cv'),ctx=cv.getContext('2d',{ willReadFrequently:true });
   let radius=3,best='#000000';
   const toHex=v=>Math.round(v).toString(16).padStart(2,'0');
   const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;}
-  while(radius<=10){
+  while(radius<=12){
     const x0=Math.max(0,Math.round(pxX)-radius),y0=Math.max(0,Math.round(pxY)-radius);
     const w=Math.min(radius*2+1,cv.width-x0),h=Math.min(radius*2+1,cv.height-y0);
     const d=ctx.getImageData(x0,y0,w,h).data; const Rs=[],Gs=[],Bs=[];
-    for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];const lum=0.2126*r+0.7152*g+0.0722*b; if(lum>235)continue; Rs.push(r);Gs.push(g);Bs.push(b);}
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2];
+      const lum=0.2126*r+0.7152*g+0.0722*b;
+      if(lum>240)continue; // ignore very bright background/highlight
+      Rs.push(r);Gs.push(g);Bs.push(b);
+    }
     if(Rs.length){best='#'+toHex(med(Rs))+toHex(med(Gs))+toHex(med(Bs)); break;}
     radius+=2;
   }
   return best;
 }
 
-/* ==========================
-   PDF Text Extraction (Top-Left coords)
-   ========================== */
-async function getPageTextItems(){
+/* =========================
+   Text extraction (CANVAS PX)
+========================= */
+async function getPageTextItemsPx(){
   const page=await pdfDoc.getPage(pageNum);
-  const tc=await page.getTextContent({ includeMarkedContent: true });
+  const tc=await page.getTextContent({ includeMarkedContent:true });
+
+  // map to CANVAS PIXELS (top-left)
   return tc.items.map(it=>{
-    const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
-    const size=Math.max(Math.abs(a),Math.abs(d));
-    const x=ex, yTop = pageHeightPts - ey - size; // TOP-LEFT
-    const w=it.width, h=size*1.2;
-    return {str:it.str, x, y:yTop, w, h, size, fontName:it.fontName || "Times-Roman"};
+    const tr=it.transform; // [a,b,c,d,e,f]
+    const a=tr[0], d=tr[3], e=tr[4], f=tr[5];
+    const sizePts=Math.max(Math.abs(a),Math.abs(d));
+    const widthPts=it.width;
+    const xPts=e;
+    const yTopPts = pageHeightPts - f - sizePts; // flip to top-left
+
+    return {
+      str: it.str,
+      x: xPts*pxPerPt,                          // px
+      y: yTopPts*pxPerPt,                       // px
+      w: widthPts*pxPerPt,                      // px
+      h: sizePts*1.2*pxPerPt,                   // px approx
+      sizePx: sizePts*pxPerPt,                  // px
+      fontName: it.fontName || 'Times-Roman'
+    };
   });
 }
 
-/* ==========================
-   Line + Block Builders (stable grouping)
-   ========================== */
-function linesFromItems(items) {
-  const sorted = items.slice().sort((a,b) => a.y - b.y || a.x - b.x);
-  const lines = [];
-  for (const s of sorted) {
-    let ln = lines.find(L => Math.abs(L.y - s.y) < s.size * 0.3);
-    if (!ln) {
-      ln = { y: s.y, size: s.size, fontName: s.fontName, segs: [] };
-      lines.push(ln);
-    }
-    ln.segs.push(s);
+/* =========================
+   Line & block building
+========================= */
+function linesFromItemsPx(itemsPx){
+  const items=itemsPx.slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+  if(!items.length)return [];
+
+  const sizes=items.map(s=>s.sizePx).sort((a,b)=>a-b);
+  const medSize=sizes[Math.floor(sizes.length/2)]||12;
+  const vTol=Math.max(1, medSize*0.35);
+
+  const lines=[];
+  for(const s of items){
+    let ln=lines.find(L=>Math.abs(L.y - s.y)<=vTol);
+    if(!ln){ ln={ y:s.y, sizePx:s.sizePx, fontName:s.fontName, segs:[s], xMin:s.x, xMax:s.x+s.w }; lines.push(ln); }
+    else{ ln.segs.push(s); ln.xMin=Math.min(ln.xMin,s.x); ln.xMax=Math.max(ln.xMax,s.x+s.w); }
   }
-  lines.forEach(L => L.segs.sort((a,b) => a.x - b.x));
+
+  for(const L of lines){
+    L.segs.sort((a,b)=>a.x-b.x);
+    // reinsert spaces if gap > 0.25em
+    let text=''; let prev=null;
+    for(const s of L.segs){
+      if(prev){
+        const gap=s.x-(prev.x+prev.w);
+        if(gap>Math.max(1, L.sizePx*0.25)) text+=' ';
+      }
+      text+=s.str; prev=s;
+    }
+    L.text=text;
+    L.top=Math.min(...L.segs.map(s=>s.y));
+    L.bottom=Math.max(...L.segs.map(s=>s.y+s.h));
+  }
   return lines;
 }
 
-/* ==========================
-   Overlay Draw + Selection
-   ========================== */
+/* =========================
+   Overlay rendering
+========================= */
 function redraw(){
   const ov=$('overlay'); ov.innerHTML="";
   drawGroups(ov);
@@ -359,45 +406,52 @@ function redraw(){
 }
 
 function drawItems(ov){
+  // draw items for current page only
   const pageItems=items.filter(it=>it.page===pageNum);
-  pageItems.forEach(it=>{
+  for(const it of pageItems){
     const div=document.createElement('div');
     div.className='block';
     div.dataset.id=it.id;
-    if(!isGroup(selectedId) && it.id===selectedId) div.classList.add('selected');
 
-    const close=document.createElement('div'); close.className='close' + ((selectedId===it.id)?'':' hidden'); close.textContent='×';
-    close.title='Delete'; close.onclick=(ev)=>{ev.stopPropagation(); items=items.filter(x=>x.id!==it.id); groups.forEach(g=>g.children=g.children.filter(ch=>ch.refId!==it.id)); if(selectedId===it.id)selectedId=null; redraw(); setQueued();};
-    div.appendChild(close);
+    // point->px
+    const leftPx = it.x*pxPerPt;
+    const isText = it.type==='text';
+    div.style.left = leftPx+'px';
 
-    const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
-
-    div.style.left=(it.x/ptPerPx)+'px';
-
-    if(it.type==='text'){
-      div.style.top=(it.y/ptPerPx)+'px';
-      div.style.width=(it.width/ptPerPx)+'px';
+    if(isText){
+      div.style.top=(it.y*pxPerPt)+'px';
+      div.style.width=(it.width*pxPerPt)+'px';
       div.style.fontFamily=it.font;
-      div.style.fontSize=(it.size/ptPerPx)+'px';
+      div.style.fontSize=(it.size*pxPerPt)+'px';
       div.style.color=it.colorHex||'#000000';
-      div.style.lineHeight=( (it.lineHeight||Math.round(it.size*1.35))/ptPerPx );
+      div.style.lineHeight=((it.lineHeight||Math.round(it.size*1.35))*pxPerPt)+'px';
       div.textContent=it.text;
     }else{
-      const pxH=Math.max(1, it.thick/ptPerPx);
-      div.style.top=((it.y/ptPerPx)-(pxH/2))+'px';
-      div.style.width=(it.width/ptPerPx)+'px';
+      const pxH=Math.max(1, (it.thick||1)*pxPerPt);
+      div.style.top=((it.y*pxPerPt)-(pxH/2))+'px';
+      div.style.width=(it.width*pxPerPt)+'px';
       div.style.height=pxH+'px';
       div.style.background=it.colorHex||'#000000';
       div.textContent='';
     }
 
-    // select
+    if(!isGroup(selectedId) && it.id===selectedId) div.classList.add('selected');
+
+    // close button
+    const close=document.createElement('div'); close.className='close' + ((selectedId===it.id)?'':' hidden'); close.textContent='×';
+    close.title='Delete'; close.onclick=(ev)=>{ev.stopPropagation(); items=items.filter(x=>x.id!==it.id); groups.forEach(g=>g.children=g.children.filter(ch=>ch.refId!==it.id)); if(selectedId===it.id)selectedId=null; redraw(); setQueued();};
+    div.appendChild(close);
+
+    // resize handle
+    const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
+
+    // selection
     div.addEventListener('pointerdown',ev=>{
       ev.preventDefault();
       if(ev.target!==handle && ev.target!==close) setSelected(it.id);
     }, {passive:false});
 
-    // drag
+    // drag move
     div.addEventListener('pointerdown',ev=>{
       if(ev.target===handle || ev.target===close) return;
       ev.preventDefault();
@@ -409,15 +463,21 @@ function drawItems(ov){
       const move=e=>{dx=e.clientX-startX;dy=e.clientY-startY;if(!anim){anim=true;requestAnimationFrame(()=>{div.style.transform=`translate3d(${dx}px,${dy}px,0)`;anim=false;});}};
       const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);
         div.classList.remove('dragging');div.style.transform='translate3d(0,0,0)';
-        if(it.type==='text'){it.x=Math.round((baseLeft+dx)*ptPerPx);it.y=Math.round((baseTop+dy)*ptPerPx);}
-        else{const pxH=Math.max(1,it.thick/ptPerPx);it.x=Math.round((baseLeft+dx)*ptPerPx);it.y=Math.round((baseTop+dy+pxH/2)*ptPerPx);}
+        if(isText){
+          it.x=Math.round((baseLeft+dx)*ptPerPx);
+          it.y=Math.round((baseTop+dy)*ptPerPx);
+        }else{
+          const pxH=Math.max(1,(it.thick||1)*pxPerPt);
+          it.x=Math.round((baseLeft+dx)*ptPerPx);
+          it.y=Math.round((baseTop+dy+pxH/2)*ptPerPx);
+        }
         redraw();
       };
       document.addEventListener('pointermove',move,{passive:false});
       document.addEventListener('pointerup',up,{once:true});
     }, {passive:false});
 
-    // resize width
+    // width resize
     handle.addEventListener('pointerdown',ev=>{
       ev.stopPropagation(); ev.preventDefault();
       setSelected(it.id);
@@ -429,45 +489,42 @@ function drawItems(ov){
     });
 
     ov.appendChild(div);
-  });
+  }
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
 function drawGroups(ov){
   const pageGroups=groups.filter(g=>g.page===pageNum);
-  pageGroups.forEach(g=>{
+  for(const g of pageGroups){
     const div=document.createElement('div'); div.className='group'; div.dataset.id="g:"+g.id;
     if(isGroup(selectedId) && selectedId==="g:"+g.id) div.classList.add('selected');
-    div.style.left=(g.x/ptPerPx)+'px'; div.style.top=(g.y/ptPerPx)+'px'; div.style.width=(g.w/ptPerPx)+'px'; div.style.height=(g.h/ptPerPx)+'px';
+    div.style.left=(g.x*pxPerPt)+'px'; div.style.top=(g.y*pxPerPt)+'px'; div.style.width=(g.w*pxPerPt)+'px'; div.style.height=(g.h*pxPerPt)+'px';
 
     const close=document.createElement('div'); close.className='g-close'; close.textContent='×';
-    close.title='Remove group frame (keeps contents)'; close.onclick=(ev)=>{ev.stopPropagation(); groups=groups.filter(x=>x.id!==g.id); if(selectedId==="g:"+g.id)selectedId=null; redraw(); setQueued();};
+    close.title='Remove group (keeps contents)'; close.onclick=(ev)=>{ev.stopPropagation(); groups=groups.filter(x=>x.id!==g.id); if(selectedId==="g:"+g.id)selectedId=null; redraw(); setQueued();};
     div.appendChild(close);
     ['tl','tr','bl','br'].forEach(pos=>{const h=document.createElement('div'); h.className='g-handle '+pos; div.appendChild(h);});
 
+    // move group
     div.addEventListener('pointerdown',ev=>{
       if(ev.target.classList.contains('g-handle')||ev.target===close) return;
       ev.preventDefault(); setSelected("g:"+g.id);
-      const startX=ev.clientX,startY=ev.clientY; const baseLeft=parseFloat(div.style.left),baseTop=parseFloat(div.style.top);
+      const startX=ev.clientX,startY=ev.clientY; const rect=div.getBoundingClientRect();
       let dx=0,dy=0,anim=false;
       const move=e=>{dx=e.clientX-startX;dy=e.clientY-startY;if(!anim){anim=true;requestAnimationFrame(()=>{div.style.transform=`translate3d(${dx}px,${dy}px,0)`;anim=false;});}};
       const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);
         div.style.transform='translate3d(0,0,0)';
-        const newLeft=baseLeft+dx,newTop=baseTop+dy;
+        const newLeft=rect.left+dx, newTop=rect.top+dy;
         const dptX=Math.round(newLeft*ptPerPx)-g.x, dptY=Math.round(newTop*ptPerPx)-g.y;
         g.x+=dptX; g.y+=dptY;
-        if (Array.isArray(g.children) && g.children.length) {
-          g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x+=dptX; it.y+=dptY;}});
-        } else {
-          console.warn("Group has no children on move", g);
-        }
+        g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x+=dptX; it.y+=dptY;}});
         redraw();
       };
       document.addEventListener('pointermove',move,{passive:false});
       document.addEventListener('pointerup',up,{once:true});
     }, {passive:false});
 
-    // resize/scale
+    // resize/scale group
     div.querySelectorAll('.g-handle').forEach(h=>{
       h.addEventListener('pointerdown',ev=>{
         ev.stopPropagation(); ev.preventDefault(); setSelected("g:"+g.id);
@@ -492,12 +549,6 @@ function drawGroups(ov){
           const dGX=newGX-startGX, dGY=newGY-startGY;
           const centerX=startGX+startGW/2, centerY=startGY+startGH/2;
           g.x=newGX; g.y=newGY; g.w=Math.round(startGW*sX); g.h=Math.round(startGH*sY);
-
-          if (!Array.isArray(g.children) || !g.children.length) {
-            console.warn("Empty group on resize", g);
-            redraw(); return;
-          }
-
           g.children.forEach(ch=>{
             const it=items.find(i=>i.id===ch.refId); if(!it) return;
             const relX=it.x-centerX, relY=it.y-centerY;
@@ -521,7 +572,7 @@ function drawGroups(ov){
     });
 
     ov.appendChild(div);
-  });
+  }
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
@@ -560,41 +611,45 @@ window.addEventListener('keydown',(e)=>{
   }
 });
 
-/* ==========================
-   Add Text / Line
-   ========================== */
-$('addText').onclick=()=>{
-  if(!fileB64){setStat("Load a PDF first.","err");return;}
-  if(!lastClickPt){setStat("Click preview to position first.","err");return;}
-  const pg=Number($('pageSelect').value)||pageNum;
-  const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-  items.push({id,type:'text',page:pg,x:lastClickPt.x,y:lastClickPt.y,width:parseFloat($('width').value)||460,text:$('text').value||"",font:$('font').value||"Times-Roman",size:parseFloat($('size').value)||11,colorHex:$('color').value||"#000000",lineHeight:parseFloat($('lineHeight').value)||Math.round((parseFloat($('size').value)||11)*1.35),fauxBold:parseInt($('fauxBold').value)||0,skewDeg:parseFloat($('skewDeg').value)||0,tracking:parseFloat($('tracking').value)||0});
-  setSelected(id); redraw(); setQueued(); setStat("Text added.","ok");
-};
-$('addLine').onclick=()=>{
-  if(!fileB64){setStat("Load a PDF first.","err");return;}
-  if(!lastClickPt){setStat("Click preview to position first.","err");return;}
-  const pg=Number($('pageSelect').value)||pageNum;
-  const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-  items.push({id,type:'line',page:pg,x:lastClickPt.x,y:lastClickPt.y,width:parseFloat($('lineWidth').value)||460,thick:parseFloat($('lineThick').value)||2,colorHex:$('color').value||"#000000"});
-  setSelected(id); redraw(); setQueued(); setStat("Line added.","ok");
-};
+/* =========================
+   Canvas interactions
+========================= */
+$('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
+$('areaClone').onclick=()=>{areaMode=!areaMode; eyedropMode=false; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; $('eyedrop').textContent="Eyedrop"; setStat(areaMode?"Drag a rectangle to clone just that area.":"Area clone off.","ok");};
+$('ungroup').onclick=()=>{ if(!isGroup(selectedId)){setStat("Select a section (group) first.","err");return;} const gid=selectedId.slice(2); groups=groups.filter(g=>g.id!==gid); selectedId=null; redraw(); setQueued(); setStat("Ungrouped.","ok"); };
 
-// Canvas interactions (placement point)
-$('cv').addEventListener('pointerdown', (e)=>{
+$('cv').addEventListener('pointerdown', async (e)=>{
   const r=$('cv').getBoundingClientRect();
   const pxX=e.clientX-r.left, pxY=e.clientY-r.top;
-  const xPt=Math.round(pxX*ptPerPx), yPt=Math.round(pxY*ptPerPx);
+
+  if(eyedropMode){
+    // nearest text char
+    const itemsPx=await getPageTextItemsPx();
+    let best=null,bestD=1e15;
+    for(const it of itemsPx){
+      const cx=it.x + it.w/2, cy=it.y + it.sizePx*0.6;
+      const dx=cx-pxX, dy=cy-pxY; const dd=dx*dx+dy*dy;
+      if(dd<bestD){bestD=dd; best={sizePx:it.sizePx, font:guessFontFromName(it.fontName), px:[cx, cy]};}
+    }
+    if(best){
+      $('size').value=Math.max(6,Math.round(best.sizePx*ptPerPx));
+      $('font').value=best.font;
+      $('color').value=sampleColorMedianAtPx(best.px[0],best.px[1]);
+      $('picked').textContent=`picked: ${best.font}, ${$('size').value}pt, ${$('color').value}`;
+      setStat("Style picked.","ok");
+    }
+    eyedropMode=false; $('eyedrop').textContent="Eyedrop"; return;
+  }
 
   if(areaMode){ startMarquee(pxX,pxY); return; }
 
-  lastClickPt={x:xPt,y:yPt};
-  setStat(`Placement set at (${xPt}, ${yPt}).`,"ok");
+  lastClickPtPx={x:pxX,y:pxY};
+  setStat(`Placement set at (${Math.round(pxX)}, ${Math.round(pxY)}).`,"ok");
 });
 
-/* ==========================
-   Marquee Select + Clone (fixed)
-   ========================== */
+/* =========================
+   Marquee selection
+========================= */
 let marqueeEl=null,mStart=null;
 function startMarquee(pxX,pxY){
   const ov=$('overlay');
@@ -608,137 +663,206 @@ function startMarquee(pxX,pxY){
     const rect=marqueeEl.getBoundingClientRect(), cvRect=$('cv').getBoundingClientRect();
     const selPx={x:rect.left-cvRect.left,y:rect.top-cvRect.top,w:rect.width,h:rect.height};
     if(selPx.w<5 || selPx.h<5){setStat("Selection too small.","err"); marqueeEl.remove(); marqueeEl=null; return;}
-    const selPt={x:Math.round(selPx.x*ptPerPx),y:Math.round(selPx.y*ptPerPx),w:Math.round(selPx.w*ptPerPx),h:Math.round(selPx.h*ptPerPx)};
-    await cloneFromArea(selPt, selPx);
+    await cloneFromAreaPx(selPx, $('detectRules').checked);
     marqueeEl.remove(); marqueeEl=null;
   };
   document.addEventListener('pointermove',move,{passive:false});
   document.addEventListener('pointerup',up,{once:true});
 }
 
-async function cloneFromArea(selPt, selPx) {
-  // Grab text items from PDF.js
-  const pageItems = await getPageTextItems();
+/* =========================
+   Area clone (PX pipeline)
+========================= */
+async function cloneFromAreaPx(selPx, includeRules){
+  const itemsPx=await getPageTextItemsPx();
+  const sx1=selPx.x, sy1=selPx.y, sx2=sx1+selPx.w, sy2=sy1+selPx.h;
 
-  // Selection bounds (top-left coordinate system)
-  const sx1 = selPt.x,
-        sy1 = selPt.y,
-        sx2 = selPt.x + selPt.w,
-        sy2 = selPt.y + selPt.h;
-
-  // Filter text actually *inside* the selection
-  const hits = pageItems.filter(s => {
-    const ix1 = s.x, iy1 = s.y,
-          ix2 = s.x + s.w, iy2 = s.y + s.h;
-    return ix1 >= sx1 && ix2 <= sx2 && iy1 >= sy1 && iy2 <= sy2;
+  // strict containment (±1px tolerance)
+  const hits=itemsPx.filter(s=>{
+    const ix1=s.x, iy1=s.y, ix2=s.x+s.w, iy2=s.y+s.h;
+    return ix1>=sx1-1 && ix2<=sx2+1 && iy1>=sy1-1 && iy2<=sy2+1;
   });
+  if(!hits.length && !includeRules){ setStat("No text found in selection.","err"); return; }
 
-  if (!hits.length) {
-    setStat("No text found in selection.", "err");
-    return;
+  // build lines, then columns
+  const lines=linesFromItemsPx(hits);
+  const lefts = lines.map(L=>L.xMin).sort((a,b)=>a-b);
+  const leftGaps = lefts.slice(1).map((v,i)=>v-lefts[i]);
+  const colGap = Math.max(16, (leftGaps.length? median(leftGaps) : 20) * 1.25);
+
+  const cols=[];
+  for(const L of lines){
+    let col=cols.find(c=>Math.abs(c.x - L.xMin)<=colGap);
+    if(!col){ col={x:L.xMin, lines:[]}; cols.push(col); }
+    col.lines.push(L);
   }
 
-  // Sort and group text into lines
-  const lines = linesFromItems(hits);
-
-  // Merge nearby lines into paragraphs
-  const blocks = [];
-  let cur = null;
-  for (const L of lines) {
-    if (!cur || Math.abs(L.y - cur.lastY) > L.size * 1.5) {
-      cur = {
-        lines: [],
-        yMin: L.y,
-        yMax: L.y + L.size,
-        font: guessFontFromName(L.fontName),
-        baseFont: L.fontName,
-        size: L.size
-      };
-      blocks.push(cur);
+  // paragraph blocks
+  const blocks=[];
+  for(const col of cols){
+    col.lines.sort((a,b)=>a.top-b.top);
+    let cur=null;
+    for(const L of col.lines){
+      if(!cur || Math.abs(L.top - cur.lastBottom)>Math.max(4, L.sizePx*0.9)){
+        cur={lines:[], top:L.top, bottom:L.bottom, left:L.xMin, right:L.xMax, sizePx:L.sizePx, fontName:L.fontName};
+        blocks.push(cur);
+      }
+      cur.lines.push(L);
+      cur.lastBottom=L.bottom;
+      cur.top=Math.min(cur.top,L.top);
+      cur.bottom=Math.max(cur.bottom,L.bottom);
+      cur.left=Math.min(cur.left,L.xMin);
+      cur.right=Math.max(cur.right,L.xMax);
+      cur.sizePx=(cur.sizePx + L.sizePx)/2;
     }
-    cur.lines.push(L);
-    cur.lastY = L.y;
-    L.segs.forEach(s => {
-      cur.yMin = Math.min(cur.yMin, s.y);
-      cur.yMax = Math.max(cur.yMax, s.y + s.h);
-    });
   }
 
-  // Create items per block using tight bounding box per paragraph
-  const newIds = [];
-  for (const b of blocks) {
-    const text = b.lines.map(L =>
-      L.segs.map(s => s.str).join("")
-    ).join("\n");
+  // optional: detect horizontal rules within selection (cheap scan)
+  const ruleLinesPx = includeRules ? detectHorizontalRulesPx(selPx) : [];
 
-    const allX = b.lines.flatMap(L => L.segs.map(s => s.x));
-    const allW = b.lines.flatMap(L => L.segs.map(s => s.x + s.w));
-    const allTops = b.lines.map(L => L.y);
-    const allBottoms = b.lines.map(L => L.y + L.size * 1.2);
+  const newIds=[];
+  // push text blocks
+  for(const b of blocks){
+    const text=b.lines.map(L=>L.text).join('\n');
+    const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+    const xPx=Math.round(b.left), yPx=Math.round(b.top), wPx=Math.round(b.right-b.left);
+    const lineHeightPx=Math.round(b.sizePx*1.35);
 
-    const x = Math.min(...allX);
-    const w = Math.max(...allW) - x;
-    const y = Math.min(...allTops);
-    const h = Math.max(...allBottoms) - y;
-
-    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
-
+    // convert to POINTS for storage/export
     items.push({
-      id,
-      type: "text",
-      page: pageNum,
-      x,
-      y,
-      width: Math.round(w),
-      text,
-      font: b.font,
-      size: Math.round(b.size),
-      colorHex: "#000000",
-      lineHeight: Math.round(b.size * 1.35),
-      fauxBold: /bold|semi|demi|medium/i.test(b.baseFont || "") ? 1 : 0,
-      skewDeg: /ital|obl/i.test(b.baseFont || "") ? 12 : 0,
-      tracking: 0
+      id,type:'text',page:pageNum,
+      x:Math.round(xPx*ptPerPx),
+      y:Math.round(yPx*ptPerPx),
+      width:Math.round(wPx*ptPerPx),
+      text, font:guessFontFromName(b.fontName),
+      size:Math.round(b.sizePx*ptPerPx),
+      colorHex:'#000000',
+      lineHeight:Math.round(lineHeightPx*ptPerPx),
+      fauxBold:/bold|semi|demi|medium/i.test(b.fontName||"")?1:0,
+      skewDeg:/ital|obl/i.test(b.fontName||"")?12:0,
+      tracking:0
     });
-
     newIds.push(id);
   }
 
-  // Compute tight group bounds (so no giant frame)
-  const rects = newIds.map(id => {
-    const it = items.find(i => i.id === id);
-    const h = (it.lineHeight || Math.round(it.size * 1.35)) *
-              ((it.text.match(/\n/g) || []).length + 1);
-    return { x: it.x, y: it.y, w: it.width, h };
+  // push detected rules as line items
+  for(const r of ruleLinesPx){
+    const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+    items.push({
+      id,type:'line',page:pageNum,
+      x:Math.round(r.x*ptPerPx),
+      y:Math.round(r.y*ptPerPx),
+      width:Math.round(r.w*ptPerPx),
+      thick:Math.max(0.5, Math.round(r.h*ptPerPx)),
+      colorHex:'#000000'
+    });
+    newIds.push(id);
+  }
+
+  if(!newIds.length){ setStat("No content found in selection.","err"); return; }
+
+  // group tight
+  const rects=newIds.map(id=>{
+    const it=items.find(i=>i.id===id);
+    if(it.type==='text'){
+      const linesN=(it.text.match(/\n/g)||[]).length+1;
+      const h=(it.lineHeight||Math.round(it.size*1.35))*linesN;
+      return {x:it.x,y:it.y,w:it.width,h};
+    }else{
+      return {x:it.x,y:it.y-(it.thick||1)/2,w:it.width,h:(it.thick||1)};
+    }
   });
+  const gx=Math.min(...rects.map(r=>r.x));
+  const gy=Math.min(...rects.map(r=>r.y));
+  const gxe=Math.max(...rects.map(r=>r.x+r.w));
+  const gye=Math.max(...rects.map(r=>r.y+r.h));
+  const gid=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  groups.push({id:gid,page:pageNum,x:gx,y:gy,w:gxe-gx,h:gye-gy,children:newIds.map(id=>({refId:id}))});
 
-  const gx = Math.min(...rects.map(r => r.x));
-  const gy = Math.min(...rects.map(r => r.y));
-  const gxe = Math.max(...rects.map(r => r.x + r.w));
-  const gye = Math.max(...rects.map(r => r.y + r.h));
-
-  const gid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
-
-  groups.push({
-    id: gid,
-    page: pageNum,
-    x: gx,
-    y: gy,
-    w: gxe - gx,
-    h: gye - gy,
-    children: newIds.map(id => ({ refId: id }))
-  });
-
-  setSelected("g:" + gid);
-  redraw();
-  setQueued();
-  setStat(`Cloned ${newIds.length} text block(s).`, "ok");
+  setSelected("g:"+gid);
+  redraw(); setQueued();
+  setStat(`Cloned ${newIds.length} block(s).`,"ok");
 }
 
+/* =========================
+   Rule detection (PX)
+   - scans within selection for thin horizontal lines
+========================= */
+function detectHorizontalRulesPx(selPx){
+  const cv=$('cv'), ctx=cv.getContext('2d',{ willReadFrequently:true });
+  const x0=Math.floor(clamp(selPx.x,0,cv.width-1));
+  const y0=Math.floor(clamp(selPx.y,0,cv.height-1));
+  const w=Math.floor(clamp(selPx.w,1,cv.width-x0));
+  const h=Math.floor(clamp(selPx.h,1,cv.height-y0));
+  const img=ctx.getImageData(x0,y0,w,h);
+  const {data,width,height}=img;
 
+  const lines=[];
+  for(let y=0;y<height;y++){
+    // compute row darkness ratio
+    let dark=0, total=0;
+    for(let x=0;x<width;x+=1){
+      const idx=(y*width+x)*4;
+      const r=data[idx],g=data[idx+1],b=data[idx+2];
+      const lum=0.2126*r+0.7152*g+0.0722*b;
+      if(lum<80) dark++; total++;
+    }
+    const ratio=dark/total;
+    if(ratio>0.85){ // likely a horizontal rule on that row
+      // grow contiguous rows
+      let y2=y;
+      while(y2+1<height){
+        let dark2=0, tot2=0;
+        for(let x=0;x<width;x++){
+          const idx=((y2+1)*width+x)*4;
+          const r=data[idx],g=data[idx+1],b=data[idx+2];
+          const lum=0.2126*r+0.7152*g+0.0722*b; if(lum<80) dark2++; tot2++;
+        }
+        if(dark2/tot2>0.85){ y2++; } else break;
+      }
+      const thick = (y2 - y) + 1;
+      // push as px rect
+      lines.push({ x:x0, y:y0+y + thick/2, w, h:thick });
+      y=y2+1;
+    }
+  }
+  return lines;
+}
 
-/* ==========================
-   Generate via /api/edit
-   ========================== */
+/* =========================
+   Add text / line from sidebar
+========================= */
+$('addText').onclick=()=>{
+  if(!fileB64){setStat("Load a PDF first.","err");return;}
+  if(!lastClickPtPx){setStat("Click preview to position first.","err");return;}
+  const pg=Number($('pageSelect').value)||pageNum;
+  const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  items.push({
+    id,type:'text',page:pg,
+    x:Math.round(lastClickPtPx.x*ptPerPx),y:Math.round(lastClickPtPx.y*ptPerPx),
+    width:parseFloat($('width').value)||460,text:$('text').value||"",font:$('font').value||"Times-Roman",
+    size:parseFloat($('size').value)||11,colorHex:$('color').value||"#000000",
+    lineHeight:parseFloat($('lineHeight').value)||Math.round((parseFloat($('size').value)||11)*1.35),
+    fauxBold:parseInt($('fauxBold').value)||0,skewDeg:parseFloat($('skewDeg').value)||0,tracking:parseFloat($('tracking').value)||0
+  });
+  setSelected(id); redraw(); setQueued(); setStat("Text added.","ok");
+};
+$('addLine').onclick=()=>{
+  if(!fileB64){setStat("Load a PDF first.","err");return;}
+  if(!lastClickPtPx){setStat("Click preview to position first.","err");return;}
+  const pg=Number($('pageSelect').value)||pageNum;
+  const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  items.push({
+    id,type:'line',page:pg,
+    x:Math.round(lastClickPtPx.x*ptPerPx), y:Math.round(lastClickPtPx.y*ptPerPx),
+    width:parseFloat($('lineWidth').value)||460, thick:parseFloat($('lineThick').value)||2, colorHex:$('color').value||"#000000"
+  });
+  setSelected(id); redraw(); setQueued(); setStat("Line added.","ok");
+};
+
+/* =========================
+   Apply => /api/edit
+========================= */
 $('apply').onclick=async()=>{
   try{
     if(!fileB64){setStat("Load a PDF first.","err");return;}
@@ -753,18 +877,18 @@ $('apply').onclick=async()=>{
     if(!r.ok){const t=await r.text();throw new Error(t||r.statusText);}
     const {pdf}=await r.json();
     const blob=new Blob([Uint8Array.from(atob(pdf),c=>c.charCodeAt(0))],{type:'application/pdf'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Edited.pdf'; a.click();
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='PDF_Forge_Output.pdf'; a.click();
     setStat("Done ✓ File downloaded.","ok");
   }catch(e){console.error(e);setStat("Error: "+e.message,"err");}
 };
 
-/* ==========================
-   Quick Colors + Clear
-   ========================== */
+/* =========================
+   Quick colors
+========================= */
 $('quickRed').onclick=()=>{$('color').value='#c62828';updateSelectedFromSidebar();};
 $('quickBlue').onclick=()=>{$('color').value='#1565c0';updateSelectedFromSidebar();};
 $('quickBody').onclick=()=>{$('color').value='#000000';updateSelectedFromSidebar();};
-$('clearBlocks').onclick=()=>{items=[];groups=[];selectedId=null;redraw();setQueued();setStat("Removed all overlays.","ok");};
+
 </script>
 </body>
 </html>

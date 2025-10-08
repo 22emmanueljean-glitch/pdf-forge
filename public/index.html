@@ -199,26 +199,95 @@
   </div>
 </div>
 
-<!-- pdf.js -->
+<!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-  // Ensure pdf.js is wired before anything else
-  window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+  // robust pdf.js init
+  window.pdfjsLib = window["pdfjs-dist/build/pdf"];
   if (!pdfjsLib.GlobalWorkerOptions) pdfjsLib.GlobalWorkerOptions = {};
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 </script>
 
 <script>
+/* ==========================
+   App State + Utilities
+   ========================== */
 const API_EDIT="/api/edit";
 
-// ---------- helpers ----------
 async function fileToBase64(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result||"");resolve(s.includes(",")?s.split(",")[1]:s)};fr.onerror=reject;fr.readAsDataURL(file);});}
 function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 const $=id=>document.getElementById(id);
 const setStat=(t,cls="")=>{const el=$('stat');el.textContent=t;el.className="status "+cls;}
 const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`
 const setQueued=()=>$('queued').textContent=items.length+" items queued"
+
+let pdfDoc=null,pageNum=1,pageCount=1,scale=1.10,ptPerPx=1,pageHeightPts=0;
+let fileB64=null,lastClickPt=null;
+let items=[],groups=[],selectedId=null,areaMode=false,eyedropMode=false;
+
+const pdfjsLib = window.pdfjsLib;
+
+/* ==========================
+   Load / Reset
+   ========================== */
+$('load').onclick=async()=>{
+  try{
+    const f=$('file').files[0]; if(!f){setStat("Choose a PDF."); return;}
+    fileB64=await fileToBase64(f);
+    const buf=await f.arrayBuffer();
+    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+    pageCount=pdfDoc.numPages; pageNum=1;
+    $('tools').style.display='';
+    const sel=$('pageSelect'); sel.innerHTML="";
+    for(let i=1;i<=pageCount;i++){const o=document.createElement('option');o.value=String(i);o.textContent=String(i);sel.appendChild(o);}
+    sel.value="1";
+    await renderPage();
+    redraw();
+    setStat(`Loaded ${pageCount} page(s).`,"ok");
+  }catch(e){console.error(e);setStat("Error: "+e.message,"err")}
+};
+
+$('reset').onclick=()=>{
+  pdfDoc=null; fileB64=null; items=[]; groups=[]; selectedId=null; $('tools').style.display='none';
+  $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
+  $('overlay').innerHTML=""; $('pageWrap').style.display='none';
+  setQueued(); setStat("Cleared.");
+};
+
+/* ==========================
+   Paging / Zoom
+   ========================== */
+$('prev').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
+$('next').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
+$('zoom').oninput=async e=>{if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); redraw();};
+$('pageSelect').onchange=async e=>{pageNum=Number(e.target.value)||1; await renderPage(); redraw();};
+
+async function renderPage(){
+  const page=await pdfDoc.getPage(pageNum);
+  const viewport=page.getViewport({scale});
+  const baseViewport=page.getViewport({scale:1});
+  const cv=$('cv'), ctx=cv.getContext('2d');
+  cv.width=viewport.width; cv.height=viewport.height;
+  ptPerPx=baseViewport.width/viewport.width;
+  pageHeightPts = baseViewport.height; // top-left coordinates reference
+  await page.render({canvasContext:ctx, viewport}).promise;
+  $('pageWrap').style.display='';
+  setMeta();
+  cv.onpointermove=(e)=>{const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)*ptPerPx); const y=Math.round((e.clientY-r.top)*ptPerPx); $('coords').textContent=`x: ${x}  y: ${y}`;}
+}
+
+/* ==========================
+   Toggles
+   ========================== */
+$('toggleGuides').onchange=(e)=>{ if(e.target.checked)document.body.classList.remove('noguides'); else document.body.classList.add('noguides'); };
+
+$('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
+$('areaClone').onclick=()=>{areaMode=!areaMode; eyedropMode=false; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; $('eyedrop').textContent="Eyedrop"; setStat(areaMode?"Drag a rectangle to clone just that area.":"Area clone off.","ok");};
+$('ungroup').onclick=()=>{ if(!isGroup(selectedId)){setStat("Select a section (group) first.","err");return;} const gid=selectedId.slice(2); groups=groups.filter(g=>g.id!==gid); selectedId=null; redraw(); setQueued(); setStat("Ungrouped.","ok"); };
+
+/* ==========================
+   Font Guess + Color Sample
+   ========================== */
 function guessFontFromName(name){
   const fname=(name||'').toString();
   const isHelv=/helv/i.test(fname),isCour=/cour/i.test(fname);
@@ -229,6 +298,7 @@ function guessFontFromName(name){
   if(isCour) return isBold&&isItal?'Courier-BoldOblique':isBold?'Courier-Bold':isItal?'Courier-Oblique':'Courier';
   return isBold&&isItal?'Times-BoldItalic':isBold?'Times-Bold':isItal?'Times-Italic':'Times-Roman';
 }
+
 function sampleColorMedianAtPx(pxX,pxY){
   const cv=$('cv'),ctx=cv.getContext('2d');
   let radius=3,best='#000000';
@@ -244,92 +314,50 @@ function sampleColorMedianAtPx(pxX,pxY){
   }
   return best;
 }
-function isGroup(id){return typeof id==='string' && id.startsWith('g:');}
 
-// ---------- state ----------
-let pdfDoc=null,pageNum=1,pageCount=1,scale=1.10,ptPerPx=1,pageHeightPts=0;
-let fileB64=null,lastClickPt=null;
-let items=[],groups=[],selectedId=null,areaMode=false,eyedropMode=false;
-
-// ---------- load/render ----------
-$('load').onclick=async()=>{
-  try{
-    const f=$('file').files[0]; if(!f){setStat("Choose a PDF."); return;}
-    fileB64=await fileToBase64(f);
-    const buf=await f.arrayBuffer();
-    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-    pageCount=pdfDoc.numPages; pageNum=1;
-    $('tools').style.display='';
-    const sel=$('pageSelect'); sel.innerHTML="";
-    for(let i=1;i<=pageCount;i++){const o=document.createElement('option');o.value=String(i);o.textContent=String(i);sel.appendChild(o);}
-    sel.value="1";
-    await renderPage();
-    redraw();
-    setStat(`Loaded ${pageCount} page(s).`,"ok");
-  }catch(e){setStat("Error: "+e.message,"err")}
-};
-$('reset').onclick=()=>{
-  pdfDoc=null; fileB64=null; items=[]; groups=[]; selectedId=null; $('tools').style.display='none';
-  $('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);
-  $('overlay').innerHTML=""; $('pageWrap').style.display='none';
-  setQueued(); setStat("Cleared.");
-};
-$('prev').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.max(1,pageNum-1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
-$('next').onclick=async()=>{if(!pdfDoc)return; pageNum=Math.min(pageCount,pageNum+1); $('pageSelect').value=String(pageNum); await renderPage(); redraw();};
-$('zoom').oninput=async e=>{if(!pdfDoc)return; scale=Number(e.target.value)/100; await renderPage(); redraw();};
-$('pageSelect').onchange=async e=>{pageNum=Number(e.target.value)||1; await renderPage(); redraw();};
-
-async function renderPage(){
-  const page=await pdfDoc.getPage(pageNum);
-  const viewport=page.getViewport({scale});
-  const baseViewport=page.getViewport({scale:1});
-  const cv=$('cv'), ctx=cv.getContext('2d');
-  cv.width=viewport.width; cv.height=viewport.height;
-  ptPerPx=baseViewport.width/viewport.width;
-  pageHeightPts = baseViewport.height; // top-left coordinate system: yTop = pageHeightPts - baseline - size
-  await page.render({canvasContext:ctx, viewport}).promise;
-  $('pageWrap').style.display='';
-  setMeta();
-  cv.onpointermove=(e)=>{const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)*ptPerPx); const y=Math.round((e.clientY-r.top)*ptPerPx); $('coords').textContent=`x: ${x}  y: ${y}`;}
-}
-
-// ---------- toggles ----------
-$('toggleGuides').onchange=(e)=>{ if(e.target.checked)document.body.classList.remove('noguides'); else document.body.classList.add('noguides'); };
-$('eyedrop').onclick=()=>{eyedropMode=!eyedropMode; areaMode=false; $('eyedrop').textContent=eyedropMode?"Eyedrop (ON)":"Eyedrop"; $('areaClone').textContent="Select Area (Clone)"; setStat(eyedropMode?"Click near text to pick style.":"Eyedrop off.","ok");};
-$('areaClone').onclick=()=>{areaMode=!areaMode; eyedropMode=false; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; $('eyedrop').textContent="Eyedrop"; setStat(areaMode?"Drag a rectangle to clone just that area.":"Area clone off.","ok");};
-$('ungroup').onclick=()=>{ if(!isGroup(selectedId)){setStat("Select a section (group) first.","err");return;} const gid=selectedId.slice(2); groups=groups.filter(g=>g.id!==gid); selectedId=null; redraw(); setQueued(); setStat("Ungrouped.","ok"); };
-
-// ---------- text extraction & grouping ----------
+/* ==========================
+   PDF Text Extraction (Top-Left coords)
+   ========================== */
 async function getPageTextItems(){
   const page=await pdfDoc.getPage(pageNum);
   const tc=await page.getTextContent({ includeMarkedContent: true });
   return tc.items.map(it=>{
     const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
     const size=Math.max(Math.abs(a),Math.abs(d));
-    const x=ex, yTop = pageHeightPts - ey - size; // **top-left conversion**
+    const x=ex, yTop = pageHeightPts - ey - size; // TOP-LEFT
     const w=it.width, h=size*1.2;
-    return {str:it.str, x, y:yTop, w, h, size, fontName:it.fontName||"Times-Roman"};
+    return {str:it.str, x, y:yTop, w, h, size, fontName:it.fontName || "Times-Roman"};
   });
 }
-function linesFromItems(items){
-  const sorted=items.slice().sort((a,b)=>a.y - b.y || a.x - b.x);
-  const lines=[];
-  for(const s of sorted){
-    let ln=lines.find(L=>Math.abs(L.y - s.y) < s.size * 0.3);
-    if(!ln){ ln={y:s.y, size:s.size, fontName:s.fontName, segs:[s]}; lines.push(ln); }
-    else{ ln.segs.push(s); }
+
+/* ==========================
+   Line + Block Builders (stable grouping)
+   ========================== */
+function linesFromItems(items) {
+  const sorted = items.slice().sort((a,b) => a.y - b.y || a.x - b.x);
+  const lines = [];
+  for (const s of sorted) {
+    let ln = lines.find(L => Math.abs(L.y - s.y) < s.size * 0.3);
+    if (!ln) {
+      ln = { y: s.y, size: s.size, fontName: s.fontName, segs: [] };
+      lines.push(ln);
+    }
+    ln.segs.push(s);
   }
-  lines.forEach(L=>L.segs.sort((a,b)=>a.x-b.x));
+  lines.forEach(L => L.segs.sort((a,b) => a.x - b.x));
   return lines;
 }
 
-// ---------- overlay drawing ----------
+/* ==========================
+   Overlay Draw + Selection
+   ========================== */
 function redraw(){
   const ov=$('overlay'); ov.innerHTML="";
   drawGroups(ov);
   drawItems(ov);
   setQueued();
 }
+
 function drawItems(ov){
   const pageItems=items.filter(it=>it.page===pageNum);
   pageItems.forEach(it=>{
@@ -345,12 +373,13 @@ function drawItems(ov){
     const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
 
     div.style.left=(it.x/ptPerPx)+'px';
+
     if(it.type==='text'){
       div.style.top=(it.y/ptPerPx)+'px';
       div.style.width=(it.width/ptPerPx)+'px';
       div.style.fontFamily=it.font;
       div.style.fontSize=(it.size/ptPerPx)+'px';
-      div.style.color=it.colorHex;
+      div.style.color=it.colorHex||'#000000';
       div.style.lineHeight=( (it.lineHeight||Math.round(it.size*1.35))/ptPerPx );
       div.textContent=it.text;
     }else{
@@ -358,7 +387,7 @@ function drawItems(ov){
       div.style.top=((it.y/ptPerPx)-(pxH/2))+'px';
       div.style.width=(it.width/ptPerPx)+'px';
       div.style.height=pxH+'px';
-      div.style.background=it.colorHex;
+      div.style.background=it.colorHex||'#000000';
       div.textContent='';
     }
 
@@ -403,6 +432,7 @@ function drawItems(ov){
   });
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
+
 function drawGroups(ov){
   const pageGroups=groups.filter(g=>g.page===pageNum);
   pageGroups.forEach(g=>{
@@ -426,8 +456,11 @@ function drawGroups(ov){
         const newLeft=baseLeft+dx,newTop=baseTop+dy;
         const dptX=Math.round(newLeft*ptPerPx)-g.x, dptY=Math.round(newTop*ptPerPx)-g.y;
         g.x+=dptX; g.y+=dptY;
-        if (!Array.isArray(g.children) || g.children.length === 0) { console.warn("Empty group; skip child translate"); redraw(); return; }
-        g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x+=dptX; it.y+=dptY;}});
+        if (Array.isArray(g.children) && g.children.length) {
+          g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x+=dptX; it.y+=dptY;}});
+        } else {
+          console.warn("Group has no children on move", g);
+        }
         redraw();
       };
       document.addEventListener('pointermove',move,{passive:false});
@@ -459,7 +492,12 @@ function drawGroups(ov){
           const dGX=newGX-startGX, dGY=newGY-startGY;
           const centerX=startGX+startGW/2, centerY=startGY+startGH/2;
           g.x=newGX; g.y=newGY; g.w=Math.round(startGW*sX); g.h=Math.round(startGH*sY);
-          if (!Array.isArray(g.children) || g.children.length === 0) { console.warn("Empty group; skip child scale"); redraw(); return; }
+
+          if (!Array.isArray(g.children) || !g.children.length) {
+            console.warn("Empty group on resize", g);
+            redraw(); return;
+          }
+
           g.children.forEach(ch=>{
             const it=items.find(i=>i.id===ch.refId); if(!it) return;
             const relX=it.x-centerX, relY=it.y-centerY;
@@ -487,7 +525,7 @@ function drawGroups(ov){
   ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
-// ---------- selection + add ----------
+function isGroup(id){return typeof id==='string' && id.startsWith('g:');}
 function setSelected(id){
   selectedId=id;
   if(isGroup(id)){ $('text').value=""; redraw(); return; }
@@ -512,6 +550,7 @@ function updateSelectedFromSidebar(){
 ;['text','font','size','color','width','lineHeight','fauxBold','skewDeg','tracking','lineWidth','lineThick'].forEach(id=>{
   $(id).addEventListener(id==='text'?'input':'change', updateSelectedFromSidebar);
 });
+
 window.addEventListener('keydown',(e)=>{
   if(!selectedId) return;
   if(e.key==='Delete'||e.key==='Backspace'){
@@ -521,7 +560,9 @@ window.addEventListener('keydown',(e)=>{
   }
 });
 
-// Add Text/Line
+/* ==========================
+   Add Text / Line
+   ========================== */
 $('addText').onclick=()=>{
   if(!fileB64){setStat("Load a PDF first.","err");return;}
   if(!lastClickPt){setStat("Click preview to position first.","err");return;}
@@ -539,33 +580,11 @@ $('addLine').onclick=()=>{
   setSelected(id); redraw(); setQueued(); setStat("Line added.","ok");
 };
 
-// ---------- canvas interactions ----------
-$('cv').addEventListener('pointerdown', async (e)=>{
+// Canvas interactions (placement point)
+$('cv').addEventListener('pointerdown', (e)=>{
   const r=$('cv').getBoundingClientRect();
   const pxX=e.clientX-r.left, pxY=e.clientY-r.top;
   const xPt=Math.round(pxX*ptPerPx), yPt=Math.round(pxY*ptPerPx);
-
-  if(eyedropMode){
-    const page=await pdfDoc.getPage(pageNum);
-    const tc=await page.getTextContent();
-    let best=null,bestD=1e15;
-    for(const it of tc.items){
-      const a=it.transform[0], d=it.transform[3], ex=it.transform[4], ey=it.transform[5];
-      const size=Math.max(Math.abs(a),Math.abs(d));
-      const x=ex, yTop = pageHeightPts - ey - size;
-      const cx=x + (it.width/2), cy=yTop + size*0.6;
-      const dx=cx-xPt, dy=cy-yPt; const dd=dx*dx+dy*dy;
-      if(dd<bestD){bestD=dd; best={size,font:guessFontFromName(it.fontName), px:[cx/ptPerPx, cy/ptPerPx]};}
-    }
-    if(best){
-      $('size').value=Math.max(6,Math.round(best.size));
-      $('font').value=best.font;
-      $('color').value=sampleColorMedianAtPx(best.px[0],best.px[1]);
-      $('picked').textContent=`picked: ${best.font}, ${$('size').value}pt, ${$('color').value}`;
-      setStat("Style picked.","ok");
-    }
-    eyedropMode=false; $('eyedrop').textContent="Eyedrop"; return;
-  }
 
   if(areaMode){ startMarquee(pxX,pxY); return; }
 
@@ -573,7 +592,9 @@ $('cv').addEventListener('pointerdown', async (e)=>{
   setStat(`Placement set at (${xPt}, ${yPt}).`,"ok");
 });
 
-// marquee
+/* ==========================
+   Marquee Select + Clone (fixed)
+   ========================== */
 let marqueeEl=null,mStart=null;
 function startMarquee(pxX,pxY){
   const ov=$('overlay');
@@ -595,14 +616,11 @@ function startMarquee(pxX,pxY){
   document.addEventListener('pointerup',up,{once:true});
 }
 
-// ---------- area clone (FIXED) ----------
 async function cloneFromArea(selPt, selPx) {
   const pageItems = await getPageTextItems();
 
-  // top-left coords for selection
+  // selection in top-left point space
   const sx1 = selPt.x, sy1 = selPt.y, sx2 = selPt.x + selPt.w, sy2 = selPt.y + selPt.h;
-
-  // filter hits strictly in points (same unit as items)
   const hits = pageItems.filter(s => {
     const ix1 = s.x, iy1 = s.y, ix2 = s.x + s.w, iy2 = s.y + s.h;
     return !(ix2 < sx1 || ix1 > sx2 || iy2 < sy1 || iy1 > sy2);
@@ -610,15 +628,25 @@ async function cloneFromArea(selPt, selPx) {
 
   if (!hits.length) { setStat("No text found in selection.","err"); return; }
 
+  // Build lines from hits (stable Y grouping)
   const lines = linesFromItems(hits);
 
-  // compact blocks: split by vertical gaps; prevents full-page giant box
+  // Merge contiguous lines into blocks (avoid full-page merges)
   const blocks = [];
   let cur = null;
   for (const L of lines) {
     if (!cur || Math.abs(L.y - cur.lastY) > L.size * 1.8) {
-      cur = { lines: [], font: guessFontFromName(L.fontName), size: L.size,
-              xMin: +1e9, xMax: -1e9, yMin: +1e9, yMax: -1e9 };
+      cur = {
+        lines: [],
+        font: guessFontFromName(L.fontName),
+        baseFontName: L.fontName,
+        size: L.size,
+        xMin:  1e9,
+        xMax: -1e9,
+        yMin:  1e9,
+        yMax: -1e9,
+        lastY: L.y
+      };
       blocks.push(cur);
     }
     cur.lines.push(L);
@@ -631,60 +659,70 @@ async function cloneFromArea(selPt, selPx) {
     cur.lastY = L.y;
   }
 
+  // Create items per block with per-block color sampling
   const newIds = [];
   for (const b of blocks) {
     const text = b.lines.map(L => L.segs.map(s => s.str).join("")).join("\n");
-
-    // sample color at block center (in canvas pixels)
-    const blockPxCenter = { x: ((b.xMin + b.xMax) / 2) / ptPerPx, y: ((b.yMin + b.yMax) / 2) / ptPerPx };
+    const blockPxCenter = {
+      x: ((b.xMin + b.xMax) / 2) / ptPerPx,
+      y: ((b.yMin + b.yMax) / 2) / ptPerPx
+    };
     const colorHex = sampleColorMedianAtPx(blockPxCenter.x, blockPxCenter.y);
-
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
     const x = Math.round(b.xMin);
     const y = Math.round(b.yMin);
     const w = Math.round(b.xMax - b.xMin + 2);
     const lineHeight = Math.round(b.size * 1.35);
-
     items.push({
       id,
       type: "text",
       page: pageNum,
-      x, y, width: w,
+      x,
+      y,
+      width: w,
       text,
       font: b.font,
       size: Math.round(b.size),
       colorHex,
       lineHeight,
-      fauxBold: /bold|semi|demi|medium/i.test(b.font) ? 1 : 0,
-      skewDeg: /ital|obl/i.test(b.font) ? 12 : 0,
+      fauxBold: /bold|semi|demi|medium/i.test(b.baseFontName||"") ? 1 : 0,
+      skewDeg: /ital|obl/i.test(b.baseFontName||"") ? 12 : 0,
       tracking: 0
     });
     newIds.push(id);
   }
 
-  // tight union of new item rects — all values are already in points
-  const rects = newIds.map(id=>{
-    const it=items.find(i=>i.id===id);
-    const h=(it.lineHeight||Math.round(it.size*1.35)) * ((it.text.match(/\n/g)||[]).length + 1);
-    return {x:it.x, y:it.y, w:it.width, h};
+  // Group bounds in POINTS (no unit mixing)
+  const rects = newIds.map(id => {
+    const it = items.find(i => i.id === id);
+    const h = (it.lineHeight || Math.round(it.size * 1.35)) *
+              ((it.text.match(/\n/g) || []).length + 1);
+    return { x: it.x, y: it.y, w: it.width, h };
   });
-  const gx=Math.min(...rects.map(r=>r.x));
-  const gy=Math.min(...rects.map(r=>r.y));
-  const gxe=Math.max(...rects.map(r=>r.x+r.w));
-  const gye=Math.max(...rects.map(r=>r.y+r.h));
-  const gid=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+  const gx  = Math.min(...rects.map(r => r.x));
+  const gy  = Math.min(...rects.map(r => r.y));
+  const gxe = Math.max(...rects.map(r => r.x + r.w));
+  const gye = Math.max(...rects.map(r => r.y + r.h));
+  const gid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
 
   groups.push({
-    id:gid,page:pageNum,x:gx,y:gy,w:gxe-gx,h:gye-gy,
-    children:newIds.map(id=>({refId:id}))
+    id: gid,
+    page: pageNum,
+    x: gx,
+    y: gy,
+    w: gxe - gx,
+    h: gye - gy,
+    children: newIds.map(id => ({ refId: id }))
   });
 
-  setSelected("g:"+gid);
+  setSelected("g:" + gid);
   redraw(); setQueued();
   setStat(`Cloned ${newIds.length} block(s). Drag/resize the blue group; edit sub-blocks as needed.`,"ok");
 }
 
-// ---------- apply edits (export) ----------
+/* ==========================
+   Generate via /api/edit
+   ========================== */
 $('apply').onclick=async()=>{
   try{
     if(!fileB64){setStat("Load a PDF first.","err");return;}
@@ -701,13 +739,16 @@ $('apply').onclick=async()=>{
     const blob=new Blob([Uint8Array.from(atob(pdf),c=>c.charCodeAt(0))],{type:'application/pdf'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Edited.pdf'; a.click();
     setStat("Done ✓ File downloaded.","ok");
-  }catch(e){setStat("Error: "+e.message,"err");}
+  }catch(e){console.error(e);setStat("Error: "+e.message,"err");}
 };
 
-// quick colors
+/* ==========================
+   Quick Colors + Clear
+   ========================== */
 $('quickRed').onclick=()=>{$('color').value='#c62828';updateSelectedFromSidebar();};
 $('quickBlue').onclick=()=>{$('color').value='#1565c0';updateSelectedFromSidebar();};
 $('quickBody').onclick=()=>{$('color').value='#000000';updateSelectedFromSidebar();};
+$('clearBlocks').onclick=()=>{items=[];groups=[];selectedId=null;redraw();setQueued();setStat("Removed all overlays.","ok");};
 </script>
 </body>
 </html>

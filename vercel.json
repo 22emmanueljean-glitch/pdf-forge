@@ -1,11 +1,12 @@
 {
   "version": 2,
+  "public": true,
   "builds": [
-    { "src": "api/analyze.js", "use": "@vercel/node" },
-    { "src": "api/export.js", "use": "@vercel/node" }
+    { "src": "public/**", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/analyze", "dest": "/api/analyze.js" },
-    { "src": "/api/export", "dest": "/api/export.js" }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }

@@ -4,12 +4,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PDF Forge — Vercel Build</title>
+<title>PDF Forge — Pro Marquee + Corner Resize + Darkest-Color</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <style>
   :root{--bg:#0f1115;--panel:#151821;--card:#1a1f2b;--muted:#9aa3b2;--accent:#7aa2ff;--ok:#3ecf8e;--err:#ff6b6b;}
-  *{box-sizing:border-box}
-  html,body{height:100%}
+  *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:#e7eaf0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;user-select:none}
   .wrap{display:grid;grid-template-columns:380px 1fr;gap:16px;height:100vh}
   @media (max-width:980px){.wrap{grid-template-columns:1fr;height:auto}}
@@ -33,28 +32,30 @@
   canvas{display:block;touch-action:none}
   .overlay{position:absolute;inset:0;pointer-events:none;touch-action:none}
 
-  .block{position:absolute;min-width:80px;min-height:30px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff;touch-action:none;will-change:transform}
+  /* text/line blocks */
+  .block{position:absolute;min-width:40px;min-height:24px;padding:6px 8px;border-radius:6px;pointer-events:auto;cursor:grab;white-space:pre-wrap;line-height:1.35;background:transparent;border:1px dashed #7aa2ff;touch-action:none;will-change:transform}
   .block.dragging{cursor:grabbing}
   .block.selected{border:2px solid var(--accent);z-index:11}
-  .handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523;cursor:nwse-resize;touch-action:none}
+  .handle{position:absolute;width:14px;height:14px;border:2px solid #7aa2ff;border-radius:3px;background:#111523}
+  .h-br{right:-9px;bottom:-9px;cursor:nwse-resize}
+  .h-tr{right:-9px;top:-9px;cursor:nesw-resize}
+  .h-bl{left:-9px;bottom:-9px;cursor:nesw-resize}
+  .h-tl{left:-9px;top:-9px;cursor:nwse-resize}
   .close{position:absolute;top:-9px;left:-9px;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
   .close.hidden{display:none}
-  .group{position:absolute;border:2px dashed #3b82f6;border-radius:8px;background:transparent;pointer-events:auto;touch-action:none;will-change:transform}
-  .group.selected{border-color:#7aa2ff;z-index:12}
-  .g-handle{position:absolute;width:14px;height:14px;background:#111523;border:2px solid #7aa2ff;border-radius:3px}
-  .g-handle.br{right:-9px;bottom:-9px;cursor:nwse-resize}
-  .g-handle.tl{left:-9px;top:-9px;cursor:nwse-resize}
-  .g-handle.tr{right:-9px;top:-9px;cursor:nesw-resize}
-  .g-handle.bl{left:-9px;bottom:-9px;cursor:nesw-resize}
-  .g-close{position:absolute;top:-11px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:#ff6b6b;color:#0b0d13;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #ff9a9a}
-  .coords{font-size:12px;color:#9aa3b2;margin-left:auto}
+  body.noguides .block{border-color:transparent}
+
+  /* marquee */
   .marquee{position:absolute;border:1px solid #7aa2ff;background:rgba(122,162,255,0.15);pointer-events:none}
+
+  /* hidden measurer */
+  #measure{position:absolute;left:-99999px;top:-99999px;white-space:pre-wrap;visibility:hidden;padding:0;border:0;margin:0}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="left">
-    <h1>PDF Forge — Vercel</h1>
+    <h1>PDF Forge — Pro</h1>
     <div class="card">
       <label>Upload PDF</label>
       <input type="file" id="file" accept="application/pdf"/>
@@ -81,18 +82,9 @@
         <div>
           <label>Font (mapped)</label>
           <select id="font">
-            <option>Times-Roman</option>
-            <option>Times-Bold</option>
-            <option>Times-Italic</option>
-            <option>Times-BoldItalic</option>
-            <option>Helvetica</option>
-            <option>Helvetica-Bold</option>
-            <option>Helvetica-Oblique</option>
-            <option>Helvetica-BoldOblique</option>
-            <option>Courier</option>
-            <option>Courier-Bold</option>
-            <option>Courier-Oblique</option>
-            <option>Courier-BoldOblique</option>
+            <option>Times-Roman</option><option>Times-Bold</option><option>Times-Italic</option><option>Times-BoldItalic</option>
+            <option>Helvetica</option><option>Helvetica-Bold</option><option>Helvetica-Oblique</option><option>Helvetica-BoldOblique</option>
+            <option>Courier</option><option>Courier-Bold</option><option>Courier-Oblique</option><option>Courier-BoldOblique</option>
           </select>
         </div>
         <div>
@@ -126,7 +118,7 @@
       <label>Text</label>
       <textarea id="text" placeholder="Type your text to insert or edit…"></textarea>
 
-      <div class="row">
+      <div class="row" style="margin-top:8px">
         <button id="addText">Add Text (click preview)</button>
         <button id="addLine" class="secondary">Add Line (click preview)</button>
       </div>
@@ -156,25 +148,31 @@
   </div>
 </div>
 
+<div id="measure"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 const API_ANALYZE="/api/analyze";
 const API_EXPORT="/api/export";
 
+// ---------- utils ----------
 async function fileToBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const s=String(r.result||"");res(s.includes(",")?s.split(",")[1]:s)};r.onerror=rej;r.readAsDataURL(f);});}
 function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
+function rgbToHex(r,g,b){const h=v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0');return '#'+h(r)+h(g)+h(b);}
 const $=id=>document.getElementById(id);
 const setStat=(t,cls="")=>{const el=$('stat');el.textContent=t;el.className="status "+cls;}
 const setMeta=()=>$('meta').textContent=`Page ${pageNum} | scale ${scale.toFixed(2)}`
 const setQueued=()=>$('queued').textContent=items.length+" items queued"
 
+// ---------- state ----------
 let pdfDoc=null,pageNum=1,pageCount=1,scale=1.10,ptPerPx=1,pageHeightPts=0;
 let fileB64=null,lastClickPt=null;
-let items=[],groups=[],selectedId=null,areaMode=false;
+let items=[]; // [{id,type:'text'|'line',page,x,y,width,height?,text,font_mapped,size,colorHex,line_height,tracking,thick}]
+let areaMode=false;
 
 const pdfjsLib=window['pdfjs-dist/build/pdf'];
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// ---------- load/render ----------
 $('load').onclick=async()=>{
   try{
     const f=$('file').files[0]; if(!f){setStat("Choose a PDF."); return;}
@@ -191,12 +189,11 @@ $('load').onclick=async()=>{
     setStat(`Loaded ${pageCount} page(s).`,"ok");
   }catch(e){setStat("Error: "+e.message,"err")}
 };
-$('reset').onclick=()=>{pdfDoc=null;fileB64=null;items=[];groups=[];selectedId=null;$('tools').style.display='none';$('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);$('overlay').innerHTML="";$('pageWrap').style.display='none';setQueued();setStat("Cleared.");};
-
+$('reset').onclick=()=>{pdfDoc=null;fileB64=null;items=[];$('tools').style.display='none';$('cv').getContext('2d').clearRect(0,0,$('cv').width,$('cv').height);$('overlay').innerHTML="";$('pageWrap').style.display='none';setQueued();setStat("Cleared.");};
 $('prev').onclick=async()=>{if(!pdfDoc)return;pageNum=Math.max(1,pageNum-1);$('pageSelect').value=String(pageNum);await renderPage();redraw();};
 $('next').onclick=async()=>{if(!pdfDoc)return;pageNum=Math.min(pageCount,pageNum+1);$('pageSelect').value=String(pageNum);await renderPage();redraw();};
 $('pageSelect').onchange=async e=>{pageNum=Number(e.target.value)||1;await renderPage();redraw();};
-$('areaClone').onclick=()=>{areaMode=!areaMode; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; setStat(areaMode?"Drag a rectangle to clone just that area.":"", "ok"); };
+$('zoom').oninput=async e=>{if(!pdfDoc)return;scale=Number(e.target.value)/100;await renderPage();redraw();};
 
 async function renderPage(){
   const page=await pdfDoc.getPage(pageNum);
@@ -212,13 +209,43 @@ async function renderPage(){
   cv.onpointermove=(e)=>{const r=cv.getBoundingClientRect(); const x=Math.round((e.clientX-r.left)*ptPerPx); const y=Math.round((e.clientY-r.top)*ptPerPx); $('coords').textContent=`x: ${x}  y: ${y}`;}
 }
 
+// ---------- color: darkest pixels ----------
+function pickDarkestColor(pxX, pxY){
+  const cv=$('cv'),ctx=cv.getContext('2d');
+  const sz=13,half=(sz-1)/2;
+  const x0=Math.max(0,Math.round(pxX)-half), y0=Math.max(0,Math.round(pxY)-half);
+  const w=Math.min(sz, cv.width - x0), h=Math.min(sz, cv.height - y0);
+  const data=ctx.getImageData(x0,y0,w,h).data;
+  const arr=[];
+  for(let i=0;i<data.length;i+=4){
+    const r=data[i],g=data[i+1],b=data[i+2];
+    const lum=0.2126*r+0.7152*g+0.0722*b;
+    arr.push({r,g,b,lum});
+  }
+  if(!arr.length) return "#000000";
+  arr.sort((a,b)=>a.lum-b.lum);
+  const take = Math.max(3, Math.floor(arr.length*0.25)); // darkest 25%
+  let R=0,G=0,B=0;
+  for(let i=0;i<take;i++){R+=arr[i].r;G+=arr[i].g;B+=arr[i].b;}
+  return rgbToHex(R/take, G/take, B/take);
+}
+
+// ---------- measure lines for live resize ----------
+function measureLinesPx(fontFamily, fontSizePx, widthPx, text, lineHeightPx){
+  const m=$('measure');
+  m.style.fontFamily=fontFamily; m.style.fontSize=fontSizePx+'px'; m.style.width=widthPx+'px';
+  m.style.lineHeight=lineHeightPx+'px'; m.textContent=text||"";
+  const h=m.offsetHeight;
+  const lines=Math.max(1, Math.round(h / lineHeightPx));
+  return {lines, height:h};
+}
+
+// ---------- overlay draw ----------
 function redraw(){
   const ov=$('overlay'); ov.innerHTML="";
-  drawGroups(ov);
   drawItems(ov);
   setQueued();
 }
-
 function drawItems(ov){
   const pageItems=items.filter(it=>it.page===pageNum);
   pageItems.forEach(it=>{
@@ -227,20 +254,29 @@ function drawItems(ov){
     div.dataset.id=it.id;
 
     const close=document.createElement('div'); close.className='close'; close.textContent='×';
-    close.onclick=(ev)=>{ev.stopPropagation(); items=items.filter(x=>x.id!==it.id); redraw(); setQueued();}; div.appendChild(close);
+    close.onclick=(ev)=>{ev.stopPropagation(); items=items.filter(x=>x.id!==it.id); redraw(); setQueued();};
+    div.appendChild(close);
 
-    const handle=document.createElement('div'); handle.className='handle'; div.appendChild(handle);
+    ['h-tl','h-tr','h-bl','h-br'].forEach(cn=>{
+      const h=document.createElement('div'); h.className='handle '+cn; div.appendChild(h);
+    });
 
+    // position & appearance
     div.style.left=(it.x/ptPerPx)+'px';
     if(it.type==='text'){
       div.style.top=(it.y/ptPerPx)+'px';
       div.style.width=(it.width/ptPerPx)+'px';
+      const fontPx=(it.size/ptPerPx);
+      const lhPx=( (it.line_height||Math.round(it.size*1.35))/ptPerPx );
       div.style.fontFamily=it.font_mapped;
-      div.style.fontSize=(it.size/ptPerPx)+'px';
+      div.style.fontSize=fontPx+'px';
       div.style.color=it.colorHex;
-      div.style.lineHeight=( (it.line_height||Math.round(it.size*1.35))/ptPerPx );
+      div.style.lineHeight=lhPx+'px';
       div.textContent=it.text;
-    }else{
+      // height for hit/resize: compute live
+      const {lines,height}=measureLinesPx(it.font_mapped, fontPx, parseFloat(div.style.width), it.text, lhPx);
+      div.style.height=Math.max(24, height)+'px';
+    } else {
       const pxH=Math.max(1, it.thick/ptPerPx);
       div.style.top=((it.y/ptPerPx)-(pxH/2))+'px';
       div.style.width=(it.width/ptPerPx)+'px';
@@ -248,10 +284,11 @@ function drawItems(ov){
       div.style.background=it.colorHex;
     }
 
-    // drag
+    // drag move
     div.addEventListener('pointerdown',ev=>{
-      if(ev.target===handle || ev.target===close) return;
+      if(ev.target.classList.contains('handle') || ev.target===close) return;
       ev.preventDefault();
+      div.classList.add('dragging');
       const startX=ev.clientX,startY=ev.clientY;
       const baseLeft=parseFloat(div.style.left),baseTop=parseFloat(div.style.top);
       let dx=0,dy=0,anim=false;
@@ -266,24 +303,72 @@ function drawItems(ov){
       document.addEventListener('pointerup',up,{once:true});
     }, {passive:false});
 
-    // resize width
-    handle.addEventListener('pointerdown',ev=>{
-      ev.stopPropagation(); ev.preventDefault();
-      const startX=ev.clientX,startW=parseFloat(div.style.width);
-      const move=e=>{const dw=e.clientX-startX;div.style.width=Math.max(20,startW+dw)+'px';};
-      const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up); it.width=Math.round(parseFloat(div.style.width)*ptPerPx); redraw();};
-      document.addEventListener('pointermove',move,{passive:false});
-      document.addEventListener('pointerup',up,{once:true});
+    // corner resize (width + height → line_height; TL/TR also move x/y)
+    div.querySelectorAll('.handle').forEach(h=>{
+      h.addEventListener('pointerdown',ev=>{
+        ev.stopPropagation(); ev.preventDefault();
+        const rect=div.getBoundingClientRect();
+        const startX=ev.clientX,startY=ev.clientY;
+        const startLeftPx=rect.left, startTopPx=rect.top;
+        const startWpx=rect.width, startHpx=rect.height;
+        const startXpt=it.x, startYpt=it.y;
+        const startWidthPt=it.width;
+        const fontPx=(it.size/ptPerPx);
+        let lhPx=( (it.line_height||Math.round(it.size*1.35))/ptPerPx );
+        const startMeasure=measureLinesPx(it.font_mapped, fontPx, startWpx, it.text, lhPx);
+        const corner = h.classList.contains('h-tl')?'tl':h.classList.contains('h-tr')?'tr':h.classList.contains('h-bl')?'bl':'br';
+
+        const move=e=>{
+          const dx=e.clientX-startX, dy=e.clientY-startY;
+          let newLeft=startLeftPx, newTop=startTopPx, newW=startWpx, newH=startHpx;
+          if(corner==='br'){ newW=Math.max(20, startWpx+dx); newH=Math.max(20, startHpx+dy); }
+          if(corner==='tr'){ newW=Math.max(20, startWpx+dx); newH=Math.max(20, startHpx-dy); newTop=startTopPx+dy; }
+          if(corner==='bl'){ newW=Math.max(20, startWpx-dx); newH=Math.max(20, startHpx+dy); newLeft=startLeftPx+dx; }
+          if(corner==='tl'){ newW=Math.max(20, startWpx-dx); newH=Math.max(20, startHpx-dy); newLeft=startLeftPx+dx; newTop=startTopPx+dy; }
+
+          // live preview
+          div.style.left=newLeft+'px'; div.style.top=newTop+'px';
+          div.style.width=newW+'px'; div.style.height=newH+'px';
+
+          // recompute lines for the preview width, then set line-height to fit height
+          const m=measureLinesPx(it.font_mapped, fontPx, newW, it.text, lhPx);
+          const nLines = Math.max(1, m.lines);
+          const newLhPx = Math.max(6, newH / nLines);
+          div.style.lineHeight=newLhPx+'px';
+        };
+
+        const up=e=>{
+          document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
+          const r2=div.getBoundingClientRect();
+          const newW=r2.width, newH=r2.height;
+          const newLeft=r2.left, newTop=r2.top;
+          const nLines = Math.max(1, Math.round(newH / parseFloat(div.style.lineHeight)));
+
+          // commit to item (convert px → pt)
+          it.width = Math.round(newW * ptPerPx);
+          it.line_height = Math.max(6, Math.round((newH / nLines) * ptPerPx));
+
+          // if left/top moved (TL/TR/BL), update x/y
+          it.x = Math.round(newLeft * ptPerPx);
+          it.y = Math.round(newTop * ptPerPx);
+
+          redraw();
+        };
+
+        document.addEventListener('pointermove',move,{passive:false});
+        document.addEventListener('pointerup',up,{once:true});
+      }, {passive:false});
     });
 
     ov.appendChild(div);
   });
-  ov.style.pointerEvents='none'; Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
+
+  ov.style.pointerEvents='none';
+  Array.from(ov.children).forEach(c=>c.style.pointerEvents='auto');
 }
 
-function drawGroups(ov){ /* (removed for brevity) you can copy the group code from your last working version */ }
-
-$('cv').addEventListener('pointerdown', async (e)=>{
+// ---------- canvas interactions ----------
+$('cv').addEventListener('pointerdown', (e)=>{
   const r=$('cv').getBoundingClientRect();
   const pxX=e.clientX-r.left, pxY=e.clientY-r.top;
   const xPt=Math.round(pxX*ptPerPx), yPt=Math.round(pxY*ptPerPx);
@@ -293,7 +378,9 @@ $('cv').addEventListener('pointerdown', async (e)=>{
   setStat(`Placement at (${xPt}, ${yPt}).`,"ok");
 });
 
+// marquee select → analyze only that rect
 let marqueeEl=null,mStart=null;
+$('areaClone').onclick=()=>{areaMode=!areaMode; $('areaClone').textContent=areaMode?"Select Area (ON)":"Select Area (Clone)"; setStat(areaMode?"Drag a rectangle to clone just that area.":"", "ok");};
 function startMarquee(pxX,pxY){
   const ov=$('overlay');
   if(marqueeEl && marqueeEl.parentNode) marqueeEl.parentNode.removeChild(marqueeEl);
@@ -308,65 +395,62 @@ function startMarquee(pxX,pxY){
     if(selPx.w<5 || selPx.h<5){setStat("Selection too small.","err"); marqueeEl.remove(); marqueeEl=null; return;}
     const selPt={x:Math.round(selPx.x*ptPerPx),y:Math.round(selPx.y*ptPerPx),w:Math.round(selPx.w*ptPerPx),h:Math.round(selPx.h*ptPerPx)};
     await cloneFromArea(selPt, selPx);
-    marqueeEl.remove(); marqueeEl=null;
+    marqueeEl.remove(); marqueeEl=null; areaMode=false; $('areaClone').textContent="Select Area (Clone)";
   };
   document.addEventListener('pointermove',move,{passive:false});
   document.addEventListener('pointerup',up,{once:true});
 }
 
 async function cloneFromArea(selPt, selPx){
-  const r = await fetch(API_ANALYZE, { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ file_b64: fileB64, page: pageNum, rect: selPt }) });
+  const r = await fetch(API_ANALYZE,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({file_b64:fileB64,page:pageNum,rect:selPt})});
   if(!r.ok){ setStat("Analyze error","err"); return; }
   const { spans } = await r.json();
   if(!spans || !spans.length){ setStat("No text found in selection.","err"); return; }
 
-  // Build blocks: join continuous spans with same mapped font & size on same line
+  // join contiguous spans on the same baseline & font
   spans.sort((a,b)=> a.y - b.y || a.x - b.x);
-  let cur = null;
-  const newIds = [];
-  for (const s of spans) {
-    const same = cur && Math.abs(cur.size - s.size) < 0.6 && cur.font_mapped === s.font_mapped && Math.abs(cur.y - s.y) < s.size * 0.5;
-    if (!same) {
-      if (cur) finalize(cur);
-      cur = { text: s.text, x: s.x, y: s.y, size: s.size, font_mapped: s.font_mapped, width: s.w, page: pageNum };
-    } else {
-      cur.text += s.text;
-      cur.width = (s.x + s.w) - cur.x;
+  let cur=null; const addIds=[];
+  for(const s of spans){
+    const same = cur && Math.abs(cur.size - s.size) < 0.6 && cur.font_mapped === s.font_mapped && Math.abs(cur.y - s.y) < s.size*0.5;
+    if(!same){
+      if(cur) pushBlock(cur);
+      cur = { text:s.text, x:s.x, y:s.y, w:s.w, size:s.size, font_mapped:s.font_mapped };
+    }else{
+      cur.text += s.text; cur.w = (s.x + s.w) - cur.x;
     }
   }
-  if (cur) finalize(cur);
+  if(cur) pushBlock(cur);
 
-  function finalize(b) {
-    // color sampling at each block center (more accurate than section center)
-    const cv=$('cv'), ctx=cv.getContext('2d');
-    const pxX = (b.x + b.width/2) / ptPerPx, pxY = (b.y + b.size*0.7) / ptPerPx;
-    const data = ctx.getImageData(Math.max(0, Math.round(pxX)-2), Math.max(0, Math.round(pxY)-2), 5, 5).data;
-    let R=0,G=0,B=0,cnt=0;
-    for(let i=0;i<data.length;i+=4){R+=data[i];G+=data[i+1];B+=data[i+2];cnt++}
-    const colorHex = '#'+[R/cnt,G/cnt,B/cnt].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+  function pushBlock(b){
+    // per-block color: sample **darkest** pixels around center
+    const pxX = (b.x + b.w/2)/ptPerPx, pxY = (b.y + b.size*0.7)/ptPerPx;
+    const colorHex = pickDarkestColor(pxX, pxY);
     const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-    const it = {
-      id, type:'text', page: b.page,
-      x: Math.round(b.x), y: Math.round(b.y),
-      width: Math.round(b.width + 2),
-      text: b.text, font_mapped: b.font_mapped, size: Math.round(b.size),
-      colorHex, line_height: Math.round(b.size*1.35), tracking: 0
-    };
-    items.push(it); newIds.push(id);
+    const lineHeight = Math.round(b.size*1.35);
+    items.push({
+      id,type:'text',page:pageNum,
+      x:Math.round(b.x), y:Math.round(b.y), width:Math.round(b.w+2),
+      text:b.text, font_mapped:b.font_mapped, size:Math.round(b.size),
+      colorHex, line_height:lineHeight, tracking:0
+    });
+    addIds.push(id);
   }
 
-  redraw(); setQueued(); setStat(`Cloned ${newIds.length} block(s).`, "ok");
+  redraw(); setQueued(); setStat(`Cloned ${addIds.length} block(s).`,"ok");
 }
 
+// ---------- add text/line ----------
 $('addText').onclick=()=>{
   if(!fileB64){ setStat("Load a PDF first.","err"); return; }
   if(!lastClickPt){ setStat("Click preview to position first.","err"); return; }
   const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
   items.push({
-    id,type:'text',page:pageNum,
-    x:lastClickPt.x,y:lastClickPt.y,width:parseFloat($('width').value)||460,
-    text:$('text').value||"", font_mapped:$('font').value||"Times-Roman",
-    size:parseFloat($('size').value)||11, colorHex:$('color').value||"#000000",
+    id,type:'text',page:pageNum,x:lastClickPt.x,y:lastClickPt.y,
+    width:parseFloat($('width').value)||460,
+    text:$('text').value||"",
+    font_mapped:$('font').value||"Times-Roman",
+    size:parseFloat($('size').value)||11,
+    colorHex:$('color').value||"#000000",
     line_height:parseFloat($('lineHeight').value)||Math.round((parseFloat($('size').value)||11)*1.35),
     tracking:parseFloat($('tracking').value)||0
   });
@@ -380,18 +464,16 @@ $('addLine').onclick=()=>{
   redraw(); setQueued(); setStat("Line added.","ok");
 };
 
+// ---------- export ----------
 $('apply').onclick=async()=>{
   try{
     if(!fileB64){setStat("Load a PDF first.","err");return;}
     if(items.length===0){setStat("No items queued.","err");return;}
     setStat("Generating…");
     const blocks = items.map(it=>{
-      if(it.type==='line'){
-        const [r,g,b]=hexToRgb01(it.colorHex||'#000000'); return {type:'line',page:it.page,x:it.x,y:it.y,width:it.width,thick:it.thick,color:[r,g,b]};
-      }else{
-        const [r,g,b]=hexToRgb01(it.colorHex||'#000000');
-        return {type:'text',page:it.page,x:it.x,y:it.y,width:it.width,text:it.text,font_mapped:it.font_mapped,size:it.size,color:[r,g,b],line_height:it.line_height,tracking:it.tracking};
-      }
+      if(it.type==='line'){const [r,g,b]=hexToRgb01(it.colorHex||'#000000'); return {type:'line',page:it.page,x:it.x,y:it.y,width:it.width,thick:it.thick,color:[r,g,b]};}
+      const [r,g,b]=hexToRgb01(it.colorHex||'#000000');
+      return {type:'text',page:it.page,x:it.x,y:it.y,width:it.width,text:it.text,font_mapped:it.font_mapped,size:it.size,color:[r,g,b],line_height:it.line_height,tracking:it.tracking};
     });
     const r=await fetch(API_EXPORT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_b64:fileB64,blocks})});
     if(!r.ok){const t=await r.text();throw new Error(t||r.statusText);}
@@ -401,12 +483,6 @@ $('apply').onclick=async()=>{
     setStat("Done ✓ File downloaded.","ok");
   }catch(e){setStat("Error: "+e.message,"err");}
 };
-
-$('cv').addEventListener('pointerdown',(e)=>{
-  const r=$('cv').getBoundingClientRect();
-  lastClickPt={x:Math.round((e.clientX-r.left)*ptPerPx), y:Math.round((e.clientY-r.top)*ptPerPx)};
-});
-
 </script>
 </body>
 </html>

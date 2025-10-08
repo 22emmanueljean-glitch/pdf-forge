@@ -617,23 +617,43 @@ function startMarquee(pxX,pxY){
 }
 
 async function cloneFromArea(selPt, selPx) {
+  // Grab text items from PDF.js
   const pageItems = await getPageTextItems();
-  const sx1 = selPt.x, sy1 = selPt.y, sx2 = selPt.x + selPt.w, sy2 = selPt.y + selPt.h;
 
-  // pick only text truly inside the selection
+  // Selection bounds (top-left coordinate system)
+  const sx1 = selPt.x,
+        sy1 = selPt.y,
+        sx2 = selPt.x + selPt.w,
+        sy2 = selPt.y + selPt.h;
+
+  // Filter text actually *inside* the selection
   const hits = pageItems.filter(s => {
-    const ix1 = s.x, iy1 = s.y, ix2 = s.x + s.w, iy2 = s.y + s.h;
+    const ix1 = s.x, iy1 = s.y,
+          ix2 = s.x + s.w, iy2 = s.y + s.h;
     return ix1 >= sx1 && ix2 <= sx2 && iy1 >= sy1 && iy2 <= sy2;
   });
-  if (!hits.length) { setStat("No text found in selection.","err"); return; }
 
-  // cluster lines
+  if (!hits.length) {
+    setStat("No text found in selection.", "err");
+    return;
+  }
+
+  // Sort and group text into lines
   const lines = linesFromItems(hits);
+
+  // Merge nearby lines into paragraphs
   const blocks = [];
   let cur = null;
   for (const L of lines) {
     if (!cur || Math.abs(L.y - cur.lastY) > L.size * 1.5) {
-      cur = { lines: [], yMin: L.y, yMax: L.y + L.size, font: guessFontFromName(L.fontName), baseFont: L.fontName, size: L.size };
+      cur = {
+        lines: [],
+        yMin: L.y,
+        yMax: L.y + L.size,
+        font: guessFontFromName(L.fontName),
+        baseFont: L.fontName,
+        size: L.size
+      };
       blocks.push(cur);
     }
     cur.lines.push(L);
@@ -644,41 +664,76 @@ async function cloneFromArea(selPt, selPx) {
     });
   }
 
+  // Create items per block using tight bounding box per paragraph
   const newIds = [];
   for (const b of blocks) {
-    const text = b.lines.map(L => L.segs.map(s => s.str).join("")).join("\n");
+    const text = b.lines.map(L =>
+      L.segs.map(s => s.str).join("")
+    ).join("\n");
+
+    const allX = b.lines.flatMap(L => L.segs.map(s => s.x));
+    const allW = b.lines.flatMap(L => L.segs.map(s => s.x + s.w));
+    const allTops = b.lines.map(L => L.y);
+    const allBottoms = b.lines.map(L => L.y + L.size * 1.2);
+
+    const x = Math.min(...allX);
+    const w = Math.max(...allW) - x;
+    const y = Math.min(...allTops);
+    const h = Math.max(...allBottoms) - y;
+
     const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
-    const colorHex = "#000000";
-    const x = Math.min(...b.lines.flatMap(L => L.segs.map(s => s.x)));
-    const w = Math.max(...b.lines.flatMap(L => L.segs.map(s => s.x + s.w))) - x;
-    const y = b.yMin;
-    const lineHeight = Math.round(b.size * 1.35);
+
     items.push({
-      id, type:"text", page:pageNum, x, y, width:w, text,
-      font:b.font, size:Math.round(b.size), colorHex,
-      lineHeight, fauxBold:/bold|semi|demi|medium/i.test(b.baseFont||"")?1:0,
-      skewDeg:/ital|obl/i.test(b.baseFont||"")?12:0, tracking:0
+      id,
+      type: "text",
+      page: pageNum,
+      x,
+      y,
+      width: Math.round(w),
+      text,
+      font: b.font,
+      size: Math.round(b.size),
+      colorHex: "#000000",
+      lineHeight: Math.round(b.size * 1.35),
+      fauxBold: /bold|semi|demi|medium/i.test(b.baseFont || "") ? 1 : 0,
+      skewDeg: /ital|obl/i.test(b.baseFont || "") ? 12 : 0,
+      tracking: 0
     });
+
     newIds.push(id);
   }
 
-  // tight bounding box
+  // Compute tight group bounds (so no giant frame)
   const rects = newIds.map(id => {
     const it = items.find(i => i.id === id);
-    const h = (it.lineHeight||Math.round(it.size*1.35))*((it.text.match(/\n/g)||[]).length+1);
-    return {x:it.x, y:it.y, w:it.width, h};
+    const h = (it.lineHeight || Math.round(it.size * 1.35)) *
+              ((it.text.match(/\n/g) || []).length + 1);
+    return { x: it.x, y: it.y, w: it.width, h };
   });
-  const gx=Math.min(...rects.map(r=>r.x));
-  const gy=Math.min(...rects.map(r=>r.y));
-  const gxe=Math.max(...rects.map(r=>r.x+r.w));
-  const gye=Math.max(...rects.map(r=>r.y+r.h));
-  const gid=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-  groups.push({id:gid,page:pageNum,x:gx,y:gy,w:gxe-gx,h:gye-gy,children:newIds.map(id=>({refId:id}))});
 
-  setSelected("g:"+gid);
-  redraw(); setQueued();
-  setStat(`Cloned ${newIds.length} text block(s).`,"ok");
+  const gx = Math.min(...rects.map(r => r.x));
+  const gy = Math.min(...rects.map(r => r.y));
+  const gxe = Math.max(...rects.map(r => r.x + r.w));
+  const gye = Math.max(...rects.map(r => r.y + r.h));
+
+  const gid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+
+  groups.push({
+    id: gid,
+    page: pageNum,
+    x: gx,
+    y: gy,
+    w: gxe - gx,
+    h: gye - gy,
+    children: newIds.map(id => ({ refId: id }))
+  });
+
+  setSelected("g:" + gid);
+  redraw();
+  setQueued();
+  setStat(`Cloned ${newIds.length} text block(s).`, "ok");
 }
+
 
 
 /* ==========================

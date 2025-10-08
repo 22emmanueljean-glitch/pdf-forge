@@ -335,29 +335,42 @@ function sampleColorMedianAtPx(pxX,pxY){
    Text extraction (CANVAS PX)
 ========================= */
 async function getPageTextItemsPx(){
-  const page=await pdfDoc.getPage(pageNum);
-  const tc=await page.getTextContent({ includeMarkedContent:true });
+  const page = await pdfDoc.getPage(pageNum);
+  const tc = await page.getTextContent({ includeMarkedContent: true });
+  const ctx = $('cv').getContext('2d', { willReadFrequently: true });
 
-  // map to CANVAS PIXELS (top-left)
-  return tc.items.map(it=>{
-    const tr=it.transform; // [a,b,c,d,e,f]
-    const a=tr[0], d=tr[3], e=tr[4], f=tr[5];
-    const sizePts=Math.max(Math.abs(a),Math.abs(d));
-    const widthPts=it.width;
-    const xPts=e;
-    const yTopPts = pageHeightPts - f - sizePts; // flip to top-left
+  return tc.items.map(it => {
+    const tr = it.transform;
+    const a = tr[0], d = tr[3], e = tr[4], f = tr[5];
+    const sizePts = Math.max(Math.abs(a), Math.abs(d));
+    const widthPts = it.width;
+    const xPts = e;
+    const yTopPts = pageHeightPts - f - sizePts;
 
-    return {
-      str: it.str,
-      x: xPts*pxPerPt,                          // px
-      y: yTopPts*pxPerPt,                       // px
-      w: widthPts*pxPerPt,                      // px
-      h: sizePts*1.2*pxPerPt,                   // px approx
-      sizePx: sizePts*pxPerPt,                  // px
-      fontName: it.fontName || 'Times-Roman'
-    };
+    // pixel mapping
+    const x = xPts * pxPerPt;
+    const y = yTopPts * pxPerPt;
+    const w = widthPts * pxPerPt;
+    const h = sizePts * 1.2 * pxPerPt;
+    const sizePx = sizePts * pxPerPt;
+
+    // sample color (median under baseline)
+    const imgData = ctx.getImageData(Math.max(0, Math.round(x)), Math.max(0, Math.round(y + h * 0.7)), Math.min(3, $('cv').width - x), Math.min(3, $('cv').height - y)).data;
+    const r = [], g = [], b = [];
+    for (let i = 0; i < imgData.length; i += 4) { r.push(imgData[i]); g.push(imgData[i + 1]); b.push(imgData[i + 2]); }
+    const med = a => { const s = a.sort((x,y)=>x-y); return s[Math.floor(s.length/2)]||0; };
+    const colorHex = `#${med(r).toString(16).padStart(2,'0')}${med(g).toString(16).padStart(2,'0')}${med(b).toString(16).padStart(2,'0')}`;
+
+    // font style inference
+    const fontName = it.fontName || 'Times-Roman';
+    const flags = it.fontDescriptor ? it.fontDescriptor.flags : 0;
+    const fauxBold = (flags & 4) ? 1 : (/bold|semi|demi|medium/i.test(fontName) ? 1 : 0);
+    const skewDeg = (flags & 2) ? 12 : (/ital|obl/i.test(fontName) ? 12 : 0);
+
+    return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });
 }
+
 
 /* =========================
    Line & block building
@@ -505,24 +518,49 @@ function drawGroups(ov){
     div.appendChild(close);
     ['tl','tr','bl','br'].forEach(pos=>{const h=document.createElement('div'); h.className='g-handle '+pos; div.appendChild(h);});
 
-    // move group
-    div.addEventListener('pointerdown',ev=>{
-      if(ev.target.classList.contains('g-handle')||ev.target===close) return;
-      ev.preventDefault(); setSelected("g:"+g.id);
-      const startX=ev.clientX,startY=ev.clientY; const rect=div.getBoundingClientRect();
-      let dx=0,dy=0,anim=false;
-      const move=e=>{dx=e.clientX-startX;dy=e.clientY-startY;if(!anim){anim=true;requestAnimationFrame(()=>{div.style.transform=`translate3d(${dx}px,${dy}px,0)`;anim=false;});}};
-      const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);
-        div.style.transform='translate3d(0,0,0)';
-        const newLeft=rect.left+dx, newTop=rect.top+dy;
-        const dptX=Math.round(newLeft*ptPerPx)-g.x, dptY=Math.round(newTop*ptPerPx)-g.y;
-        g.x+=dptX; g.y+=dptY;
-        g.children.forEach(ch=>{const it=items.find(i=>i.id===ch.refId); if(it){it.x+=dptX; it.y+=dptY;}});
-        redraw();
-      };
-      document.addEventListener('pointermove',move,{passive:false});
-      document.addEventListener('pointerup',up,{once:true});
-    }, {passive:false});
+    // move group (fixed px <-> pt translation)
+div.addEventListener('pointerdown', ev => {
+  if (ev.target.classList.contains('g-handle') || ev.target === close) return;
+  ev.preventDefault();
+  setSelected("g:" + g.id);
+
+  const startX = ev.clientX, startY = ev.clientY;
+  const startGX = g.x, startGY = g.y;
+  const move = e => {
+    const dxPx = e.clientX - startX, dyPx = e.clientY - startY;
+    const dxPt = dxPx * ptPerPx, dyPt = dyPx * ptPerPx;
+    // visually move
+    div.style.transform = `translate3d(${dxPx}px, ${dyPx}px, 0)`;
+    g.children.forEach(ch => {
+      const it = items.find(i => i.id === ch.refId);
+      if (it) {
+        it._tempX = it.x + dxPt;
+        it._tempY = it.y + dyPt;
+      }
+    });
+  };
+  const up = e => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    div.style.transform = 'translate3d(0,0,0)';
+    const dxPt = (e.clientX - startX) * ptPerPx;
+    const dyPt = (e.clientY - startY) * ptPerPx;
+    g.x = startGX + dxPt;
+    g.y = startGY + dyPt;
+    g.children.forEach(ch => {
+      const it = items.find(i => i.id === ch.refId);
+      if (it) {
+        it.x += dxPt;
+        it.y += dyPt;
+        delete it._tempX; delete it._tempY;
+      }
+    });
+    redraw();
+  };
+  document.addEventListener('pointermove', move, { passive: false });
+  document.addEventListener('pointerup', up, { once: true });
+}, { passive: false });
+
 
     // resize/scale group
     div.querySelectorAll('.g-handle').forEach(h=>{

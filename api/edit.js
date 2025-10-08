@@ -1,7 +1,5 @@
 // api/edit.js
-// Draws text with line wrapping, per-block lineHeight, fauxBold (multi-pass), fauxItalic (xSkew), and tracking.
-// Colors as [0..1]. Coordinates are TOP-LEFT in points.
-
+// Unified renderer for text & line edits using top-left coordinates
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
 function mapFont(name) {
@@ -21,23 +19,21 @@ function mapFont(name) {
   };
   return m[name] || StandardFonts.TimesRoman;
 }
-function colorToRgb(c){ return Array.isArray(c) && c.length===3 ? rgb(c[0],c[1],c[2]) : rgb(0,0,0); }
+const colorToRgb = (c)=> Array.isArray(c) && c.length===3 ? rgb(c[0],c[1],c[2]) : rgb(0,0,0);
 
-// word wrap with tracking support
-function widthOfText(font, fontSize, text, tracking){
-  if(!tracking) return font.widthOfTextAtSize(text, fontSize);
-  let w = font.widthOfTextAtSize(text, fontSize);
-  const letters = [...String(text)];
-  const extra = Math.max(0, letters.length - 1) * tracking;
-  return w + extra;
+function widthOfText(font, size, text, tracking){
+  if(!tracking) return font.widthOfTextAtSize(text, size);
+  const baseline = font.widthOfTextAtSize(text, size);
+  const extra = Math.max(0, [...String(text)].length - 1) * tracking;
+  return baseline + extra;
 }
-function wrapText(text, font, fontSize, maxWidth, tracking){
-  const words = String(text||'').split(/(\s+)/); // keep spaces
+function wrapText(text, font, size, maxWidth, tracking){
+  const words = String(text||'').split(/(\s+)/);
   const lines = []; let line='';
   for(const w of words){
     const test = line + w;
-    const width = widthOfText(font, fontSize, test, tracking);
-    if(width <= maxWidth || line.length===0){ line = test; }
+    const wpx = widthOfText(font, size, test, tracking);
+    if(wpx <= maxWidth || line.length===0){ line = test; }
     else { lines.push(line.trimEnd()); line = w.trimStart(); }
   }
   if(line.length) lines.push(line.trimEnd());
@@ -64,69 +60,59 @@ module.exports = async (req, res) => {
     for(const e of edits){
       const pageIndex = Math.max(0, (e.page||1)-1);
       const page = pdf.getPage(pageIndex);
-      const pageHeight = page.getHeight();
+      const H = page.getHeight();
 
       if(e.type==='text'){
         const fontName = e.font || 'Times-Roman';
-        const fontSize = Number(e.size || 11);
+        const size = Number(e.size || 11);
         const width = Number(e.width || 460);
         const color = colorToRgb(e.color || [0,0,0]);
         const font = embedded[fontName] || embedded['Times-Roman'];
-        const tracking = Number(e.tracking || 0); // pt per char gap
-        const fauxBold = Math.max(0, Math.min(3, Number(e.fauxBold || 0))); // extra passes
+        const tracking = Number(e.tracking || 0);
+        const fauxBold = Math.max(0, Math.min(3, Number(e.fauxBold || 0)));
         const skewDeg = Number(e.skewDeg || 0);
-        const lineHeight = Number(e.lineHeight || Math.round(fontSize*1.35));
+        const underline = !!e.underline;
+        const lineHeight = Number(e.lineHeight || Math.round(size*1.35));
         const x = Number(e.x || 72);
         let yTop = Number(e.y || 700);
-
-        const paragraphs = String(e.text||'').split(/\r?\n/);
         const skewRad = (skewDeg * Math.PI) / 180;
 
-        // helper to draw one line (with tracking & optional skew)
-        const drawLine = (str, yLine) => {
-          // build a single string with manual tracking by inserting small spaces if tracking>0
-          // pdf-lib doesn't have letterSpacing; approximate by drawing char-by-char with dx.
-          if(Math.abs(tracking) < 0.001 && skewDeg===0 && fauxBold===0){
-            const yFromBottom = pageHeight - yLine - fontSize;
-            page.drawText(str, { x, y: yFromBottom, font, size: fontSize, color, maxWidth: width });
-            return;
-          }
-          // advanced draw: char-by-char with transforms
-          let cursorX = x;
-          for(let pass=0; pass<=fauxBold; pass++){
-            const passDx = pass===0 ? 0 : (pass===1 ? 0.15 : -0.15);
-            const passDy = pass===0 ? 0 : (pass===1 ? 0.10 : -0.10);
-            cursorX = x + passDx;
-            const chars=[...str];
-            for(const ch of chars){
-              const yFromBottom = pageHeight - yLine - fontSize + passDy;
-              const opts = { x: cursorX, y: yFromBottom, font, size: fontSize, color, maxWidth: width };
-              if(skewDeg!==0){
-                const xSkew = Math.tan(skewRad);
-                opts.rotate = { type: 'skew', xSkew, ySkew: 0 };
-              }
-              page.drawText(ch, opts);
-              cursorX += font.widthOfTextAtSize(ch, fontSize) + tracking;
-            }
-          }
-        };
-
+        const paragraphs = String(e.text||'').split(/\r?\n/);
         for(const para of paragraphs){
-          const lines = wrapText(para, font, fontSize, width, tracking);
+          const lines = wrapText(para, font, size, width, tracking);
           for(const line of lines){
-            drawLine(line, yTop);
+            // draw with optional faux bold + skew + tracking (char by char)
+            for(let pass=0; pass<=fauxBold; pass++){
+              const passDx = pass===0 ? 0 : (pass%2 ? 0.15 : -0.15);
+              const passDy = pass===0 ? 0 : (pass%2 ? 0.10 : -0.10);
+              let cx = x + passDx;
+              for(const ch of [...line]){
+                const yFromBottom = H - yTop - size + passDy;
+                const opts = { x: cx, y: yFromBottom, font, size, color, maxWidth: width };
+                if(skewDeg!==0){
+                  const xSkew = Math.tan(skewRad);
+                  opts.rotate = { type: 'skew', xSkew, ySkew: 0 };
+                }
+                page.drawText(ch, opts);
+                cx += font.widthOfTextAtSize(ch, size) + tracking;
+              }
+            }
+            if(underline){
+              const w = widthOfText(font, size, line, tracking);
+              const yUL = H - yTop - size*0.2;
+              page.drawLine({ start:{x, y:yUL}, end:{x:x+w, y:yUL}, thickness: 0.8, color });
+            }
             yTop += lineHeight;
           }
           yTop += (lineHeight * 0.15);
         }
-      }
-      else if(e.type==='line'){
+      } else if(e.type==='line'){
         const x = Number(e.x || 72);
         const yTop = Number(e.y || 700);
         const width = Number(e.width || 460);
         const thick = Math.max(0.5, Number(e.thick || 1));
         const color = colorToRgb(e.color || [0,0,0]);
-        const yFromBottom = pageHeight - yTop - thick;
+        const yFromBottom = H - yTop - thick;
         page.drawRectangle({ x, y: yFromBottom, width, height: thick, color, borderColor: color, borderWidth: 0 });
       }
     }

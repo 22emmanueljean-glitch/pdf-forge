@@ -518,9 +518,9 @@ if (!tc.items || tc.items.length < 10) {
       const ctx = cv.getContext('2d', { willReadFrequently: true });
       
       // Sample vertical line of pixels on left and right edges
-      const leftX = Math.round(x + w * 0.15);
-      const rightX = Math.round(x + w * 0.85);
-      const topY = Math.round(y + h * 0.2);
+      const leftX = Math.round(x + w * 0.25);  // sample closer to center
+      const rightX = Math.round(x + w * 0.75);
+      const topY = Math.round(y + h * 0.35);   // sample middle of glyph
       const botY = Math.round(y + h * 0.8);
       
       let leftDark = 0, rightDark = 0, samples = 0;
@@ -548,9 +548,6 @@ if (!tc.items || tc.items.length < 10) {
       const slantRatio = samples > 0 ? (rightDark - leftDark) / samples : 0;
       isItalicByPixels = slantRatio > 0.15; // 15% more ink on right = italic
       
-      if (it.str.includes('Associate') || it.str.includes('likely')) {
-        console.log(`ITALIC PIXEL "${it.str}": leftDark=${leftDark}, rightDark=${rightDark}, samples=${samples}, slantRatio=${slantRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
-      }
     } catch (e) {
       console.error('Italic detection error:', e);
     }

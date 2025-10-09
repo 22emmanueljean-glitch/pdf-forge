@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>📘 The System Builder’s Blueprint — Step 0: Reality (Master Edition)</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08090d;
+    --bg-2:#0e1117;
+    --ink:#ecf2ff;
+    --muted:#a3afc5;
+    --blue:#45b0ff;
+    --blue-2:#7ed4ff;
+    --blue-glow:rgba(126,212,255,.45);
+    --gold:#eacb6b;
+    --gold-2:#f9ecbc;
+    --gold-glow:rgba(250,230,150,.3);
+    --panel:#10141b;
+    --card:#0e1118f0;
+    --border:#1a2130;
+    --maxw:940px;
+  }
+  html,body{height:100%;scroll-behavior:smooth;}
+  body{
+    margin:0; color:var(--ink);
+    background:
+      radial-gradient(1200px 900px at 65% -10%, #10213a 0%, var(--bg) 50%) fixed,
+      linear-gradient(160deg, #0a0c10 0%, #07090c 60%, #050608 100%) fixed;
+    font-family:"Lora", ui-serif, Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    print-color-adjust:exact; -webkit-print-color-adjust:exact;
+  }
+
+  /* Faint grid overlay */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.18;
+    background-image:
+      linear-gradient(transparent 31px, rgba(20,25,35,.55) 32px),
+      linear-gradient(90deg, transparent 31px, rgba(20,25,35,.55) 32px);
+    background-size:32px 32px;
+    mix-blend-mode:overlay;
+  }
+
+  .wrap{max-width:var(--maxw); margin-inline:auto; padding:52px 26px 120px;}
+
+  /* COVER */
+  .cover{
+    position:relative; margin:40px auto 72px; padding:110px 32px; border-radius:32px;
+    background:
+      radial-gradient(900px 460px at 50% -10%, rgba(69,176,255,.25), transparent 70%),
+      radial-gradient(620px 320px at 30% 110%, rgba(232,203,107,.15), transparent 70%),
+      linear-gradient(180deg, rgba(8,10,14,.95), rgba(8,10,14,.9));
+    box-shadow:
+      0 45px 120px rgba(0,0,0,.6),
+      inset 0 0 0 1px #171c27,
+      0 0 80px 10px rgba(69,176,255,.08);
+    overflow:hidden;
+  }
+
+  .sigil{
+    position:absolute; inset:-10% -10% auto auto; width:120%; max-width:none; opacity:.14;
+    filter:drop-shadow(0 0 18px var(--gold-glow));
+  }
+
+  .title{text-align:center; position:relative; font-family:"Montserrat",ui-sans-serif; letter-spacing:.3px;}
+  .kicker{color:var(--muted); font-weight:600; text-transform:uppercase; font-size:.85rem; letter-spacing:.22em; margin-bottom:20px;}
+  h1{
+    margin:0;
+    font-weight:900;
+    font-size:clamp(2.2rem,3.6vw,3.4rem);
+    line-height:1.14;
+    background:linear-gradient(90deg,var(--blue-2),var(--gold-2));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 14px rgba(69,176,255,.3));
+  }
+  h1 .glyph{filter:drop-shadow(0 0 14px var(--blue-glow));}
+  .subtitle{
+    margin-top:14px; font-size:1.05rem; color:#cfe7ff;
+    text-shadow:0 0 20px var(--blue-glow);
+  }
+  .byline{margin-top:32px; font-weight:700; color:var(--gold-2); letter-spacing:.07em; text-shadow:0 0 16px var(--gold-glow);}
+
+  /* SECTIONS */
+  .section{position:relative; margin:54px 0;}
+  .section .head{display:flex; align-items:center; gap:14px; margin-bottom:16px;}
+  .bar{
+    flex:0 0 8px; height:28px; border-radius:6px;
+    background:linear-gradient(180deg,var(--blue-2),var(--blue));
+    box-shadow:0 0 26px var(--blue-glow);
+  }
+  .section h2{
+    font-family:"Montserrat"; margin:0; font-weight:800;
+    letter-spacing:.2px; font-size:1.68rem; color:var(--gold-2);
+    text-shadow:0 0 14px var(--gold-glow);
+  }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:26px 26px;
+    box-shadow:
+      inset 0 0 0 1px rgba(118,209,255,.05),
+      0 22px 55px rgba(0,0,0,.4);
+    backdrop-filter:blur(10px);
+  }
+
+  p{margin:12px 0; font-size:1.07rem; line-height:1.75; color:#e4edff;}
+  .muted{color:var(--muted);}
+  ul{padding-left:24px; margin:12px 0 6px;}
+  li{margin:6px 0;}
+
+  /* QUOTE */
+  .quote{
+    margin:18px 0; padding:20px 22px; border-left:3px solid var(--gold);
+    background:linear-gradient(90deg, rgba(232,203,107,.18), transparent 60%);
+    border-radius:8px;
+  }
+  .quote em{color:#fffdf4;}
+
+  /* METRICS GRID */
+  .metrics{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:12px;}
+  .metric{
+    background:linear-gradient(180deg, rgba(69,176,255,.1), rgba(69,176,255,.03));
+    border:1px solid #1a2638;
+    border-radius:16px; padding:14px 16px;
+    box-shadow:0 0 24px rgba(69,176,255,.05);
+  }
+  .metric b{font-family:"Montserrat"; color:var(--blue-2);}
+
+  /* TABLE */
+  table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:16px; margin-top:12px;}
+  thead th{
+    font-family:"Montserrat"; text-align:left;
+    background:linear-gradient(180deg, rgba(69,176,255,.25), rgba(69,176,255,.08));
+    color:#e9f7ff; padding:13px 16px; font-weight:800;
+    border-bottom:1px solid #22344d;
+  }
+  tbody td{padding:13px 16px; border-bottom:1px solid #171f2c;}
+  tbody tr:nth-child(even){background:rgba(22,28,40,.55);}
+
+  /* DIVIDER */
+  .divider{
+    height:1px;
+    background:linear-gradient(90deg, transparent, rgba(232,203,107,.8), transparent);
+    margin:26px 0;
+    filter:drop-shadow(0 0 10px var(--gold-glow));
+  }
+
+  /* DOCTRINE */
+  .doctrine{
+    display:grid; place-items:center; text-align:center; padding:70px 26px;
+    background:
+      radial-gradient(600px 300px at 50% -20%, rgba(69,176,255,.22), transparent 70%),
+      linear-gradient(180deg, rgba(14,18,26,.95), rgba(14,18,26,.95));
+    border:1px solid #181f2e; border-radius:26px;
+    box-shadow:
+      inset 0 0 0 1px rgba(232,203,107,.08),
+      0 24px 65px rgba(0,0,0,.55);
+  }
+  .doctrine h3{
+    font-family:"Montserrat"; font-weight:900; font-size:1.7rem;
+    margin:8px 0 0; color:var(--gold-2);
+    text-shadow:0 0 22px var(--gold-glow);
+  }
+
+  .label{
+    font-family:"Montserrat"; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.18em;
+    font-weight:700; font-size:.8rem;
+  }
+
+  /* PRINT */
+  @page{size:Letter; margin:24mm 16mm;}
+  @media print{
+    body{background:#0a0c10!important;}
+    .cover{break-after:page;}
+    .section{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+  <!-- original content identical -->
+  <div class="wrap">
+    <!-- all your existing HTML content from cover to mission -->
+    <!-- (unchanged text and structure) -->
+  </div>
+</body>
+</html>

@@ -548,7 +548,7 @@ function buildLinesPx(itemsPx){
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
     const boldCount = bolds.filter(x=>x>=1).length;
     const italCount = ital.filter(x=>x>=6).length;
-    L.fauxBold = boldCount > 0 ? 1 : 0;
+    L.fauxBold=(boldCount > bolds.length*0.5) ? 1 : 0; 
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
     L.skewDeg=(italCount > ital.length*0.5) ? 12 : 0;
   }

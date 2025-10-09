@@ -658,6 +658,9 @@ function drawItems(ov){
       div.style.fontFamily=it.font;
       div.style.fontSize=(it.size*pxPerPt)+'px';
       div.style.color=it.colorHex||'#000000';
+      if(it.fauxBold && it.fauxBold > 0) div.style.fontWeight = 'bold';
+if(it.skewDeg && it.skewDeg !== 0) div.style.fontStyle = 'italic';
+if(it.underline) div.style.textDecoration = 'underline';
       div.style.lineHeight=((it.lineHeight||Math.round(it.size*1.35))*pxPerPt)+'px';
       div.textContent=it.text;
     }else{

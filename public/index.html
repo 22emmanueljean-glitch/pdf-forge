@@ -396,7 +396,7 @@ function sampleColorMedianAtPx(pxX, pxY){
     rows.push({lum, r, g, b});
   }
   rows.sort((a,b)=>a.lum-b.lum);
-  const keep = Math.max(1, Math.floor(rows.length*0.25));
+  const keep = Math.max(1, Math.floor(rows.length*0.40));
   const dark = rows.slice(0, keep);
 
   const Rs = dark.map(p=>p.r).sort((a,b)=>a-b);
@@ -426,8 +426,8 @@ async function getPageTextItemsPx(){
   const vp  = viewport; // current rendered viewport
 
   // 🧠 OCR fallback if text layer is empty or incomplete
-if (!tc.items || tc.items.length < 3) {
-  console.warn('Text layer empty — sending to OCR fallback...');
+if (!tc.items || tc.items.length < 10) {
+  console.warn('Text layer sparse — sending to OCR fallback...');
   try {
     const cv = $('cv');
     const imgData = cv.toDataURL('image/png');
@@ -488,8 +488,10 @@ if (!tc.items || tc.items.length < 3) {
 
     const fontName = it.fontName || 'Times-Roman';
     const flags    = (it.fontDescriptor && typeof it.fontDescriptor.flags === 'number') ? it.fontDescriptor.flags : 0;
-    const fauxBold = (flags & 4) ? 1 : (/bold|semi|demi|medium/i.test(fontName) ? 1 : 0);
-    const skewDeg  = (flags & 2) ? 12 : (/ital|obl/i.test(fontName) ? 12 : 0);
+    const isBold = (flags & 262144) || (flags & 4) || /bold|black|heavy|semi|demi|medium/i.test(fontName);
+    const isItalic = (flags & 64) || (flags & 2) || /ital|obl|slant/i.test(fontName);
+    const fauxBold = isBold ? 1 : 0;
+    const skewDeg  = isItalic ? 12 : 0;
 
     return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });
@@ -522,7 +524,8 @@ function buildLinesPx(itemsPx){
     for(const s of L.segs){
       if(prev){
         const gap=s.x-(prev.x+prev.w);
-        if(gap>Math.max(1, s.sizePx*0.25)) text+=' ';
+        const spaceThreshold = Math.max(s.sizePx*0.2, 2);
+        if(gap > spaceThreshold) text+=' ';
       }
       text+=s.str;
       prev=s;
@@ -544,7 +547,7 @@ function buildColumns(lines){
   if(!lines.length) return [];
   const lefts=lines.map(L=>L.xMin).sort((a,b)=>a-b);
   const leftGaps=lefts.slice(1).map((v,i)=>v-lefts[i]);
-  const colGap=Math.max(16, (leftGaps.length?med(leftGaps):20) * 1.25);
+  const colGap=Math.max(30, (leftGaps.length?med(leftGaps):20) * 2.5);
 
   const cols=[];
   for(const L of lines){
@@ -582,11 +585,13 @@ function buildBlocks(cols){
   }
   // finalize styles by mode/median
   for(const b of blocks){
-    b.sizePx=med(b.sizes);
+    b.sizePx=Math.round(med(b.sizes));
     b.font=mode(b.fonts)||b.font;
     b.colorHex=mode(b.colors)||b.colorHex;
-    b.fauxBold=med(b.bolds)>=1?1:0;
-    b.skewDeg=med(b.ital)>=6?12:0;
+    const boldCount = b.bolds.filter(x=>x>=1).length;
+    const italCount = b.ital.filter(x=>x>=6).length;
+    b.fauxBold=(boldCount > b.bolds.length*0.5) ? 1 : 0;
+    b.skewDeg=(italCount > b.ital.length*0.5) ? 12 : 0;
   }
   return blocks;
 }

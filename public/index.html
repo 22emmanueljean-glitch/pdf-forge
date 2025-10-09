@@ -380,8 +380,8 @@ function sampleColorMedianAtPx(pxX, pxY){
   const ctx = cv.getContext('2d', { willReadFrequently: true });
   const toHex = v => Math.round(v).toString(16).padStart(2,'0');
 
-  // sample 11x11 window around the point, keep the darkest 25% to avoid highlights/bg
-  const rad = 5;
+  // sample 7x7 window, keep darkest 40% for better accuracy
+  const rad = 3;
   const x0 = Math.max(0, Math.round(pxX) - rad);
   const y0 = Math.max(0, Math.round(pxY) - rad);
   const w  = Math.min(rad*2+1, cv.width  - x0);

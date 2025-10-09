@@ -908,7 +908,7 @@ async function cloneFromAreaPx(selPx, includeRules){
   const sx1=selPx.x, sy1=selPx.y, sx2=sx1+selPx.w, sy2=sy1+selPx.h;
 
   // strict containment (±1px tolerance)
-  const hits=itemsPx.filter(s=>{
+  let hits=itemsPx.filter(s=>{
     const ix1=s.x, iy1=s.y, ix2=s.x+s.w, iy2=s.y+s.h;
     return !(ix2 < sx1 - 2 || ix1 > sx2 + 2 || iy2 < sy1 - 2 || iy1 > sy2 + 2);
   });

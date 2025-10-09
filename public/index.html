@@ -530,9 +530,13 @@ function buildLinesPx(itemsPx){
     }
     L.text=text.trimEnd();
     L.xMin=left; L.xMax=right; L.top=top; L.bottom=bottom;
-    L.sizePx=med(sizes); L.font=mode(fonts)||'Times-Roman'; 
+    L.sizePx=Math.round(med(sizes)); 
+    L.font=mode(fonts)||'Times-Roman'; 
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
-    L.fauxBold=med(bolds)>=1?1:0; L.skewDeg=med(ital)>=6?12:0;
+    const boldCount = bolds.filter(x=>x>=1).length;
+    const italCount = ital.filter(x=>x>=6).length;
+    L.fauxBold=(boldCount > bolds.length*0.5) ? 1 : 0; 
+    L.skewDeg=(italCount > ital.length*0.5) ? 12 : 0;
   }
   // sort top-to-bottom
   lines.sort((a,b)=> (a.top-b.top) || (a.xMin-b.xMin));
@@ -579,16 +583,7 @@ function buildBlocks(cols){
       cur.sizes.push(L.sizePx); cur.fonts.push(L.font); cur.colors.push(L.colorHex); cur.bolds.push(L.fauxBold); cur.ital.push(L.skewDeg?12:0);
     }
   }
-  // finalize styles by mode/median
-  for(const b of blocks){
-    b.sizePx=Math.round(med(b.sizes));
-    b.font=mode(b.fonts)||b.font;
-    b.colorHex=mode(b.colors)||b.colorHex;
-    const boldCount = b.bolds.filter(x=>x>=1).length;
-    const italCount = b.ital.filter(x=>x>=6).length;
-    b.fauxBold=(boldCount > b.bolds.length*0.5) ? 1 : 0;
-    b.skewDeg=(italCount > b.ital.length*0.5) ? 12 : 0;
-  }
+  // DON'T merge styles - keep per-line styling
   return blocks;
 }
 
@@ -901,28 +896,30 @@ if (!hits.length || hits.length < 3) {
   const ruleLinesPx = includeRules ? detectHorizontalRulesPx(selPx) : [];
 
   const newIds=[];
-  // push text blocks
+  // push text blocks - CREATE SEPARATE ITEM FOR EACH LINE to preserve styles
   for(const b of blocks){
-    const text=b.lines.map(L=>L.text).join('\n');
-    const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-    const xPx=Math.round(b.left), yPx=Math.round(b.top), wPx=Math.round(b.right-b.left);
-    const lineHeightPx=Math.round(b.sizePx*1.35);
+    for(const L of b.lines){
+      const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+      const xPx=Math.round(L.xMin), yPx=Math.round(L.top);
+      const wPx=Math.round(L.xMax-L.xMin);
+      const lineHeightPx=Math.round(L.sizePx*1.35);
 
-    items.push({
-      id,type:'text',page:pageNum,
-      x:Math.round(xPx*ptPerPx),
-      y:Math.round(yPx*ptPerPx),
-      width:Math.round(wPx*ptPerPx),
-      text,
-      font:b.font,
-      size:Math.round(b.sizePx*ptPerPx),
-      colorHex:b.colorHex||'#000000',
-      lineHeight:Math.round(lineHeightPx*ptPerPx),
-      fauxBold:b.fauxBold||0,
-      skewDeg:b.skewDeg||0,
-      tracking:0
-    });
-    newIds.push(id);
+      items.push({
+        id,type:'text',page:pageNum,
+        x:Math.round(xPx*ptPerPx),
+        y:Math.round(yPx*ptPerPx),
+        width:Math.round(wPx*ptPerPx),
+        text:L.text,
+        font:L.font,
+        size:Math.round(L.sizePx*ptPerPx),
+        colorHex:L.colorHex||'#000000',
+        lineHeight:Math.round(lineHeightPx*ptPerPx),
+        fauxBold:L.fauxBold||0,
+        skewDeg:L.skewDeg||0,
+        tracking:0
+      });
+      newIds.push(id);
+    }
   }
 
   // push detected rules as line items

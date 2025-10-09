@@ -484,9 +484,9 @@ if (!tc.items || tc.items.length < 10) {
     const fontName = it.fontName || 'Times-Roman';
     const flags    = (it.fontDescriptor && typeof it.fontDescriptor.flags === 'number') ? it.fontDescriptor.flags : 0;
     const isBold = (flags & 262144) || (flags & 4) || /bold|black|heavy|semi|demi|medium/i.test(fontName);
-    const isItalic = (flags & 64) || (flags & 2) || /ital|obl|slant/i.test(fontName);
+    const isItalic = (flags & 64) || (flags & 2) || /ital|obl|slant|cursive/i.test(fontName);
     const fauxBold = isBold ? 1 : 0;
-    const skewDeg  = isItalic ? 12 : 0;
+    const skewDeg  = isItalic ? 15 : 0;
 
     return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });
@@ -896,26 +896,77 @@ if (!hits.length || hits.length < 3) {
   const ruleLinesPx = includeRules ? detectHorizontalRulesPx(selPx) : [];
 
   const newIds=[];
-  // push text blocks - CREATE SEPARATE ITEM FOR EACH LINE to preserve styles
+  // push text blocks - group similar lines, split on style changes
   for(const b of blocks){
-    for(const L of b.lines){
-      const id=crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
-      const xPx=Math.round(L.xMin), yPx=Math.round(L.top);
-      const wPx=Math.round(L.xMax-L.xMin);
-      const lineHeightPx=Math.round(L.sizePx*1.35);
+    let currentGroup = [];
+    let lastStyle = null;
+
+    for(let i=0; i<b.lines.length; i++){
+      const L = b.lines[i];
+      const style = `${L.font}|${L.sizePx}|${L.colorHex}|${L.fauxBold}|${L.skewDeg}`;
+      
+      // if style changed or big gap, create new item
+      const prevLine = i > 0 ? b.lines[i-1] : null;
+      const gap = prevLine ? (L.top - prevLine.bottom) : 0;
+      const isStyleChange = lastStyle && style !== lastStyle;
+      const isBigGap = gap > L.sizePx * 0.8;
+      
+      if (isStyleChange || isBigGap) {
+        // flush current group
+        if (currentGroup.length) {
+          const id = crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+          const firstL = currentGroup[0];
+          const xPx = Math.round(Math.min(...currentGroup.map(l=>l.xMin)));
+          const yPx = Math.round(firstL.top);
+          const wPx = Math.round(Math.max(...currentGroup.map(l=>l.xMax)) - xPx);
+          const text = currentGroup.map(l=>l.text).join('\n');
+          const lineHeightPx = Math.round(firstL.sizePx * 1.35);
+
+          items.push({
+            id, type:'text', page:pageNum,
+            x:Math.round(xPx*ptPerPx),
+            y:Math.round(yPx*ptPerPx),
+            width:Math.round(wPx*ptPerPx),
+            text,
+            font:firstL.font,
+            size:Math.round(firstL.sizePx*ptPerPx),
+            colorHex:firstL.colorHex||'#000000',
+            lineHeight:Math.round(lineHeightPx*ptPerPx),
+            fauxBold:firstL.fauxBold||0,
+            skewDeg:firstL.skewDeg||0,
+            tracking:0
+          });
+          newIds.push(id);
+        }
+        currentGroup = [];
+      }
+      
+      currentGroup.push(L);
+      lastStyle = style;
+    }
+    
+    // flush last group
+    if (currentGroup.length) {
+      const id = crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+      const firstL = currentGroup[0];
+      const xPx = Math.round(Math.min(...currentGroup.map(l=>l.xMin)));
+      const yPx = Math.round(firstL.top);
+      const wPx = Math.round(Math.max(...currentGroup.map(l=>l.xMax)) - xPx);
+      const text = currentGroup.map(l=>l.text).join('\n');
+      const lineHeightPx = Math.round(firstL.sizePx * 1.35);
 
       items.push({
-        id,type:'text',page:pageNum,
+        id, type:'text', page:pageNum,
         x:Math.round(xPx*ptPerPx),
         y:Math.round(yPx*ptPerPx),
         width:Math.round(wPx*ptPerPx),
-        text:L.text,
-        font:L.font,
-        size:Math.round(L.sizePx*ptPerPx),
-        colorHex:L.colorHex||'#000000',
+        text,
+        font:firstL.font,
+        size:Math.round(firstL.sizePx*ptPerPx),
+        colorHex:firstL.colorHex||'#000000',
         lineHeight:Math.round(lineHeightPx*ptPerPx),
-        fauxBold:L.fauxBold||0,
-        skewDeg:L.skewDeg||0,
+        fauxBold:firstL.fauxBold||0,
+        skewDeg:firstL.skewDeg||0,
         tracking:0
       });
       newIds.push(id);

@@ -219,6 +219,57 @@ const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.
 const mode=(arr)=>{const m=new Map(); for(const v of arr){m.set(v,(m.get(v)||0)+1)} let best=null,c=0; for(const [k,v] of m){if(v>c){c=v;best=k}} return best;}
 function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 
+// ---- OCR helpers ----
+const TESS_URL='https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.min.js';
+let _tessLoaded=false;
+async function ensureTesseract(){
+  if(_tessLoaded) return;
+  await new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=TESS_URL; s.async=true;
+    s.onload=()=>res(); s.onerror=()=>rej(new Error('Failed to load Tesseract'));
+    document.head.appendChild(s);
+  });
+  _tessLoaded=true;
+}
+
+async function ocrAreaPx(selPx){
+  await ensureTesseract();
+  const cv=$('cv');
+  const x0=Math.max(0,Math.floor(selPx.x));
+  const y0=Math.max(0,Math.floor(selPx.y));
+  const w =Math.max(1,Math.floor(selPx.w));
+  const h =Math.max(1,Math.floor(selPx.h));
+
+  const off=document.createElement('canvas');
+  off.width=w; off.height=h;
+  const octx=off.getContext('2d');
+  octx.drawImage(cv, x0, y0, w, h, 0, 0, w, h);
+
+  const { data } = await window.Tesseract.recognize(off.toDataURL('image/png'), 'eng');
+  const words = data?.words || [];
+
+  return words
+    .filter(wd => (wd.text||'').trim().length)
+    .map(wd=>{
+      const bx0 = wd.bbox.x0 + x0;
+      const by0 = wd.bbox.y0 + y0;
+      const bw  = wd.bbox.x1 - wd.bbox.x0;
+      const bh  = wd.bbox.y1 - wd.bbox.y0;
+      const colorHex = sampleColorMedianAtPx(bx0 + bw*0.5, by0 + bh*0.7);
+      return {
+        str: wd.text,
+        x: bx0, y: by0,
+        w: bw,  h: bh,
+        sizePx: Math.max(8, bh),
+        fontName: 'Times-Roman',
+        colorHex,
+        fauxBold: 0,
+        skewDeg: 0
+      };
+    });
+}
+
 /* =========================
    State
 ========================= */
@@ -373,6 +424,31 @@ async function getPageTextItemsPx(){
 
   const ctx = $('cv').getContext('2d', { willReadFrequently: true });
   const vp  = viewport; // current rendered viewport
+
+  // 🧠 OCR fallback if text layer is empty or incomplete
+if (!tc.items || tc.items.length < 3) {
+  console.warn('Text layer empty — sending to OCR fallback...');
+  try {
+    const cv = $('cv');
+    const imgData = cv.toDataURL('image/png');
+    const resp = await fetch('/api/ocr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imgData, page: pageNum })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && Array.isArray(data.items) && data.items.length) {
+        tc.items = data.items;
+        console.info(`✅ OCR recovered ${data.items.length} text elements`);
+      }
+    } else {
+      console.warn('⚠️ OCR request failed:', await resp.text());
+    }
+  } catch (err) {
+    console.error('OCR fallback error:', err);
+  }
+}
 
   // Fallback when PDF.js finds almost nothing
   if (!tc.items || tc.items.length < 3) {
@@ -794,7 +870,24 @@ async function cloneFromAreaPx(selPx, includeRules){
     const ix1=s.x, iy1=s.y, ix2=s.x+s.w, iy2=s.y+s.h;
     return !(ix2 < sx1 - 2 || ix1 > sx2 + 2 || iy2 < sy1 - 2 || iy1 > sy2 + 2);
   });
-  if(!hits.length && !includeRules){ setStat("No text found in selection.","err"); return; }
+  // 🧠 If no text detected, run OCR fallback
+if (!hits.length || hits.length < 3) {
+  setStat("No embedded text — running OCR fallback…","ok");
+  try {
+    const ocrItems = await ocrAreaPx(selPx);
+    if (ocrItems && ocrItems.length) {
+      hits = ocrItems;
+      setStat(`OCR recovered ${hits.length} text spans.`,"ok");
+    } else {
+      setStat("OCR found no readable text.","err");
+      return;
+    }
+  } catch (err) {
+    console.error("OCR error:", err);
+    setStat("OCR failed: " + err.message, "err");
+    return;
+  }
+}
 
   // lines -> columns -> blocks
   const lines=buildLinesPx(hits);

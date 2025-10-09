@@ -478,14 +478,17 @@ if (!tc.items || tc.items.length < 10) {
     // Color sample using the robust median function
     let colorHex = '#000000';
     try {
-      colorHex = sampleColorMedianAtPx(x + w*0.5, y + h*0.7);
+      const sampleX = x + w*0.3;
+      const sampleY = y + h*0.5;
+      colorHex = sampleColorMedianAtPx(sampleX, sampleY);
+      console.log(`Color sampled: ${colorHex} for "${it.str}"`);
     } catch {}
 
     const fontName = it.fontName || 'Times-Roman';
     const flags    = (it.fontDescriptor && typeof it.fontDescriptor.flags === 'number') ? it.fontDescriptor.flags : 0;
     
     // Check transform matrix for skew (italic detection)
-    const hasSkew = Math.abs(m[2]) > 0.1; // if c coefficient is non-zero, text is skewed
+    const hasSkew = Math.abs(m[2]) > 0.05;
     
     const isBold = (flags & 262144) || (flags & 4) || /bold|black|heavy|semi|demi|medium/i.test(fontName);
     const isItalic = hasSkew || (flags & 64) || (flags & 2) || /ital|obl|slant|cursive/i.test(fontName);
@@ -533,13 +536,20 @@ function buildLinesPx(itemsPx){
       sizes.push(s.sizePx); fonts.push(guessFontFromName(s.fontName)); colors.push(s.colorHex); bolds.push(s.fauxBold); ital.push(s.skewDeg?12:0);
     }
     L.text=text.trimEnd();
-    L.xMin=left; L.xMax=right; L.top=top; L.bottom=bottom;
+    
+    // Calculate ACTUAL width needed to render the text (not just segment bounds)
+    const avgCharWidth = L.segs.length > 0 ? (right - left) / text.replace(/\s/g,'').length : 10;
+    const estimatedWidth = text.length * avgCharWidth * 0.6; // estimate with spacing
+    const visualWidth = Math.max(right - left, estimatedWidth);
+    
+    L.xMin=left; L.xMax=left + visualWidth; L.top=top; L.bottom=bottom;
     L.sizePx=Math.round(med(sizes)); 
     L.font=mode(fonts)||'Times-Roman'; 
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
     const boldCount = bolds.filter(x=>x>=1).length;
     const italCount = ital.filter(x=>x>=6).length;
     L.fauxBold=(boldCount > bolds.length*0.5) ? 1 : 0; 
+    console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
     L.skewDeg=(italCount > ital.length*0.5) ? 12 : 0;
   }
   // sort top-to-bottom
@@ -922,15 +932,22 @@ if (!hits.length || hits.length < 3) {
           const firstL = currentGroup[0];
           const xPx = Math.round(Math.min(...currentGroup.map(l=>l.xMin)));
           const yPx = Math.round(firstL.top);
-          const wPx = Math.round(Math.max(...currentGroup.map(l=>l.xMax)) - xPx);
           const text = currentGroup.map(l=>l.text).join('\n');
+          
+          // WIDTH FIX: estimate based on longest line
+          const longestLine = currentGroup.reduce((max, l) => l.text.length > max.text.length ? l : max, currentGroup[0]);
+          const charCount = longestLine.text.length;
+          const avgCharW = firstL.sizePx * 0.55;
+          const estimatedW = charCount * avgCharW;
+          const measuredW = Math.max(...currentGroup.map(l=>l.xMax)) - xPx;
+          const wPx = Math.max(measuredW, estimatedW) * 1.15;
           const lineHeightPx = Math.round(firstL.sizePx * 1.35);
 
           items.push({
             id, type:'text', page:pageNum,
             x:Math.round(xPx*ptPerPx),
             y:Math.round(yPx*ptPerPx),
-            width:Math.round(wPx*ptPerPx),
+            width:Math.round(wPx*ptPerPx * 1.1),
             text,
             font:firstL.font,
             size:Math.round(firstL.sizePx*ptPerPx),
@@ -955,8 +972,15 @@ if (!hits.length || hits.length < 3) {
       const firstL = currentGroup[0];
       const xPx = Math.round(Math.min(...currentGroup.map(l=>l.xMin)));
       const yPx = Math.round(firstL.top);
-      const wPx = Math.round(Math.max(...currentGroup.map(l=>l.xMax)) - xPx);
       const text = currentGroup.map(l=>l.text).join('\n');
+      
+      // WIDTH FIX: estimate based on longest line
+      const longestLine = currentGroup.reduce((max, l) => l.text.length > max.text.length ? l : max, currentGroup[0]);
+      const charCount = longestLine.text.length;
+      const avgCharW = firstL.sizePx * 0.55;
+      const estimatedW = charCount * avgCharW;
+      const measuredW = Math.max(...currentGroup.map(l=>l.xMax)) - xPx;
+      const wPx = Math.max(measuredW, estimatedW) * 1.15;
       const lineHeightPx = Math.round(firstL.sizePx * 1.35);
 
       items.push({

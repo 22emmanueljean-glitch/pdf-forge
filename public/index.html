@@ -650,7 +650,7 @@ function buildLinesPx(itemsPx){
 const boldCount = bolds.filter(b => b >= 1).length;
 const italCount = ital.filter(i => i >= 6).length;
 
-L.fauxBold = boldCount >= bolds.length * 0.7 ? 1 : 0; // 70% or more = bold
+L.fauxBold = boldCount >= bolds.length * 0.6 ? 1 : 0; // 60% or more = bold
 L.skewDeg = italCount >= ital.length * 0.5 ? 12 : 0;   // 50% or more = italic
 
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);

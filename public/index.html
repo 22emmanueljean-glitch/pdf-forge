@@ -642,10 +642,12 @@ function buildLinesPx(itemsPx){
     L.font=mode(fonts)||'Times-Roman'; 
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
     // Use the MOST COMMON style in the line (mode)
-    const modeBold = mode(bolds);
-    const modeItalic = mode(ital);
-    
-    L.fauxBold = modeBold >= 1 ? 1 : 0;
+    // Count bold chars
+const boldCount = bolds.filter(b => b >= 1).length;
+const italCount = ital.filter(i => i >= 6).length;
+
+L.fauxBold = boldCount >= bolds.length * 0.5 ? 1 : 0; // 50% or more = bold
+L.skewDeg = italCount >= ital.length * 0.5 ? 12 : 0;   // 50% or more = italic
     L.fauxBold = modeBold >= 1 ? 1 : 0;
     
     if (L.text.includes('Seneca') || L.text.includes('Takeaway')) {

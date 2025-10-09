@@ -9,11 +9,10 @@
 <style>
   /* ===================================================================
      LUXURY-REFINED • GRAPHITE-NAVY • MANIACAL HIERARCHY • NO MOTION
-     - Deeper color separation, brighter labels, stronger subheads
-     - Retention Engine label made gold (no more “grey” feel)
-     - Architects: richer mini-titles + colored rails; shiny numbers (via CSS + tiny static JS)
-     - Bullet markers upgraded to gradient dots; table columns heat-tinted
-     - All text preserved exactly — no wording changes
+     - Stronger subheads, brighter labels, clearer themes
+     - Global keyword highlighting (AI, SaaS, tweets/blogs/emails/videos, CRMs)
+     - Big phrase ribbons (tech stacks & flywheels)
+     - Green highlights softened for perfect readability
      =================================================================== */
 
   :root{
@@ -31,10 +30,10 @@
     /* Glows */
     --g-blue:rgba(152,220,255,.42);
     --g-gold:rgba(247,236,191,.44);
-    --g-teal:rgba(95,225,197,.30);
-    --g-indigo:rgba(138,166,255,.32);
-    --g-rose:rgba(255,182,213,.26);
-    --g-copper:rgba(255,179,122,.26);
+    --g-teal:rgba(95,225,197,.26); /* softened */
+    --g-indigo:rgba(138,166,255,.3);
+    --g-rose:rgba(255,182,213,.22);
+    --g-copper:rgba(255,179,122,.22);
 
     /* Surfaces */
     --panel:rgba(248,245,232,.08);
@@ -134,10 +133,10 @@
     position:relative;
   }
   .section h2::after{
-    content:""; display:block; height:4px; width:min(280px, 46%);
+    content:""; display:block; height:4px; width:min(320px, 52%);
     margin:14px auto 0; border-radius:999px;
     background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent);
-    opacity:.8;
+    opacity:.85;
   }
 
   /* Roman index behind titles */
@@ -237,7 +236,7 @@
     -webkit-text-fill-color:#0b121a;
   }
 
-  /* >>> Retention Engine label: make it POP (gold/amber) <<< */
+  /* Retention Engine label: gold/amber pop */
   .section:nth-of-type(6) .panel h3.label:last-of-type{
     background:linear-gradient(90deg, var(--gold-2), var(--amber)) !important;
     border-color:#3b3219 !important;
@@ -281,15 +280,49 @@
   .section:nth-of-type(9) .panel p:nth-of-type(6)::before{background:linear-gradient(90deg, transparent, var(--indigo), var(--violet), transparent);}
   .section:nth-of-type(9) .panel p:nth-of-type(8)::before{background:linear-gradient(90deg, transparent, var(--rose), var(--gold-2), transparent);}
 
-  /* Shiny number highlight (CSS; JS will wrap digits in <span class="num">) */
+  /* Shiny number highlight (softer green) */
   .num{
     background:linear-gradient(90deg, var(--gold-2), var(--amber));
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    text-shadow:0 0 18px var(--g-gold);
+    text-shadow:0 0 12px var(--g-gold);
     font-family:"Montserrat"; font-weight:900;
   }
-  .num.blue{background:linear-gradient(90deg, var(--blue-2), var(--indigo)); text-shadow:0 0 18px var(--g-indigo);}
-  .num.teal{background:linear-gradient(90deg, var(--teal), var(--cyan)); text-shadow:0 0 18px var(--g-teal);}
+  .num.blue{background:linear-gradient(90deg, var(--blue-2), var(--indigo)); text-shadow:0 0 10px var(--g-indigo);}
+  .num.teal{background:linear-gradient(90deg, var(--teal), var(--cyan)); text-shadow:0 0 8px var(--g-teal);} /* softened */
+
+  /* ================================ KEYWORD CAPSULES ================================ */
+  /* gradient text for key nouns like AI / SaaS / CRM */
+  .kw{
+    font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;
+    background:linear-gradient(90deg, var(--gold-2), var(--indigo));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 14px rgba(255,255,255,.06);
+    white-space:nowrap;
+  }
+  /* soft ribbon under tech media words (tweets, blogs, emails, videos) */
+  .media{
+    font-family:"Montserrat"; font-weight:800; color:#eaf7ff;
+    background-image:linear-gradient(0deg, rgba(97,195,255,.18) 0 52%, transparent 53% 100%);
+    border-radius:6px; padding:0 .12rem .02rem;
+    box-decoration-break:clone;
+  }
+  /* big flow ribbon (e.g., Long-form → Short threads → ... ) */
+  .flow{
+    display:inline-block; padding:.28rem .6rem; border-radius:999px;
+    background:
+      linear-gradient(90deg, rgba(152,220,255,.22), rgba(235,207,122,.22), rgba(95,225,197,.22));
+    border:1px solid #274055;
+    box-shadow:0 0 22px rgba(152,220,255,.12);
+    color:#0b121a; -webkit-text-fill-color:#0b121a; font-family:"Montserrat"; font-weight:900;
+  }
+  /* stack capsule for “Vercel + Stripe + Notion + Twitter …” & “SaaS: CRMs …” */
+  .stack{
+    display:inline-block; padding:.2rem .55rem; border-radius:14px;
+    background:linear-gradient(180deg, rgba(152,220,255,.16), rgba(152,220,255,.06));
+    border:1px solid #203142;
+    box-shadow:0 8px 26px rgba(0,0,0,.28), 0 0 18px rgba(152,220,255,.12);
+    color:#f1fbff; font-family:"Montserrat"; font-weight:800;
+  }
 
   /* ================================ METRICS ================================ */
   .metrics{
@@ -303,19 +336,19 @@
     box-shadow:0 0 34px rgba(152,220,255,.08);
   }
   .metric::before{
-    content:""; position:absolute; inset:-12% -10% -32% -10%; z-index:-1; filter:blur(32px); opacity:.55;
-    background:radial-gradient(260px 150px at 50% -10%, color-mix(in oklab, var(--A) 28%, transparent), transparent 70%);
+    content:""; position:absolute; inset:-12% -10% -32% -10%; z-index:-1; filter:blur(32px); opacity:.5;
+    background:radial-gradient(260px 150px at 50% -10%, color-mix(in oklab, var(--A) 26%, transparent), transparent 70%);
   }
   .metric::after{
     content:""; position:absolute; left:50%; top:0; width:58%; height:2px; transform:translateX(-50%);
     background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent); opacity:.82;
   }
   .metric:nth-child(4n+1){ background:linear-gradient(180deg, rgba(97,195,255,.16), rgba(97,195,255,.05)); }
-  .metric:nth-child(4n+2){ background:linear-gradient(180deg, rgba(247,236,191,.18), rgba(247,236,191,.06)); border-color:#2a2b23; }
-  .metric:nth-child(4n+3){ background:linear-gradient(180deg, rgba(95,225,197,.16), rgba(95,225,197,.06)); border-color:#1d2f2a; }
+  .metric:nth-child(4n+2){ background:linear-gradient(180deg, rgba(247,236,191,.16), rgba(247,236,191,.05)); border-color:#2a2b23; }
+  .metric:nth-child(4n+3){ background:linear-gradient(180deg, rgba(95,225,197,.12), rgba(95,225,197,.04)); border-color:#1d2f2a; } /* softened green */
   .metric:nth-child(4n+4){ background:linear-gradient(180deg, rgba(138,166,255,.18), rgba(138,166,255,.06)); border-color:#242942; }
-  .metric:nth-child(5){ background:linear-gradient(180deg, rgba(255,179,122,.16), rgba(255,179,122,.06)); border-color:#33261c; box-shadow:0 0 24px var(--g-copper); }
-  .metric:nth-child(6){ background:linear-gradient(180deg, rgba(170,255,180,.16), rgba(170,255,180,.06)); border-color:#233326; }
+  .metric:nth-child(5){ background:linear-gradient(180deg, rgba(255,179,122,.14), rgba(255,179,122,.05)); border-color:#33261c; box-shadow:0 0 22px var(--g-copper); }
+  .metric:nth-child(6){ background:linear-gradient(180deg, rgba(170,255,180,.12), rgba(170,255,180,.04)); border-color:#233326; } /* softened lime */
 
   .metric b{
     display:block; font-family:"Montserrat"; font-weight:900; margin-bottom:7px;
@@ -337,7 +370,7 @@
   tbody td:nth-child(1){font-family:"Montserrat"; font-weight:800; color:#f3fbff;}
   tbody td:nth-child(2){background:linear-gradient(90deg, rgba(138,166,255,.08), transparent);}
   tbody td:nth-child(3){background:linear-gradient(90deg, rgba(235,207,122,.10), transparent); font-weight:700; color:#fff9df;}
-  tbody td:nth-child(4){background:linear-gradient(90deg, rgba(95,225,197,.07), transparent);}
+  tbody td:nth-child(4){background:linear-gradient(90deg, rgba(95,225,197,.04), transparent);} /* softened green */
 
   .divider{
     height:1px; margin:34px auto; max-width:1020px;
@@ -513,7 +546,6 @@
         </div>
         <div class="divider"></div>
 
-        <!-- >>> RETENTION ENGINE — now gold-highlighted label per request <<< -->
         <h3 class="label">RETENTION ENGINE</h3>
         <p><b>Purpose:</b> Convert every client into recurring revenue.</p>
         <p><b>Inputs</b><br>Stripe Subscriptions<br>ConvertKit follow-up<br>Retention dashboard</p>
@@ -617,34 +649,77 @@
 
   </div>
 
-  <!-- STATIC helper: wrap numbers in shiny spans (no animation) -->
+  <!-- STATIC helper: wrap numbers & keywords (no animation) -->
   <script>
     (function(){
-      const scope = document.querySelectorAll('.panel'); // keep cover/title untouched
+      const scope = document.querySelectorAll('.panel'); // exclude cover headers
+      // Regexes
       const numRe   = /(\$?\d[\d,]*\.?\d*\s?(?:k\+?|m\+?|%|\/(?:month|year))?)/ig;
       const timesRe = /(\d+×)/g;
-      function wrapNums(el){
-        for (const node of Array.from(el.childNodes)){
-          if (node.nodeType === 3){
-            let txt = node.nodeValue;
-            if(!txt.trim()) continue;
-            let replaced = false;
-            let html = txt
-              .replace(numRe, '<span class="num">$1</span>')
-              .replace(timesRe, '<span class="num blue">$1</span>');
-            if (html !== txt){
-              const span = document.createElement('span');
-              span.innerHTML = html;
-              node.parentNode.replaceChild(span, node);
-              replaced = true;
-            }
-          }else if (node.nodeType === 1 && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE'){
-            wrapNums(node);
-          }
+
+      // Token map (global, case-insensitive)
+      const tokenMap = [
+        { re: /\bAI\b/gi, cls: 'kw' },
+        { re: /\bSaaS\b/gi, cls: 'kw' },
+        { re: /\bmicro-SaaS\b/gi, cls: 'kw' },
+        { re: /\bCRM\b/gi, cls: 'kw' },
+        { re: /\bCRMs\b/gi, cls: 'kw' },
+        { re: /\bFlywheel\b/gi, cls: 'kw' },
+        { re: /\btweets?\b/gi, cls: 'media' },
+        { re: /\bblogs?\b/gi, cls: 'media' },
+        { re: /\bemails?\b/gi, cls: 'media' },
+        { re: /\bvideos?\b/gi, cls: 'media' },
+      ];
+
+      // Exact phrases to ribbon-ize
+      const exactPhrases = [
+        { text: 'Long-form → Short threads → Newsletter → Sponsors → Data feedback → Back to content', cls: 'flow' },
+        { text: 'Vercel (deploy) + Stripe (payments) + Notion (docs) + Twitter (marketing)', cls: 'stack' },
+        { text: 'SaaS: CRMs, automated calls, pre-built dashboards', cls: 'stack' }
+      ];
+
+      function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+      function wrapTextNode(node){
+        if (node.parentElement && (node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE')) return;
+        const txt = node.nodeValue;
+        if (!txt || !txt.trim()) return;
+
+        let html = txt;
+
+        // Exact phrases first
+        exactPhrases.forEach(({text, cls})=>{
+          const re = new RegExp(escapeRegExp(text) + '(\\.)?', 'g'); // keep trailing period outside
+          html = html.replace(re, `<span class="${cls}">${text}</span>$1`);
+        });
+
+        // Tokens
+        tokenMap.forEach(({re, cls})=>{
+          html = html.replace(re, (m)=>`<span class="${cls}">${m}</span>`);
+        });
+
+        // Numbers last
+        html = html
+          .replace(numRe, '<span class="num">$1</span>')
+          .replace(timesRe, '<span class="num blue">$1</span>');
+
+        if (html !== txt){
+          const span = document.createElement('span');
+          span.innerHTML = html;
+          node.parentNode.replaceChild(span, node);
         }
       }
-      scope.forEach(wrapNums);
-      // Teal emphasis for percentages inside metrics
+
+      function traverse(el){
+        for (const node of Array.from(el.childNodes)){
+          if (node.nodeType === 3){ wrapTextNode(node); }
+          else if (node.nodeType === 1 && node.tagName !== 'SPAN'){ traverse(node); }
+        }
+      }
+
+      scope.forEach(traverse);
+
+      // Soften percentage greens inside metrics specifically
       document.querySelectorAll('.metrics .num').forEach(n=>{
         if (/%$/.test(n.textContent.trim())) n.classList.add('teal');
       });

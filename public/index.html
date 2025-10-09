@@ -509,7 +509,7 @@ if (!tc.items || tc.items.length < 10) {
       }
       
       const darkRatio = darkCount / sampleWidth;
-      isBoldByPixels = darkRatio > 0.30; // >30% dark = bold stroke (more sensitive)
+      isBoldByPixels = darkRatio > 0.38; // >38% dark = bold stroke
       
       if (it.str.includes('Takeaway')) {
         console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
@@ -522,8 +522,8 @@ if (!tc.items || tc.items.length < 10) {
     const skewDeg  = hasSkew ? 12 : 0;
     
     // Debug italic detection
-    if (it.str.includes('Associate') || it.str.includes('likely')) {
-      console.log('ITALIC DEBUG:', {text: it.str, hasSkew, skewValue: m[2], matrix: m});
+    if (it.str.includes('Associate') || it.str.includes('likely') || it.str.includes('improve')) {
+      console.log('ITALIC DEBUG:', {text: it.str, hasSkew, m2: m[2], m: m, threshold: 0.08});
     }
 
     return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
@@ -584,7 +584,7 @@ function buildLinesPx(itemsPx){
     const avgBold = bolds.reduce((a,b)=>a+b, 0) / bolds.length;
     const avgItalic = ital.reduce((a,b)=>a+b, 0) / ital.length;
     
-    L.fauxBold = boldCount > L.segs.length * 0.4 ? 1 : 0; 
+    L.fauxBold = boldCount > L.segs.length * 0.6 ? 1 : 0; 
     L.skewDeg = italCount > L.segs.length * 0.3 ? 12 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }

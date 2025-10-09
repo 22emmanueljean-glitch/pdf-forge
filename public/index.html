@@ -547,8 +547,8 @@ if (!tc.items || tc.items.length < 10) {
       isBoldByPixels = darkRatio > 0.40; // >40% dark = bold
       
       if (it.str.includes('Takeaway') || it.str.includes('Seneca')) {
-        console.log('DEBUG Bold:', {totalDark, totalSamples, darkRatio, isBold: isBoldByPixels});
-      }
+  console.log(`DEBUG Bold "${it.str}": totalDark=${totalDark}, totalSamples=${totalSamples}, darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);
+}
     } catch (e) {
       console.error('Bold detection error:', e);
     }

@@ -509,7 +509,7 @@ if (!tc.items || tc.items.length < 10) {
       }
       
       const darkRatio = darkCount / sampleWidth;
-      isBoldByPixels = darkRatio > 0.38; // >38% dark = bold stroke
+      isBoldByPixels = darkRatio > 0.30; // >30% dark = bold stroke (more sensitive)
       
       if (it.str.includes('Takeaway')) {
         console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
@@ -522,8 +522,8 @@ if (!tc.items || tc.items.length < 10) {
     const skewDeg  = hasSkew ? 12 : 0;
     
     // Debug italic detection
-    if (it.str.includes('Associate') || it.str.includes('likely') || it.str.includes('improve')) {
-      console.log('ITALIC DEBUG:', {text: it.str, hasSkew, m2: m[2], m: m, threshold: 0.08});
+    if (it.str.includes('Associate') || it.str.includes('likely')) {
+      console.log('ITALIC DEBUG:', {text: it.str, hasSkew, skewValue: m[2], matrix: m});
     }
 
     return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
@@ -584,7 +584,7 @@ function buildLinesPx(itemsPx){
     const avgBold = bolds.reduce((a,b)=>a+b, 0) / bolds.length;
     const avgItalic = ital.reduce((a,b)=>a+b, 0) / ital.length;
     
-    L.fauxBold = boldCount > L.segs.length * 0.6 ? 1 : 0; 
+    L.fauxBold = boldCount > L.segs.length * 0.4 ? 1 : 0; 
     L.skewDeg = italCount > L.segs.length * 0.3 ? 12 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }
@@ -1182,6 +1182,33 @@ $('apply').onclick = async () => {
       const yFromBottom = pageHeightPts - it.y; // convert from top origin to bottom origin
 
       if (it.type === 'text') {
+        // Map faux styles to real font variants
+        let finalFont = it.font;
+        const hasBold = (it.fauxBold && it.fauxBold >= 1);
+        const hasItalic = (it.skewDeg && Math.abs(it.skewDeg) >= 10);
+        
+        // Detect base font family
+        const isHelvetica = /Helvetica/i.test(finalFont);
+        const isCourier = /Courier/i.test(finalFont);
+        
+        // Map to correct variant
+        if (isHelvetica) {
+          if (hasBold && hasItalic) finalFont = 'Helvetica-BoldOblique';
+          else if (hasBold) finalFont = 'Helvetica-Bold';
+          else if (hasItalic) finalFont = 'Helvetica-Oblique';
+          else finalFont = 'Helvetica';
+        } else if (isCourier) {
+          if (hasBold && hasItalic) finalFont = 'Courier-BoldOblique';
+          else if (hasBold) finalFont = 'Courier-Bold';
+          else if (hasItalic) finalFont = 'Courier-Oblique';
+          else finalFont = 'Courier';
+        } else { // Times or fallback
+          if (hasBold && hasItalic) finalFont = 'Times-BoldItalic';
+          else if (hasBold) finalFont = 'Times-Bold';
+          else if (hasItalic) finalFont = 'Times-Italic';
+          else finalFont = 'Times-Roman';
+        }
+        
         return {
           type: 'text',
           page: it.page,
@@ -1189,12 +1216,13 @@ $('apply').onclick = async () => {
           y: yFromBottom,
           width: it.width,
           text: it.text,
-          font: it.font,
+          font: finalFont,  // ← use mapped font instead of it.font
           size: it.size,
           color: [r, g, b],
           lineHeight: it.lineHeight || Math.round(it.size * 1.35),
-          fauxBold: it.fauxBold || 0,
-          skewDeg: it.skewDeg || 0,
+          fauxBold: 0,  // ← disable faux bold (using real font now)
+          skewDeg: 0,   // ← disable skew (using real italic now)
+          underline: it.underline || false,
           tracking: it.tracking || 0
         };
       } else {

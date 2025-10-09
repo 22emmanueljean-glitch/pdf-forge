@@ -544,7 +544,7 @@ if (!tc.items || tc.items.length < 10) {
       }
       
       const darkRatio = totalSamples > 0 ? totalDark / totalSamples : 0;
-      isBoldByPixels = darkRatio > 0.40; // >40% dark = bold
+      isBoldByPixels = darkRatio > 0.20; // >20% dark = bold
       
       if (it.str.includes('Takeaway') || it.str.includes('Seneca')) {
   console.log(`DEBUG Bold "${it.str}": totalDark=${totalDark}, totalSamples=${totalSamples}, darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);

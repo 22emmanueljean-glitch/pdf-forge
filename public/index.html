@@ -217,6 +217,30 @@ const setQueued=()=>$('queued').textContent=items.length+" items queued"
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;}
 const mode=(arr)=>{const m=new Map(); for(const v of arr){m.set(v,(m.get(v)||0)+1)} let best=null,c=0; for(const [k,v] of m){if(v>c){c=v;best=k}} return best;}
+function mapStyleToFont(baseFont, fauxBold, skewDeg) {
+  const hasBold = (fauxBold && fauxBold >= 1);
+  const hasItalic = (skewDeg && Math.abs(skewDeg) >= 10);
+  
+  const isHelvetica = /Helvetica/i.test(baseFont);
+  const isCourier = /Courier/i.test(baseFont);
+  
+  if (isHelvetica) {
+    if (hasBold && hasItalic) return 'Helvetica-BoldOblique';
+    if (hasBold) return 'Helvetica-Bold';
+    if (hasItalic) return 'Helvetica-Oblique';
+    return 'Helvetica';
+  } else if (isCourier) {
+    if (hasBold && hasItalic) return 'Courier-BoldOblique';
+    if (hasBold) return 'Courier-Bold';
+    if (hasItalic) return 'Courier-Oblique';
+    return 'Courier';
+  } else {
+    if (hasBold && hasItalic) return 'Times-BoldItalic';
+    if (hasBold) return 'Times-Bold';
+    if (hasItalic) return 'Times-Italic';
+    return 'Times-Roman';
+  }
+}
 function hexToRgb01(hex){const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);if(!m)return[0,0,0];return[parseInt(m[1],16)/255,parseInt(m[2],16)/255,parseInt(m[3],16)/255]}
 
 // ---- OCR helpers ----
@@ -489,27 +513,38 @@ if (!tc.items || tc.items.length < 10) {
     // Check transform matrix for skew (italic detection)
     const hasSkew = Math.abs(m[2]) > 0.05;
     
-    // Pixel-based bold detection - sample the actual rendered glyph
+    // Pixel-based bold detection - sample multiple points
     let isBoldByPixels = false;
     try {
-      // Sample at the middle of the text, slightly below baseline
-      const sampleX = Math.round(x + w * 0.3);
-      const sampleY = Math.round(yBase - sizePx * 0.3); // yBase is baseline
+      const cv = $('cv');
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
       
-      // Count dark pixels in a small horizontal line (measures stroke width)
-      let darkCount = 0;
-      const sampleWidth = Math.min(8, Math.ceil(sizePx * 0.6));
-      for (let dx = 0; dx < sampleWidth; dx++) {
-        const px = sampleX + dx;
-        const py = sampleY;
-        if (px < 0 || py < 0 || px >= cv.width || py >= cv.height) continue;
-        const d = ctx.getImageData(px, py, 1, 1).data;
-        const lum = 0.2126*d[0] + 0.7152*d[1] + 0.0722*d[2];
-        if (lum < 100) darkCount++;
+      // Sample 3 horizontal lines through the glyph
+      const samplePoints = [
+        { x: x + w * 0.35, y: yBase - sizePx * 0.25 }, // upper stroke
+        { x: x + w * 0.35, y: yBase - sizePx * 0.50 }, // middle stroke  
+        { x: x + w * 0.35, y: yBase - sizePx * 0.75 }  // lower stroke
+      ];
+      
+      let totalDark = 0;
+      let totalSamples = 0;
+      const sampleWidth = Math.min(12, Math.ceil(sizePx * 0.8));
+      
+      for (const point of samplePoints) {
+        for (let dx = 0; dx < sampleWidth; dx++) {
+          const px = Math.round(point.x + dx);
+          const py = Math.round(point.y);
+          if (px < 0 || py < 0 || px >= cv.width || py >= cv.height) continue;
+          
+          const d = ctx.getImageData(px, py, 1, 1).data;
+          const lum = 0.2126*d[0] + 0.7152*d[1] + 0.0722*d[2];
+          if (lum < 120) totalDark++;
+          totalSamples++;
+        }
       }
       
-      const darkRatio = darkCount / sampleWidth;
-      isBoldByPixels = darkRatio > 0.30; // >30% dark = bold stroke (more sensitive)
+      const darkRatio = totalSamples > 0 ? totalDark / totalSamples : 0;
+      isBoldByPixels = darkRatio > 0.45; // >45% dark = bold (raised threshold)
       
       if (it.str.includes('Takeaway')) {
         console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
@@ -838,7 +873,42 @@ function updateSelectedFromSidebar(){
   if(isGroup(selectedId)) return;
   const it=items.find(x=>x.id===selectedId); if(!it) return;
   if(it.type==='text'){
-    it.text=$('text').value||""; it.font=$('font').value||"Times-Roman"; it.size=parseFloat($('size').value)||11; it.colorHex=$('color').value||"#000000"; it.width=parseFloat($('width').value)||460; it.lineHeight=parseFloat($('lineHeight').value)||Math.round(it.size*1.35); it.fauxBold=parseInt($('fauxBold').value)||0; it.skewDeg=parseFloat($('skewDeg').value)||0; it.tracking=parseFloat($('tracking').value)||0;
+    it.text=$('text').value||"";
+    
+    // Get base font and style flags
+    let baseFont = $('font').value||"Times-Roman";
+    it.fauxBold = parseInt($('fauxBold').value)||0;
+    it.skewDeg = parseFloat($('skewDeg').value)||0;
+    
+    // Map to proper font variant based on fauxBold/skewDeg
+    const hasBold = it.fauxBold >= 1;
+    const hasItalic = Math.abs(it.skewDeg) >= 10;
+    
+    const isHelvetica = /Helvetica/i.test(baseFont);
+    const isCourier = /Courier/i.test(baseFont);
+    
+    if (isHelvetica) {
+      if (hasBold && hasItalic) it.font = 'Helvetica-BoldOblique';
+      else if (hasBold) it.font = 'Helvetica-Bold';
+      else if (hasItalic) it.font = 'Helvetica-Oblique';
+      else it.font = 'Helvetica';
+    } else if (isCourier) {
+      if (hasBold && hasItalic) it.font = 'Courier-BoldOblique';
+      else if (hasBold) it.font = 'Courier-Bold';
+      else if (hasItalic) it.font = 'Courier-Oblique';
+      else it.font = 'Courier';
+    } else {
+      if (hasBold && hasItalic) it.font = 'Times-BoldItalic';
+      else if (hasBold) it.font = 'Times-Bold';
+      else if (hasItalic) it.font = 'Times-Italic';
+      else it.font = 'Times-Roman';
+    }
+    
+    it.size=parseFloat($('size').value)||11;
+    it.colorHex=$('color').value||"#000000";
+    it.width=parseFloat($('width').value)||460;
+    it.lineHeight=parseFloat($('lineHeight').value)||Math.round(it.size*1.35);
+    it.tracking=parseFloat($('tracking').value)||0;
   }else{
     it.colorHex=$('color').value||it.colorHex||"#000000"; it.width=parseFloat($('lineWidth').value)||it.width||460; it.thick=parseFloat($('lineThick').value)||it.thick||2;
   }
@@ -993,7 +1063,7 @@ if (!hits.length || hits.length < 3) {
             y:Math.round(yPx*ptPerPx),
             width:Math.round(wPx*ptPerPx * 1.1),
             text,
-            font:firstL.font,
+            font: mapStyleToFont(firstL.font, firstL.fauxBold, firstL.skewDeg),
             size:Math.round(firstL.sizePx*ptPerPx),
             colorHex:firstL.colorHex||'#000000',
             lineHeight:Math.round(lineHeightPx*ptPerPx),

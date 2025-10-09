@@ -546,8 +546,8 @@ if (!tc.items || tc.items.length < 10) {
       const darkRatio = totalSamples > 0 ? totalDark / totalSamples : 0;
       isBoldByPixels = darkRatio > 0.20; // >20% dark = bold
       
-      if (it.str.includes('Takeaway') || it.str.includes('Seneca')) {
-  console.log(`DEBUG Bold "${it.str}": totalDark=${totalDark}, totalSamples=${totalSamples}, darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);
+      if (it.str.includes('Takeaway') || it.str.includes('Seneca') || it.str.includes('Brevity') || it.str.includes('When you speak')) {
+  console.log(`DEBUG Bold "${it.str.substring(0,40)}": totalDark=${totalDark}, totalSamples=${totalSamples}, darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);
 }
     } catch (e) {
       console.error('Bold detection error:', e);
@@ -558,8 +558,8 @@ if (!tc.items || tc.items.length < 10) {
     
     // Debug italic detection
     if (it.str.includes('Associate') || it.str.includes('likely')) {
-      console.log('ITALIC DEBUG:', {text: it.str, hasSkew, skewValue: m[2], matrix: m});
-    }
+  console.log(`ITALIC DEBUG "${it.str}": hasSkew=${hasSkew}, skewValue=${m[2]}, skewDeg=${skewDeg}`);
+}
 
     return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });

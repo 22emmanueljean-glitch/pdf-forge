@@ -489,31 +489,30 @@ if (!tc.items || tc.items.length < 10) {
     // Check transform matrix for skew (italic detection)
     const hasSkew = Math.abs(m[2]) > 0.05;
     
-    // Pixel-based bold detection (measure stroke thickness)
+    // Pixel-based bold detection - sample the actual rendered glyph
     let isBoldByPixels = false;
     try {
-      const centerX = Math.round(x + w * 0.4);
-      const centerY = Math.round(y + sizePx * 0.5);
+      // Sample at the middle of the text, slightly below baseline
+      const sampleX = Math.round(x + w * 0.3);
+      const sampleY = Math.round(yBase - sizePx * 0.3); // yBase is baseline
       
-      // Sample 3 vertical lines through the text
-      let totalDark = 0;
-      for (let dx of [-1, 0, 1]) {
-        let darkStreak = 0;
-        for (let dy = 0; dy < Math.min(10, sizePx); dy++) {
-          const px = centerX + dx;
-          const py = centerY + dy - 5;
-          if (px < 0 || py < 0 || px >= cv.width || py >= cv.height) continue;
-          const d = ctx.getImageData(px, py, 1, 1).data;
-          const lum = 0.2126*d[0] + 0.7152*d[1] + 0.0722*d[2];
-          if (lum < 128) darkStreak++;
-        }
-        totalDark += darkStreak;
+      // Count dark pixels in a small horizontal line (measures stroke width)
+      let darkCount = 0;
+      const sampleWidth = Math.min(8, Math.ceil(sizePx * 0.6));
+      for (let dx = 0; dx < sampleWidth; dx++) {
+        const px = sampleX + dx;
+        const py = sampleY;
+        if (px < 0 || py < 0 || px >= cv.width || py >= cv.height) continue;
+        const d = ctx.getImageData(px, py, 1, 1).data;
+        const lum = 0.2126*d[0] + 0.7152*d[1] + 0.0722*d[2];
+        if (lum < 100) darkCount++;
       }
-      const avgDark = totalDark / 3;
-      isBoldByPixels = avgDark > (sizePx * 0.4); // if >40% of vertical line is dark = bold
+      
+      const darkRatio = darkCount / sampleWidth;
+      isBoldByPixels = darkRatio > 0.35; // >35% dark = bold stroke
       
       if (it.str.includes('Takeaway')) {
-        console.log('DEBUG Takeaway pixel:', {avgDark, sizePx, threshold: sizePx*0.4, isBold: isBoldByPixels});
+        console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
       }
     } catch (e) {
       console.error('Bold detection error:', e);

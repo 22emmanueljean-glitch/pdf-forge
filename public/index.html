@@ -401,7 +401,7 @@ function sampleColorMedianAtPx(pxX, pxY){
   if (!pixels.length) return '#000000';
   
   pixels.sort((a,b)=>a.lum-b.lum);
-  const keep = Math.max(1, Math.floor(pixels.length*0.15));
+  const keep = Math.max(1, Math.floor(pixels.length*0.20));
   const darkest = pixels.slice(0, keep);
 
   const Rs = darkest.map(p=>p.r).sort((a,b)=>a-b);
@@ -483,8 +483,12 @@ if (!tc.items || tc.items.length < 10) {
 
     const fontName = it.fontName || 'Times-Roman';
     const flags    = (it.fontDescriptor && typeof it.fontDescriptor.flags === 'number') ? it.fontDescriptor.flags : 0;
+    
+    // Check transform matrix for skew (italic detection)
+    const hasSkew = Math.abs(m[2]) > 0.1; // if c coefficient is non-zero, text is skewed
+    
     const isBold = (flags & 262144) || (flags & 4) || /bold|black|heavy|semi|demi|medium/i.test(fontName);
-    const isItalic = (flags & 64) || (flags & 2) || /ital|obl|slant|cursive/i.test(fontName);
+    const isItalic = hasSkew || (flags & 64) || (flags & 2) || /ital|obl|slant|cursive/i.test(fontName);
     const fauxBold = isBold ? 1 : 0;
     const skewDeg  = isItalic ? 15 : 0;
 
@@ -547,7 +551,7 @@ function buildColumns(lines){
   if(!lines.length) return [];
   const lefts=lines.map(L=>L.xMin).sort((a,b)=>a-b);
   const leftGaps=lefts.slice(1).map((v,i)=>v-lefts[i]);
-  const colGap=Math.max(30, (leftGaps.length?med(leftGaps):20) * 2.5);
+  const colGap=Math.max(50, (leftGaps.length?med(leftGaps):20) * 3.5);
 
   const cols=[];
   for(const L of lines){
@@ -903,13 +907,13 @@ if (!hits.length || hits.length < 3) {
 
     for(let i=0; i<b.lines.length; i++){
       const L = b.lines[i];
-      const style = `${L.font}|${L.sizePx}|${L.colorHex}|${L.fauxBold}|${L.skewDeg}`;
+      const style = `${L.font}|${Math.round(L.sizePx)}|${L.colorHex}|${L.fauxBold}|${L.skewDeg}`;
       
       // if style changed or big gap, create new item
       const prevLine = i > 0 ? b.lines[i-1] : null;
       const gap = prevLine ? (L.top - prevLine.bottom) : 0;
       const isStyleChange = lastStyle && style !== lastStyle;
-      const isBigGap = gap > L.sizePx * 0.8;
+      const isBigGap = gap > L.sizePx * 1.2;
       
       if (isStyleChange || isBigGap) {
         // flush current group

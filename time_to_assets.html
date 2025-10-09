@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>The System Builder’s Blueprint — Step 0: Reality (Master Edition)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
   /* ===================================================================
      LUXURY-REFINED • GRAPHITE-NAVY • MANIACAL HIERARCHY • NO MOTION
-     - Aggressive but tasteful color differentiation
-     - Section halos, header ribbons, roman indices, corner sigils
-     - Metric palettes rotate; table columns heat-tinted
-     - Static fades only; print tuned; original text preserved (no emojis)
+     - Deeper color separation, brighter labels, stronger subheads
+     - Retention Engine label made gold (no more “grey” feel)
+     - Architects: richer mini-titles + colored rails; shiny numbers (via CSS + tiny static JS)
+     - Bullet markers upgraded to gradient dots; table columns heat-tinted
+     - All text preserved exactly — no wording changes
      =================================================================== */
 
   :root{
@@ -28,11 +30,11 @@
 
     /* Glows */
     --g-blue:rgba(152,220,255,.42);
-    --g-gold:rgba(247,236,191,.42);
-    --g-teal:rgba(95,225,197,.28);
-    --g-indigo:rgba(138,166,255,.3);
-    --g-rose:rgba(255,182,213,.24);
-    --g-copper:rgba(255,179,122,.24);
+    --g-gold:rgba(247,236,191,.44);
+    --g-teal:rgba(95,225,197,.30);
+    --g-indigo:rgba(138,166,255,.32);
+    --g-rose:rgba(255,182,213,.26);
+    --g-copper:rgba(255,179,122,.26);
 
     /* Surfaces */
     --panel:rgba(248,245,232,.08);
@@ -41,7 +43,7 @@
     --border:#1a2636;
     --grid:#121b28;
 
-    --maxw:1120px;
+    --maxw:1140px;
   }
 
   html,body{height:100%;scroll-behavior:smooth;}
@@ -131,7 +133,6 @@
     text-shadow:0 0 20px rgba(255,255,255,.06);
     position:relative;
   }
-  /* underline cap */
   .section h2::after{
     content:""; display:block; height:4px; width:min(280px, 46%);
     margin:14px auto 0; border-radius:999px;
@@ -203,9 +204,16 @@
   /* Body text & lists */
   p{margin:13px 0; font-size:1.14rem; line-height:1.86; color:var(--ink-2);}
   .muted{color:var(--muted);}
-  ul{padding-left:30px; margin:12px 0 6px; list-style:square;}
-  li{margin:10px 0;}
-  li::marker{color:var(--M); font-weight:900;}
+
+  /* Luxe bullets (gradient dots + spacing) */
+  .panel ul{list-style:none; padding-left:0; margin:12px 0 6px;}
+  .panel li{position:relative; padding-left:28px; margin:10px 0;}
+  .panel li::before{
+    content:""; position:absolute; left:0; top:.72em; width:10px; height:10px; border-radius:50%;
+    background:linear-gradient(180deg, var(--A), var(--B)); box-shadow:0 0 12px var(--G);
+  }
+  .panel li:nth-child(2n)::before{background:linear-gradient(180deg, var(--gold-2), var(--gold)); box-shadow:0 0 12px var(--g-gold);}
+  .panel li:nth-child(3n)::before{background:linear-gradient(180deg, var(--teal), var(--cyan)); box-shadow:0 0 12px var(--g-teal);}
 
   /* Pull quotes */
   .quote{
@@ -228,19 +236,22 @@
     box-shadow:0 0 18px color-mix(in oklab, var(--B) 22%, transparent);
     -webkit-text-fill-color:#0b121a;
   }
-  /* Architects mini-titles */
-  .section:nth-of-type(9) .panel p > b:first-child{
-    display:block; margin:12px 0 12px;
-    font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;
-    background:linear-gradient(90deg, var(--A), var(--B));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    text-shadow:0 0 20px var(--G);
+
+  /* >>> Retention Engine label: make it POP (gold/amber) <<< */
+  .section:nth-of-type(6) .panel h3.label:last-of-type{
+    background:linear-gradient(90deg, var(--gold-2), var(--amber)) !important;
+    border-color:#3b3219 !important;
+    box-shadow:0 0 22px var(--g-gold) !important;
+    -webkit-text-fill-color:#101418 !important;
+    color:#101418 !important;
+    font-size:.9rem;
   }
-  /* Purpose / Inputs / Flow / Example ROI badges in Stages & Retention explainer */
+
+  /* Stage & Retention step-badges (Purpose/Inputs/Flow/Example ROI) */
   .section:nth-of-type(5) .panel p > b:first-child,
   .section:nth-of-type(6) .panel p > b:first-child,
   .section:nth-of-type(7) .panel p > b:first-child{
-    display:inline-block; margin:0 10px 6px 0; padding:.3rem .66rem .26rem;
+    display:inline-block; margin:0 10px 6px 0; padding:.32rem .68rem .28rem;
     font-family:"Montserrat"; font-weight:900; text-transform:uppercase; letter-spacing:.22em; font-size:.76rem;
     border-radius:10px; vertical-align:baseline; color:#0b121a;
     background:linear-gradient(90deg, var(--A), color-mix(in oklab, var(--B) 64%, transparent));
@@ -249,11 +260,42 @@
     -webkit-text-fill-color:#0b121a;
   }
 
+  /* Architects: stronger mini-titles + colored top rails per paragraph */
+  .section:nth-of-type(9) .panel p{
+    position:relative; padding-top:16px;
+  }
+  .section:nth-of-type(9) .panel p > b:first-child{
+    display:block; margin:12px 0 12px;
+    font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;
+    background:linear-gradient(90deg, var(--A), var(--B));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 22px var(--G);
+  }
+  .section:nth-of-type(9) .panel p::before{
+    content:""; position:absolute; left:50%; transform:translateX(-50%); top:0;
+    width:180px; height:3px; border-radius:999px; opacity:.9;
+    background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent);
+  }
+  .section:nth-of-type(9) .panel p:nth-of-type(2)::before{background:linear-gradient(90deg, transparent, var(--gold-2), var(--amber), transparent);}
+  .section:nth-of-type(9) .panel p:nth-of-type(4)::before{background:linear-gradient(90deg, transparent, var(--teal), var(--cyan), transparent);}
+  .section:nth-of-type(9) .panel p:nth-of-type(6)::before{background:linear-gradient(90deg, transparent, var(--indigo), var(--violet), transparent);}
+  .section:nth-of-type(9) .panel p:nth-of-type(8)::before{background:linear-gradient(90deg, transparent, var(--rose), var(--gold-2), transparent);}
+
+  /* Shiny number highlight (CSS; JS will wrap digits in <span class="num">) */
+  .num{
+    background:linear-gradient(90deg, var(--gold-2), var(--amber));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 18px var(--g-gold);
+    font-family:"Montserrat"; font-weight:900;
+  }
+  .num.blue{background:linear-gradient(90deg, var(--blue-2), var(--indigo)); text-shadow:0 0 18px var(--g-indigo);}
+  .num.teal{background:linear-gradient(90deg, var(--teal), var(--cyan)); text-shadow:0 0 18px var(--g-teal);}
+
   /* ================================ METRICS ================================ */
   .metrics{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
-    gap:24px; margin:26px auto 0; max-width:1000px;
+    gap:24px; margin:26px auto 0; max-width:1020px;
   }
   .metric{
     position:relative; text-align:center; border-radius:22px; padding:22px 24px;
@@ -268,7 +310,6 @@
     content:""; position:absolute; left:50%; top:0; width:58%; height:2px; transform:translateX(-50%);
     background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent); opacity:.82;
   }
-  /* Four-tone rotation + a copper/lime surprise on 5th/6th for long rows */
   .metric:nth-child(4n+1){ background:linear-gradient(180deg, rgba(97,195,255,.16), rgba(97,195,255,.05)); }
   .metric:nth-child(4n+2){ background:linear-gradient(180deg, rgba(247,236,191,.18), rgba(247,236,191,.06)); border-color:#2a2b23; }
   .metric:nth-child(4n+3){ background:linear-gradient(180deg, rgba(95,225,197,.16), rgba(95,225,197,.06)); border-color:#1d2f2a; }
@@ -283,7 +324,7 @@
   .metric{ color:color-mix(in oklab, var(--ink-2) 86%, #ffffff 14%); }
 
   /* ================================= TABLE ================================= */
-  table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:22px; margin:22px auto 0; max-width:1000px;}
+  table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:22px; margin:22px auto 0; max-width:1020px;}
   thead th{
     font-family:"Montserrat"; text-align:left; font-weight:900;
     background:linear-gradient(180deg, rgba(152,220,255,.3), rgba(152,220,255,.14));
@@ -293,14 +334,13 @@
   thead th::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:3px; background:linear-gradient(90deg, var(--A), var(--B)); opacity:.8;}
   tbody td{padding:16px 20px; border-bottom:1px solid #162333; color:var(--ink-2);}
   tbody tr:nth-child(even){background:rgba(18,28,42,.55);}
-  /* Column heat-tints (helps skim) */
   tbody td:nth-child(1){font-family:"Montserrat"; font-weight:800; color:#f3fbff;}
   tbody td:nth-child(2){background:linear-gradient(90deg, rgba(138,166,255,.08), transparent);}
   tbody td:nth-child(3){background:linear-gradient(90deg, rgba(235,207,122,.10), transparent); font-weight:700; color:#fff9df;}
   tbody td:nth-child(4){background:linear-gradient(90deg, rgba(95,225,197,.07), transparent);}
 
   .divider{
-    height:1px; margin:34px auto; max-width:1000px;
+    height:1px; margin:34px auto; max-width:1020px;
     background:linear-gradient(90deg, transparent, rgba(235,207,122,.96), transparent);
     filter:drop-shadow(0 0 12px var(--g-gold));
   }
@@ -473,6 +513,7 @@
         </div>
         <div class="divider"></div>
 
+        <!-- >>> RETENTION ENGINE — now gold-highlighted label per request <<< -->
         <h3 class="label">RETENTION ENGINE</h3>
         <p><b>Purpose:</b> Convert every client into recurring revenue.</p>
         <p><b>Inputs</b><br>Stripe Subscriptions<br>ConvertKit follow-up<br>Retention dashboard</p>
@@ -575,5 +616,39 @@
     </section>
 
   </div>
+
+  <!-- STATIC helper: wrap numbers in shiny spans (no animation) -->
+  <script>
+    (function(){
+      const scope = document.querySelectorAll('.panel'); // keep cover/title untouched
+      const numRe   = /(\$?\d[\d,]*\.?\d*\s?(?:k\+?|m\+?|%|\/(?:month|year))?)/ig;
+      const timesRe = /(\d+×)/g;
+      function wrapNums(el){
+        for (const node of Array.from(el.childNodes)){
+          if (node.nodeType === 3){
+            let txt = node.nodeValue;
+            if(!txt.trim()) continue;
+            let replaced = false;
+            let html = txt
+              .replace(numRe, '<span class="num">$1</span>')
+              .replace(timesRe, '<span class="num blue">$1</span>');
+            if (html !== txt){
+              const span = document.createElement('span');
+              span.innerHTML = html;
+              node.parentNode.replaceChild(span, node);
+              replaced = true;
+            }
+          }else if (node.nodeType === 1 && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE'){
+            wrapNums(node);
+          }
+        }
+      }
+      scope.forEach(wrapNums);
+      // Teal emphasis for percentages inside metrics
+      document.querySelectorAll('.metrics .num').forEach(n=>{
+        if (/%$/.test(n.textContent.trim())) n.classList.add('teal');
+      });
+    })();
+  </script>
 </body>
 </html>

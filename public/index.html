@@ -486,8 +486,9 @@ if (!tc.items || tc.items.length < 10) {
 
     const fontName = it.fontName || 'Times-Roman';
     
-    // Check transform matrix for skew (italic detection)
-    const hasSkew = Math.abs(m[2]) > 0.05;
+    // m[2] is the skew component - positive means italic
+    const skewValue = m[2];
+    const hasSkew = Math.abs(skewValue) > 0.08;
     
     // Pixel-based bold detection - sample the actual rendered glyph
     let isBoldByPixels = false;
@@ -561,14 +562,13 @@ function buildLinesPx(itemsPx){
       top=Math.min(top,s.y); bottom=Math.max(bottom,s.y+s.h);
       sizes.push(s.sizePx); fonts.push(guessFontFromName(s.fontName)); colors.push(s.colorHex); bolds.push(s.fauxBold); ital.push(s.skewDeg?12:0);
     }
-    L.text=text.trimEnd();
+    LL.text=text.trimEnd();
     
-    // Calculate ACTUAL width needed to render the text (not just segment bounds)
-    const avgCharWidth = L.segs.length > 0 ? (right - left) / text.replace(/\s/g,'').length : 10;
-    const estimatedWidth = text.length * avgCharWidth * 0.6; // estimate with spacing
-    const visualWidth = Math.max(right - left, estimatedWidth);
+    // Calculate ACTUAL width - use rightmost segment edge
+    const actualRight = Math.max(...L.segs.map(s => s.x + s.w));
+    const visualWidth = actualRight - left;
     
-    L.xMin=left; L.xMax=left + visualWidth; L.top=top; L.bottom=bottom;
+    L.xMin=left; L.xMax=actualRight; L.top=top; L.bottom=bottom;
     L.sizePx=Math.round(med(sizes)); 
     L.font=mode(fonts)||'Times-Roman'; 
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
@@ -579,8 +579,9 @@ function buildLinesPx(itemsPx){
     const avgBold = bolds.reduce((a,b)=>a+b, 0) / bolds.length;
     const avgItalic = ital.reduce((a,b)=>a+b, 0) / ital.length;
     
-    L.fauxBold = avgBold >= 0.5 ? 1 : 0; 
-    L.skewDeg = avgItalic >= 6 ? 15 : 0;
+    L.fauxBold = avgBold >= 0.5 ? 1 : 0;
+    // More lenient italic detection
+    L.skewDeg = italCount > L.segs.length * 0.3 ? 12 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }
   // sort top-to-bottom
@@ -658,9 +659,15 @@ function drawItems(ov){
       div.style.fontFamily=it.font;
       div.style.fontSize=(it.size*pxPerPt)+'px';
       div.style.color=it.colorHex||'#000000';
-      if(it.fauxBold && it.fauxBold > 0) div.style.fontWeight = 'bold';
-if(it.skewDeg && it.skewDeg !== 0) div.style.fontStyle = 'italic';
-if(it.underline) div.style.textDecoration = 'underline';
+      if(it.fauxBold && it.fauxBold >= 1) {
+        div.style.fontWeight = 'bold';
+        div.style.textShadow = '0 0 0.5px currentColor, 0 0 0.5px currentColor';
+      }
+      if(it.skewDeg && Math.abs(it.skewDeg) >= 10) {
+        div.style.fontStyle = 'italic';
+        div.style.transform = `skewX(${-it.skewDeg * 0.5}deg)`;
+      }
+      if(it.underline) div.style.textDecoration = 'underline';
       div.style.lineHeight=((it.lineHeight||Math.round(it.size*1.35))*pxPerPt)+'px';
       div.textContent=it.text;
     }else{
@@ -969,12 +976,9 @@ if (!hits.length || hits.length < 3) {
           const text = currentGroup.map(l=>l.text).join('\n');
           
           // WIDTH FIX: estimate based on longest line
-          const longestLine = currentGroup.reduce((max, l) => l.text.length > max.text.length ? l : max, currentGroup[0]);
-          const charCount = longestLine.text.length;
-          const avgCharW = firstL.sizePx * 0.55;
-          const estimatedW = charCount * avgCharW;
+          // Use the actual rightmost edge of all lines
           const measuredW = Math.max(...currentGroup.map(l=>l.xMax)) - xPx;
-          const wPx = Math.max(measuredW, estimatedW) * 1.15;
+          const wPx = measuredW * 1.1; // 10% padding
           const lineHeightPx = Math.round(firstL.sizePx * 1.35);
 
           items.push({

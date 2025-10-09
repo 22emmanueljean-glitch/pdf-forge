@@ -502,7 +502,7 @@ function buildLinesPx(itemsPx){
   const items=itemsPx.slice().sort((a,b)=> (a.y-b.y) || (a.x-b.x));
   const sizes=items.map(s=>s.sizePx).sort((a,b)=>a-b);
   const medSize=sizes[Math.floor(sizes.length/2)]||12;
-  const vTol=Math.max(0.9*medSize, 6);
+  const vTol=Math.max(medSize * 0.35, 3);
 
   const lines=[];
   for(const s of items){
@@ -562,8 +562,9 @@ function buildBlocks(cols){
     let cur=null;
     for(const L of col.lines){
       const vGap = cur ? (L.top - cur.lastBottom) : Infinity;
-      const sameStyle = cur && Math.abs(L.sizePx-cur.sizePx)<=Math.max(1,cur.sizePx*0.15) && L.font===cur.font;
-      if(!cur || vGap > Math.max(0.9*L.sizePx,6) || !sameStyle){
+      const maxGap = Math.max(L.sizePx * 1.8, 12);
+      const sameStyle = cur && Math.abs(L.sizePx-cur.sizePx)<=Math.max(2,cur.sizePx*0.2) && L.font===cur.font;
+      if(!cur || vGap > maxGap || !sameStyle){
         cur={
           lines:[], left:L.xMin, right:L.xMax, top:L.top, bottom:L.bottom,
           sizePx:L.sizePx, font:L.font, colorHex:L.colorHex, fauxBold:L.fauxBold, skewDeg:L.skewDeg,
@@ -893,6 +894,7 @@ if (!hits.length || hits.length < 3) {
   const lines=buildLinesPx(hits);
   const cols=buildColumns(lines);
   const blocks=buildBlocks(cols);
+  console.log('📊 Detection:', {lines: lines.length, blocks: blocks.length, sample: blocks[0]?.lines.length});
 
   // optional: detect horizontal rules within selection
   const ruleLinesPx = includeRules ? detectHorizontalRulesPx(selPx) : [];

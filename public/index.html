@@ -544,10 +544,10 @@ if (!tc.items || tc.items.length < 10) {
       }
       
       const darkRatio = totalSamples > 0 ? totalDark / totalSamples : 0;
-      isBoldByPixels = darkRatio > 0.45; // >45% dark = bold (raised threshold)
+      isBoldByPixels = darkRatio > 0.40; // >40% dark = bold
       
-      if (it.str.includes('Takeaway')) {
-        console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
+      if (it.str.includes('Takeaway') || it.str.includes('Seneca')) {
+        console.log('DEBUG Bold:', {totalDark, totalSamples, darkRatio, isBold: isBoldByPixels});
       }
     } catch (e) {
       console.error('Bold detection error:', e);

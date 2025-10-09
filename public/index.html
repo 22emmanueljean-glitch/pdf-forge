@@ -351,10 +351,7 @@ function guessFontFromName(name){
   const isHelv=/helv/i.test(fname),isCour=/cour/i.test(fname);
   const isTimes=/times|newroman|tnr|minion|garamond|serif/i.test(fname)||(!isHelv&&!isCour);
   const isBold=/bold|bd|semibold|demi|medium/i.test(fname);
-  // Trust font name over pixel detection for obvious cases
-if (isBold && !isBoldByPixels && fname.includes('Bold')) {
-  isBoldByPixels = true; // override pixel check if font name says Bold
-}
+  const isItal=/ital|oblique|it|obl/i.test(fname);
   const isBoldItal=/bolditalic|boldoblique/i.test(fname);
 
   if(isHelv){
@@ -490,14 +487,14 @@ if (!tc.items || tc.items.length < 10) {
     const fontName = it.fontName || 'Times-Roman';
     
     // Check transform matrix for skew (italic detection)
-    const hasSkew = Math.abs(m[2]) > 0.02 || Math.abs(m[1]) > 0.02; // check both skew axes
+    const hasSkew = Math.abs(m[2]) > 0.05;
     
     // Pixel-based bold detection - sample the actual rendered glyph
     let isBoldByPixels = false;
     try {
       // Sample at the middle of the text, slightly below baseline
       const sampleX = Math.round(x + w * 0.3);
-      const sampleY = Math.round(yBase - sizePx * 0.15); // sample closer to baseline where stroke is thickest
+      const sampleY = Math.round(yBase - sizePx * 0.3); // yBase is baseline
       
       // Count dark pixels in a small horizontal line (measures stroke width)
       let darkCount = 0;
@@ -512,7 +509,7 @@ if (!tc.items || tc.items.length < 10) {
       }
       
       const darkRatio = darkCount / sampleWidth;
-      isBoldByPixels = darkRatio > 0.28; // lower threshold catches medium-bold fonts
+      isBoldByPixels = darkRatio > 0.35; // >35% dark = bold stroke
       
       if (it.str.includes('Takeaway')) {
         console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
@@ -974,7 +971,7 @@ if (!hits.length || hits.length < 3) {
           const avgCharW = firstL.sizePx * 0.55;
           const estimatedW = charCount * avgCharW;
           const measuredW = Math.max(...currentGroup.map(l=>l.xMax)) - xPx;
-          const wPx = Math.min(measuredW * 1.05, selPx.w * 0.95); // stay within selection bounds
+          const wPx = Math.max(measuredW, estimatedW) * 1.15;
           const lineHeightPx = Math.round(firstL.sizePx * 1.35);
 
           items.push({

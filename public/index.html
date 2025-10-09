@@ -509,7 +509,7 @@ if (!tc.items || tc.items.length < 10) {
       }
       
       const darkRatio = darkCount / sampleWidth;
-      isBoldByPixels = darkRatio > 0.35; // >35% dark = bold stroke
+      isBoldByPixels = darkRatio > 0.30; // >30% dark = bold stroke (more sensitive)
       
       if (it.str.includes('Takeaway')) {
         console.log('DEBUG Takeaway pixel:', {darkCount, sampleWidth, darkRatio, threshold: 0.35, isBold: isBoldByPixels, x: sampleX, y: sampleY});
@@ -519,7 +519,12 @@ if (!tc.items || tc.items.length < 10) {
     }
     
     const fauxBold = isBoldByPixels ? 1 : 0;
-    const skewDeg  = hasSkew ? 15 : 0;
+    const skewDeg  = hasSkew ? 12 : 0;
+    
+    // Debug italic detection
+    if (it.str.includes('Associate') || it.str.includes('likely')) {
+      console.log('ITALIC DEBUG:', {text: it.str, hasSkew, skewValue: m[2], matrix: m});
+    }
 
     return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });
@@ -579,8 +584,8 @@ function buildLinesPx(itemsPx){
     const avgBold = bolds.reduce((a,b)=>a+b, 0) / bolds.length;
     const avgItalic = ital.reduce((a,b)=>a+b, 0) / ital.length;
     
-    L.fauxBold = avgBold >= 0.5 ? 1 : 0; 
-    L.skewDeg = avgItalic >= 6 ? 15 : 0;
+    L.fauxBold = boldCount > L.segs.length * 0.4 ? 1 : 0; 
+    L.skewDeg = italCount > L.segs.length * 0.3 ? 12 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }
   // sort top-to-bottom
@@ -658,9 +663,14 @@ function drawItems(ov){
       div.style.fontFamily=it.font;
       div.style.fontSize=(it.size*pxPerPt)+'px';
       div.style.color=it.colorHex||'#000000';
-      if(it.fauxBold && it.fauxBold > 0) div.style.fontWeight = 'bold';
-if(it.skewDeg && it.skewDeg !== 0) div.style.fontStyle = 'italic';
-if(it.underline) div.style.textDecoration = 'underline';
+      if(it.fauxBold && it.fauxBold >= 1) {
+        div.style.fontWeight = '700';
+        div.style.webkitTextStroke = '0.3px currentColor';
+      }
+      if(it.skewDeg && Math.abs(it.skewDeg) >= 10) {
+        div.style.fontStyle = 'italic';
+      }
+      if(it.underline) div.style.textDecoration = 'underline';
       div.style.lineHeight=((it.lineHeight||Math.round(it.size*1.35))*pxPerPt)+'px';
       div.textContent=it.text;
     }else{

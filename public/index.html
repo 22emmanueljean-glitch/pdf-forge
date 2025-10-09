@@ -548,8 +548,11 @@ function buildLinesPx(itemsPx){
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
     const boldCount = bolds.filter(x=>x>=1).length;
     const italCount = ital.filter(x=>x>=6).length;
-    const hasBoldFont = /bold|black|heavy|semi|demi/i.test(L.font);
-    const hasItalicFont = /ital|obl|slant/i.test(L.font);
+    
+    // Check if ANY font in this line is bold/italic
+    const hasBoldFont = fonts.some(f => /bold|black|heavy|semi|demi/i.test(f));
+    const hasItalicFont = fonts.some(f => /ital|obl|slant/i.test(f));
+    
     L.fauxBold = (boldCount > bolds.length*0.3 || hasBoldFont) ? 1 : 0; 
     L.skewDeg = (italCount > ital.length*0.3 || hasItalicFont) ? 15 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);

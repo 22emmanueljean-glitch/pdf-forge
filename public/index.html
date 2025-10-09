@@ -610,6 +610,11 @@ function buildLinesPx(itemsPx){
     const modeItalic = mode(ital);
     
     L.fauxBold = modeBold >= 1 ? 1 : 0;
+    L.fauxBold = modeBold >= 1 ? 1 : 0;
+    
+    if (L.text.includes('Seneca') || L.text.includes('Takeaway')) {
+      console.log(`LINE DEBUG "${L.text.substring(0,30)}": bolds=[${bolds.slice(0,10)}], modeBold=${modeBold}, fauxBold=${L.fauxBold}`);
+    }
     L.skewDeg = modeItalic >= 6 ? 12 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }

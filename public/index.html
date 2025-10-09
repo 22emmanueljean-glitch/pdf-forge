@@ -581,7 +581,7 @@ try {
       
       // If right edge darker than left = slanted right (italic)
       const slantRatio = samples > 0 ? (rightDark - leftDark) / samples : 0;
-      isItalicByPixels = slantRatio > 0.15; // 15% more ink on right = italic
+      isItalicByPixels = slantRatio > 0.30; // 30% more ink on right = italic (less sensitive)
       
     } catch (e) {
     console.error('Italic detection error:', e);
@@ -1131,7 +1131,7 @@ if (!hits.length || hits.length < 3) {
         y:Math.round(yPx*ptPerPx),
         width:Math.round(wPx*ptPerPx),
         text,
-        font:firstL.font,
+        font: mapStyleToFont(firstL.font, firstL.fauxBold, firstL.skewDeg),
         size:Math.round(firstL.sizePx*ptPerPx),
         colorHex:firstL.colorHex||'#000000',
         lineHeight:Math.round(lineHeightPx*ptPerPx),

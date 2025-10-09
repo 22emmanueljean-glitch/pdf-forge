@@ -17,6 +17,7 @@
     --gold:#eacb6b;
     --gold-2:#f9ecbc;
     --gold-glow:rgba(250,230,150,.3);
+    --grid:#121725;
     --panel:#10141b;
     --card:#0e1118f0;
     --border:#1a2130;
@@ -33,17 +34,15 @@
     -moz-osx-font-smoothing:grayscale;
     print-color-adjust:exact; -webkit-print-color-adjust:exact;
   }
-
-  /* Faint grid overlay */
+  /* blueprint grid */
   body::before{
     content:""; position:fixed; inset:0; pointer-events:none; opacity:.18;
     background-image:
-      linear-gradient(transparent 31px, rgba(20,25,35,.55) 32px),
-      linear-gradient(90deg, transparent 31px, rgba(20,25,35,.55) 32px);
+      linear-gradient(transparent 31px, var(--grid) 32px),
+      linear-gradient(90deg, transparent 31px, var(--grid) 32px);
     background-size:32px 32px;
     mix-blend-mode:overlay;
   }
-
   .wrap{max-width:var(--maxw); margin-inline:auto; padding:52px 26px 120px;}
 
   /* COVER */
@@ -59,76 +58,49 @@
       0 0 80px 10px rgba(69,176,255,.08);
     overflow:hidden;
   }
-
   .sigil{
     position:absolute; inset:-10% -10% auto auto; width:120%; max-width:none; opacity:.14;
     filter:drop-shadow(0 0 18px var(--gold-glow));
   }
-
   .title{text-align:center; position:relative; font-family:"Montserrat",ui-sans-serif; letter-spacing:.3px;}
   .kicker{color:var(--muted); font-weight:600; text-transform:uppercase; font-size:.85rem; letter-spacing:.22em; margin-bottom:20px;}
   h1{
-    margin:0;
-    font-weight:900;
-    font-size:clamp(2.2rem,3.6vw,3.4rem);
-    line-height:1.14;
+    margin:0; font-weight:900; font-size:clamp(2.2rem,3.6vw,3.4rem); line-height:1.14;
     background:linear-gradient(90deg,var(--blue-2),var(--gold-2));
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     filter:drop-shadow(0 0 14px rgba(69,176,255,.3));
   }
   h1 .glyph{filter:drop-shadow(0 0 14px var(--blue-glow));}
-  .subtitle{
-    margin-top:14px; font-size:1.05rem; color:#cfe7ff;
-    text-shadow:0 0 20px var(--blue-glow);
-  }
+  .subtitle{margin-top:14px; font-size:1.05rem; color:#cfe7ff; text-shadow:0 0 20px var(--blue-glow);}
   .byline{margin-top:32px; font-weight:700; color:var(--gold-2); letter-spacing:.07em; text-shadow:0 0 16px var(--gold-glow);}
 
   /* SECTIONS */
   .section{position:relative; margin:54px 0;}
   .section .head{display:flex; align-items:center; gap:14px; margin-bottom:16px;}
-  .bar{
-    flex:0 0 8px; height:28px; border-radius:6px;
-    background:linear-gradient(180deg,var(--blue-2),var(--blue));
-    box-shadow:0 0 26px var(--blue-glow);
-  }
+  .bar{flex:0 0 8px; height:28px; border-radius:6px; background:linear-gradient(180deg,var(--blue-2),var(--blue)); box-shadow:0 0 26px var(--blue-glow);}
   .section h2{
-    font-family:"Montserrat"; margin:0; font-weight:800;
-    letter-spacing:.2px; font-size:1.68rem; color:var(--gold-2);
+    font-family:"Montserrat"; margin:0; font-weight:800; letter-spacing:.2px; font-size:1.68rem; color:var(--gold-2);
     text-shadow:0 0 14px var(--gold-glow);
   }
-
   .panel{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:26px 26px;
-    box-shadow:
-      inset 0 0 0 1px rgba(118,209,255,.05),
-      0 22px 55px rgba(0,0,0,.4);
+    background:var(--card); border:1px solid var(--border); border-radius:20px; padding:26px 26px;
+    box-shadow: inset 0 0 0 1px rgba(118,209,255,.05), 0 22px 55px rgba(0,0,0,.4);
     backdrop-filter:blur(10px);
   }
-
   p{margin:12px 0; font-size:1.07rem; line-height:1.75; color:#e4edff;}
   .muted{color:var(--muted);}
   ul{padding-left:24px; margin:12px 0 6px;}
   li{margin:6px 0;}
 
   /* QUOTE */
-  .quote{
-    margin:18px 0; padding:20px 22px; border-left:3px solid var(--gold);
-    background:linear-gradient(90deg, rgba(232,203,107,.18), transparent 60%);
-    border-radius:8px;
-  }
+  .quote{margin:18px 0; padding:20px 22px; border-left:3px solid var(--gold); background:linear-gradient(90deg, rgba(232,203,107,.18), transparent 60%); border-radius:8px;}
   .quote em{color:#fffdf4;}
 
   /* METRICS GRID */
   .metrics{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:12px;}
   .metric{
     background:linear-gradient(180deg, rgba(69,176,255,.1), rgba(69,176,255,.03));
-    border:1px solid #1a2638;
-    border-radius:16px; padding:14px 16px;
-    box-shadow:0 0 24px rgba(69,176,255,.05);
+    border:1px solid #1a2638; border-radius:16px; padding:14px 16px; box-shadow:0 0 24px rgba(69,176,255,.05);
   }
   .metric b{font-family:"Montserrat"; color:var(--blue-2);}
 
@@ -137,19 +109,13 @@
   thead th{
     font-family:"Montserrat"; text-align:left;
     background:linear-gradient(180deg, rgba(69,176,255,.25), rgba(69,176,255,.08));
-    color:#e9f7ff; padding:13px 16px; font-weight:800;
-    border-bottom:1px solid #22344d;
+    color:#e9f7ff; padding:13px 16px; font-weight:800; border-bottom:1px solid #22344d;
   }
   tbody td{padding:13px 16px; border-bottom:1px solid #171f2c;}
   tbody tr:nth-child(even){background:rgba(22,28,40,.55);}
 
   /* DIVIDER */
-  .divider{
-    height:1px;
-    background:linear-gradient(90deg, transparent, rgba(232,203,107,.8), transparent);
-    margin:26px 0;
-    filter:drop-shadow(0 0 10px var(--gold-glow));
-  }
+  .divider{height:1px; background:linear-gradient(90deg, transparent, rgba(232,203,107,.8), transparent); margin:26px 0; filter:drop-shadow(0 0 10px var(--gold-glow));}
 
   /* DOCTRINE */
   .doctrine{
@@ -158,36 +124,253 @@
       radial-gradient(600px 300px at 50% -20%, rgba(69,176,255,.22), transparent 70%),
       linear-gradient(180deg, rgba(14,18,26,.95), rgba(14,18,26,.95));
     border:1px solid #181f2e; border-radius:26px;
-    box-shadow:
-      inset 0 0 0 1px rgba(232,203,107,.08),
-      0 24px 65px rgba(0,0,0,.55);
+    box-shadow: inset 0 0 0 1px rgba(232,203,107,.08), 0 24px 65px rgba(0,0,0,.55);
   }
-  .doctrine h3{
-    font-family:"Montserrat"; font-weight:900; font-size:1.7rem;
-    margin:8px 0 0; color:var(--gold-2);
-    text-shadow:0 0 22px var(--gold-glow);
-  }
-
-  .label{
-    font-family:"Montserrat"; color:var(--muted);
-    text-transform:uppercase; letter-spacing:.18em;
-    font-weight:700; font-size:.8rem;
-  }
+  .doctrine h3{font-family:"Montserrat"; font-weight:900; font-size:1.7rem; margin:8px 0 0; color:var(--gold-2); text-shadow:0 0 22px var(--gold-glow);}
+  .label{font-family:"Montserrat"; color:var(--muted); text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:.8rem;}
 
   /* PRINT */
-  @page{size:Letter; margin:24mm 16mm;}
+  @page{size: Letter; margin: 24mm 16mm;}
   @media print{
-    body{background:#0a0c10!important;}
-    .cover{break-after:page;}
-    .section{break-inside:avoid;}
+    body{background:#0a0c10 !important;}
+    .cover{break-after: page;}
+    .section{break-inside: avoid;}
   }
 </style>
 </head>
 <body>
-  <!-- original content identical -->
   <div class="wrap">
-    <!-- all your existing HTML content from cover to mission -->
-    <!-- (unchanged text and structure) -->
+
+    <!-- COVER -->
+    <section class="cover">
+      <!-- gold sacred sigil -->
+      <svg class="sigil" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(400 400) rotate(90) scale(360)">
+            <stop offset="0%" stop-color="#f6e7b5"/>
+            <stop offset="60%" stop-color="#e8c35e"/>
+            <stop offset="100%" stop-color="#e8c35e" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <g stroke="url(#g1)" stroke-width="1.2">
+          <circle cx="400" cy="400" r="320"/>
+          <circle cx="400" cy="400" r="260"/>
+          <circle cx="400" cy="400" r="200"/>
+          <circle cx="400" cy="400" r="140"/>
+          <path d="M80 400h640M400 80v640M160 160l480 480M640 160 160 640"/>
+          <path d="M400 200l120 200H280l120-200Z"/>
+          <path d="M320 480h160l-80 120-80-120Z"/>
+        </g>
+      </svg>
+      <div class="title">
+        <div class="kicker">Part of the Discipline to Assets Master Framework</div>
+        <h1><span class="glyph">📘</span> THE SYSTEM BUILDER’S BLUEPRINT — STEP 0: REALITY <span class="muted">(MASTER EDITION)</span></h1>
+        <div class="subtitle">A cinematic, god-tier edition — obsidian, neon-blue, and gold.</div>
+        <div class="byline">Created by Emmanuel Dessallien</div>
+      </div>
+    </section>
+
+    <!-- FOREWORD -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>FOREWORD — THE PURPOSE OF THIS BLUEPRINT</h2></div>
+      <div class="panel">
+        <p>This document is the foundation of <b>Discipline to Assets</b> — a movement built to turn skill, time, and code into <b>self-operating, cash-producing systems.</b>  It isn’t about hype or quick wins.  It’s a <b>manual for transformation</b>: converting effort into equity and discipline into structure.  Every blueprint here is a piece of that larger architecture — where small automations become assets, and every operator evolves into an architect.  This is how <b>real discipline</b> turns into <b>real assets.</b></p>
+      </div>
+    </section>
+
+    <!-- WHY SMALL -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>WHY MOST OPERATORS STAY SMALL</h2></div>
+      <div class="panel">
+        <p>Most builders online fail not because they lack skill, but because their <b>structure collapses before their vision scales.</b></p>
+        <ul>
+          <li><b>No Compounding Attention</b> — random posting, no repeatable content flywheel. <span class="muted">→ <i>Average visibility:</i> &lt; 1,000 views/post</span></li>
+          <li><b>No Framed Offer</b> — unclear, unpriced, or unpositioned products. <span class="muted">→ <i>Conversion:</i> 0.5–1%</span></li>
+          <li><b>No Predictable System</b> — energy-based execution instead of process-based. <span class="muted">→ <i>Output curve:</i> inconsistent and unscalable.</span></li>
+        </ul>
+        <div class="quote"><em>Talent without structure burns out.  Structure without talent stagnates.  Discipline fuses both into growth.</em></div>
+      </div>
+    </section>
+
+    <!-- THE SHIFT -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>THE SHIFT — FROM OPERATOR TO ARCHITECT</h2></div>
+      <div class="panel">
+        <p>Your first <b>automated dollar</b> is your pivot from chaos to control.  That moment — when money moves through a mechanism you built — is your graduation from “freelancer” to “system builder.”</p>
+        <p>Every empire starts with a single repeatable transaction.</p>
+        <p>Each micro-system you create should drive one of the following:</p>
+        <ul>
+          <li><b>Attention Inflow</b> (people discover you)</li>
+          <li><b>Conversion Inflow</b> (people trust you)</li>
+          <li><b>Cash Inflow</b> (people pay you)</li>
+          <li><b>Time Inflow</b> (your system works while you rest)</li>
+        </ul>
+        <p>Stack these flows → <i>you stop running the business, the system runs it for you.</i></p>
+      </div>
+    </section>
+
+    <!-- STAGE 1 -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>STAGE 1 — SYSTEMS THAT SELL</h2></div>
+      <div class="panel">
+        <h3 class="label">⚙️ SYSTEM #1: AUTO-OFFER PAGE BUILDER</h3>
+        <p><b>Purpose:</b> Deploy a payment-ready offer in under 30 minutes.</p>
+        <p><b>Inputs</b><br>Stripe (payments)<br>Framer or Notion (free hosting)<br>Google Drive / Notion (content)<br>Optional domain (~$10/year)</p>
+        <p><b>Flow</b><br>1. Fill out the form (headline, description, image).<br>2. System generates hosted page via Framer API.<br>3. Stripe checkout integrated automatically.<br>4. Confirmation + receipt via Gmail API.</p>
+        <div class="metrics">
+          <div class="metric"><b>Setup time:</b> ~25 min</div>
+          <div class="metric"><b>Conversion:</b> 3–8%</div>
+          <div class="metric"><b>Launch revenue:</b> $200–$1,000</div>
+          <div class="metric"><b>Maintenance:</b> none</div>
+        </div>
+        <p><b>Example ROI</b><br>Solo creator: 15× $99 presales in 48h = $1,485 gross<br>Indie dev: sold $49 Chrome extension → $2,600 in 10 days</p>
+        <div class="divider"></div>
+
+        <h3 class="label">⚙️ SYSTEM #2: CONTENT → CLIENTS ENGINE</h3>
+        <p><b>Purpose:</b> Turn one long-form idea into five short posts that bring inbound leads.</p>
+        <p><b>Inputs</b><br>YouTube or Loom<br>OpenAI API (summarize + rewrite)<br>Zapier + Sheets (automation)<br>Social accounts (Twitter, Instagram, LinkedIn)</p>
+        <p><b>Flow</b><br>1. Upload 1 long video or idea.<br>2. GPT generates 5 posts (hooks + CTAs).<br>3. Zapier schedules daily posts.<br>4. All replies + DMs logged in one Sheet for follow-up.</p>
+        <div class="metrics">
+          <div class="metric"><b>Output:</b> +500%</div>
+          <div class="metric"><b>Leads:</b> +20–50/month</div>
+          <div class="metric"><b>Conversions:</b> 2–5 new clients</div>
+          <div class="metric"><b>Time saved:</b> 5 hrs/week</div>
+        </div>
+        <p><b>Example ROI</b><br>Freelancer: 3 clients × $600 = $1,800/mo<br>Editor: 1 viral clip → $1,200/mo retainer</p>
+        <div class="divider"></div>
+
+        <h3 class="label">⚙️ SYSTEM #3: OUTREACH LOOP 2.0</h3>
+        <p><b>Purpose:</b> Generate consistent leads for free.</p>
+        <p><b>Inputs</b><br>LinkedIn or Twitter<br>PhantomBuster or Python scraper<br>Gmail (for outreach)<br>Google Sheet (lead tracker)</p>
+        <p><b>Flow</b><br>1. Pull 200–500 prospects/week.<br>2. Personalize outreach using GPT.<br>3. Send 30–50 emails/day.<br>4. Log replies + follow-up → close via Calendly.</p>
+        <div class="metrics">
+          <div class="metric"><b>Setup:</b> 2 hrs</div>
+          <div class="metric"><b>Daily work:</b> &lt;15 min</div>
+          <div class="metric"><b>Response rate:</b> 8–15%</div>
+          <div class="metric"><b>Leads:</b> 100–200/mo</div>
+          <div class="metric"><b>Close rate:</b> 5–10%</div>
+          <div class="metric"><b>Deal value:</b> $300–$1,000</div>
+        </div>
+        <p><b>Example ROI</b><br>Automation freelancer: 6 projects × $500 = $3,000/mo<br>Small agency: $12,000 retainer in 45 days</p>
+      </div>
+    </section>
+
+    <!-- STAGE 2 -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>STAGE 2 — SYSTEMS THAT DELIVER THEMSELVES</h2></div>
+      <div class="panel">
+        <h3 class="label">⚙️ FULFILLMENT AUTOMATOR</h3>
+        <p><b>Purpose:</b> Deliver client work automatically and track progress.</p>
+        <p><b>Inputs</b><br>GitHub / Drive<br>Zapier + Gmail<br>Retool dashboard</p>
+        <p><b>Flow</b><br>1. Client payment triggers auto folder creation.<br>2. GitHub Actions manage version control.<br>3. Retool dashboard updates client + sends progress email.</p>
+        <div class="metrics">
+          <div class="metric"><b>Delivery time:</b> -70%</div>
+          <div class="metric"><b>Response time:</b> +40% faster</div>
+          <div class="metric"><b>Retention:</b> +25%</div>
+        </div>
+        <div class="divider"></div>
+
+        <h3 class="label">⚙️ RETENTION ENGINE</h3>
+        <p><b>Purpose:</b> Convert every client into recurring revenue.</p>
+        <p><b>Inputs</b><br>Stripe Subscriptions<br>ConvertKit follow-up<br>Retention dashboard</p>
+        <p><b>Flow</b><br>1. Delivery complete → automatic upsell email.<br>2. Stripe subscription auto-created.<br>3. Dashboard tracks client health.</p>
+        <div class="metrics">
+          <div class="metric"><b>Recurring rate:</b> +40%</div>
+          <div class="metric"><b>MRR per client:</b> +$200–$500</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW RETENTION WORKS -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>💳 HOW RETENTION SYSTEMS ACTUALLY WORK</h2></div>
+      <div class="panel">
+        <p>This is how a system turns from <i>service</i> → <i>subscription</i>:</p>
+        <p><b>1️⃣ Stripe Subscriptions</b><br>A recurring billing setup that charges clients automatically.<br><i>Example:</i><br> A designer offers $99/month maintenance. Stripe charges clients monthly — no invoices, no reminders.</p>
+        <p><b>2️⃣ ConvertKit Follow-Up</b><br>Automated communication system that builds loyalty.<br>Emails trigger automatically:<br>• “How’s your experience?”<br>• “Want ongoing support?”<br>• “New feature added for you.”</p>
+        <p><b>3️⃣ Retention Dashboard</b><br>Your command center.<br>A Notion/Sheet dashboard that tracks:<br>• Active clients<br>• Payment status<br>• Renewal date<br>• Lifetime value</p>
+        <p>Together:<br>→ Stripe bills<br>→ ConvertKit communicates<br>→ Dashboard monitors<br>= <b>Automated retention = recurring income.</b></p>
+      </div>
+    </section>
+
+    <!-- STAGE 3 TABLE -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>STAGE 3 — SCALING THROUGH SYSTEM REPLICATION</h2></div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Tier</th><th>Focus</th><th>Monthly Potential</th><th>Method</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Solo Builder</td><td>$200–$2k</td><td>Build + sell systems</td></tr>
+            <tr><td>2</td><td>Micro Agency</td><td>$5k–$20k</td><td>Stack systems + subcontract</td></tr>
+            <tr><td>3</td><td>SaaS Layer</td><td>$30k+</td><td>Package automation logic</td></tr>
+            <tr><td>4</td><td>Asset Fund</td><td>$100k+</td><td>License + reinvest systems</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="margin-top:12px">You move from <b>freelancer → engineer → entrepreneur → investor.</b> Each step = same skill, scaled discipline.</p>
+      </div>
+    </section>
+
+    <!-- ARCHITECTS -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>ARCHITECTS WHO MASTERED SYSTEMS</h2></div>
+      <div class="panel">
+        <p><b>🧱 Alex Hormozi — From Sales Calls to Systems</b><br>Alex started selling gym memberships 12 hours a day — pure grind. He mastered sales scripts, learned objections, tracked conversion rates. Then he saw the pattern: gym owners didn’t need ads — they needed <b>systems to sell memberships.</b><br><br>He packaged everything — scripts, funnels, follow-ups — into one deployable machine: <b>Gym Launch.</b> He stopped selling memberships; he sold the machine that sells memberships. That evolved into <i>Acquisition.com</i>, a company that builds and licenses business systems — a meta-system of systems.</p>
+        <div class="divider"></div>
+        <p><b>🧩 Sahil Bloom — The Content Engine</b><br>Sahil began posting manually on Twitter — zero automation. He tested hooks, times, and formats daily. Once he identified repeatable patterns, he built his <b>Content Flywheel</b>: Long-form → Short threads → Newsletter → Sponsors → Data feedback → Back to content. Today he has over a million followers, $50k+/month in sponsorships, and a system that runs his media empire on autopilot.</p>
+        <div class="divider"></div>
+        <p><b>⚙️ Dan Koe — The Creator Automator</b><br>Dan’s evolution came from integrating thinking and publishing. He created a process where one idea gets reformatted through AI into tweets, blogs, emails, and videos automatically. He uses Notion as a “content operating system.” His life became his system — ideas circulate continuously, feeding his audience, brand, and income.</p>
+        <div class="divider"></div>
+        <p><b>📘 Arvid Kahl — The Asset Author</b><br>Arvid built and sold SaaS, then turned process into product. He documented his knowledge, then systemized publishing. Every new book → builds audience → grows email list → fuels next book. A perpetual flywheel of intellectual equity.</p>
+        <div class="divider"></div>
+        <p><b>💻 Pieter Levels — The Solo Infrastructure</b><br>Pieter built 70+ micro-products alone — each automated end-to-end. Hosting (Vercel), payments (Stripe), data (Airtable). He removed himself from every system except creativity. Result: $3M+/year solo. His quote defines the path: <i>“Automate yourself out of everything except what you love.”</i></p>
+        <div class="divider"></div>
+        <p><b>🧠 Naval Ravikant — The Leverage Philosopher</b><br>Naval’s empire is invisible infrastructure. He combined 3 forms of leverage: Code → scales output; Media → scales communication; Capital → scales time. He built AngelList as a platform, became a brand via podcasts, and invested in scalable founders. Every move multiplies leverage. <i>“Learn to sell. Learn to build. Do both, and you’ll be unstoppable.”</i></p>
+        <div class="divider"></div>
+        <p><b>⚔️ Iman Gadzhi — The Agency Replicator</b><br>Iman systemized everything: lead generation, hiring, onboarding, and delivery. He documented his agency into frameworks — turning experience into product. His education brand runs like SaaS: CRMs, automated calls, pre-built dashboards. Now, his companies operate without him; the system sells itself.</p>
+        <div class="divider"></div>
+        <p><b>🧰 Indie Developers — The Quiet Operators</b><br>Tens of thousands of devs quietly earn $2k–$10k/month running micro-SaaS setups: Vercel (deploy) + Stripe (payments) + Notion (docs) + Twitter (marketing). No teams, no meetings — just automation, compounding.</p>
+      </div>
+    </section>
+
+    <!-- CORE PRINCIPLE -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>CORE PRINCIPLE</h2></div>
+      <div class="panel">
+        <div class="quote"><em><b>“Until you automate the first dollar, you’re still guessing.”</b></em></div>
+        <p>Every system in this blueprint exists to:</p>
+        <ul>
+          <li>Produce measurable outcomes (leads, cash, or time)</li>
+          <li>Be built for free</li>
+          <li>Scale itself once it works once</li>
+        </ul>
+        <p><b>Discipline builds the process.  Process builds the structure.  Structure becomes the asset.  Assets buy your freedom.</b></p>
+      </div>
+    </section>
+
+    <!-- NEXT BUILDS -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>NEXT BUILDS IN THE ECOSYSTEM</h2></div>
+      <div class="panel">
+        <p>🧩 <b>Content-to-Clients Engine (Pro)</b> — AI templates + rotation logic</p>
+        <p>💳 <b>Auto-Offer Builder (Pro)</b> — dynamic pricing + affiliate triggers</p>
+        <p>📬 <b>Outreach Loop (Pro)</b> — enriched lead scoring + auto-calendar</p>
+        <p>📊 <b>Fulfillment Tracker (Pro)</b> — client dashboard + task automations</p>
+        <p>💠 <b>Retention Engine (Pro)</b> — subscription CRM + billing automation</p>
+        <p class="muted">Each system expands your <i>Discipline to Assets</i> foundation — one layer at a time.</p>
+      </div>
+    </section>
+
+    <!-- MISSION -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>MISSION</h2></div>
+      <div class="panel doctrine">
+        <div class="label">We’re not teaching marketing.</div>
+        <h3>We’re engineering leverage.</h3>
+        <p style="max-width:720px"><i>Discipline to Assets</i> is a movement for those who build real, durable systems — operators who turn time into equity and equity into structure.  No hype. No luck. Just logic, compounding, and unbreakable systems.</p>
+        <div class="quote" style="max-width:800px"><em><b>“Discipline builds the structure.  The structure builds the assets.  The assets buy your freedom.”</b></em></div>
+      </div>
+    </section>
+
   </div>
 </body>
 </html>

@@ -359,46 +359,46 @@ function sampleColorMedianAtPx(pxX, pxY){
    Text extraction (CANVAS PX) + style
 ========================= */
 async function getPageTextItemsPx(){
-  const page=await pdfDoc.getPage(pageNum);
+  const page = await pdfDoc.getPage(pageNum);
   const tc = await page.getTextContent({
-  includeMarkedContent: true,
-  disableCombineTextItems: true
-});
-  const ctx=$('cv').getContext('2d', { willReadFrequently:true });
+    includeMarkedContent: true,
+    disableCombineTextItems: true
+  });
+  const ctx = $('cv').getContext('2d', { willReadFrequently: true });
+  const vp  = viewport; // current rendered viewport
 
-  return tc.items.map(it=>{
-    const tr=it.transform; // [a,b,c,d,e,f]
-    const a=tr[0], d=tr[3], e=tr[4], f=tr[5];
-    const sizePts=Math.max(Math.abs(a),Math.abs(d));
-    const widthPts=it.width;
-    const xPts=e;
-    const yTopPts = pageHeightPts - f - sizePts;
+  return tc.items.map(it => {
+    // Map text matrix -> viewport (canvas px)
+    const m = pdfjsLib.Util.transform(vp.transform, it.transform); // [a,b,c,d,e,f]
+    const sizePx = Math.hypot(m[2], m[3]);        // font height in px
+    const x      = m[4];                          // left (px)
+    const yBase  = m[5];                          // baseline (px)
+    const y      = yBase - sizePx;                // approx top (px)
+    const w      = it.width * vp.scale;           // width (px)
+    const h      = sizePx * 1.2;                  // generous box (px)
 
-    // px mapping
-    const x = xPts*pxPerPt;
-    const y = yTopPts*pxPerPt;
-    const w = widthPts*pxPerPt;
-    const h = sizePts*1.2*pxPerPt;
-    const sizePx = sizePts*pxPerPt;
+    // Color sample just below baseline (robust to anti-alias)
+    let colorHex = '#000000';
+    try {
+      const sx = Math.max(0, Math.round(x));
+      const sy = Math.max(0, Math.round(y + h * 0.7));
+      const sw = Math.min(3, Math.max(1, $('cv').width  - sx));
+      const sh = Math.min(3, Math.max(1, $('cv').height - sy));
+      const data = ctx.getImageData(sx, sy, sw, sh).data;
+      const rs = [], gs = [], bs = [];
+      for (let i=0;i<data.length;i+=4){ rs.push(data[i]); gs.push(data[i+1]); bs.push(data[i+2]); }
+      const r = med(rs), g = med(gs), b = med(bs);
+      colorHex = '#' + r.toString(16).padStart(2,'0')
+                     + g.toString(16).padStart(2,'0')
+                     + b.toString(16).padStart(2,'0');
+    } catch {}
 
-    // color sample just below baseline
-    let colorHex='#000000';
-    try{
-      const sx=Math.max(0,Math.round(x)), sy=Math.max(0,Math.round(y+h*0.7));
-      const sw=Math.min(3, Math.max(1, $('cv').width - sx)), sh=Math.min(3, Math.max(1, $('cv').height - sy));
-      const data=ctx.getImageData(sx,sy,sw,sh).data;
-      const rs=[],gs=[],bs=[];
-      for(let i=0;i<data.length;i+=4){rs.push(data[i]);gs.push(data[i+1]);bs.push(data[i+2]);}
-      const r=med(rs), g=med(gs), b=med(bs);
-      colorHex='#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');
-    }catch{}
-
-    const fontName=it.fontName||'Times-Roman';
-    const flags=(it.fontDescriptor && typeof it.fontDescriptor.flags==='number')?it.fontDescriptor.flags:0;
+    const fontName = it.fontName || 'Times-Roman';
+    const flags    = (it.fontDescriptor && typeof it.fontDescriptor.flags === 'number') ? it.fontDescriptor.flags : 0;
     const fauxBold = (flags & 4) ? 1 : (/bold|semi|demi|medium/i.test(fontName) ? 1 : 0);
-    const skewDeg = (flags & 2) ? 12 : (/ital|obl/i.test(fontName) ? 12 : 0);
+    const skewDeg  = (flags & 2) ? 12 : (/ital|obl/i.test(fontName) ? 12 : 0);
 
-    return {str:it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg};
+    return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });
 }
 
@@ -926,23 +926,91 @@ $('addLine').onclick=()=>{
 /* =========================
    Apply => /api/edit
 ========================= */
-$('apply').onclick=async()=>{
-  try{
-    if(!fileB64){setStat("Load a PDF first.","err");return;}
-    if(items.length===0){setStat("No items queued.","err");return;}
+$('apply').onclick = async () => {
+  try {
+    if (!fileB64) {
+      setStat("Load a PDF first.", "err");
+      return;
+    }
+    if (items.length === 0) {
+      setStat("No items queued.", "err");
+      return;
+    }
+
     setStat("Generating…");
-    const edits=items.map(it=>{
-      const [r,g,b]=hexToRgb01(it.colorHex||'#000000');
-      if(it.type==='text'){return{type:'text',page:it.page,x:it.x,y:it.y,width:it.width,text:it.text,font:it.font,size:it.size,color:[r,g,b],lineHeight:it.lineHeight||Math.round(it.size*1.35),fauxBold:it.fauxBold||0,skewDeg:it.skewDeg||0,tracking:it.tracking||0};}
-      return{type:'line',page:it.page,x:it.x,y:it.y,width:it.width,thick:it.thick,color:[r,g,b]};
+
+    // get current page height in points for Y flip
+    const page = await pdfDoc.getPage(pageNum);
+    const pageHeightPts = baseViewport ? baseViewport.height : page.view[3];
+
+    // flip Y axis so text renders at correct position in pdf-lib
+    const edits = items.map(it => {
+      const [r, g, b] = hexToRgb01(it.colorHex || '#000000');
+      const yFromBottom = pageHeightPts - it.y; // convert from top origin to bottom origin
+
+      if (it.type === 'text') {
+        return {
+          type: 'text',
+          page: it.page,
+          x: it.x,
+          y: yFromBottom,
+          width: it.width,
+          text: it.text,
+          font: it.font,
+          size: it.size,
+          color: [r, g, b],
+          lineHeight: it.lineHeight || Math.round(it.size * 1.35),
+          fauxBold: it.fauxBold || 0,
+          skewDeg: it.skewDeg || 0,
+          tracking: it.tracking || 0
+        };
+      } else {
+        return {
+          type: 'line',
+          page: it.page,
+          x: it.x,
+          y: yFromBottom,
+          width: it.width,
+          thick: it.thick,
+          color: [r, g, b]
+        };
+      }
     });
-    const r=await fetch(API_EDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:fileB64,edits})});
-    if(!r.ok){const t=await r.text();throw new Error(t||r.statusText);}
-    const {pdf}=await r.json();
-    const blob=new Blob([Uint8Array.from(atob(pdf),c=>c.charCodeAt(0))],{type:'application/pdf'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='PDF_Forge_Output.pdf'; a.click();
-    setStat("Done ✓ File downloaded.","ok");
-  }catch(e){console.error(e);setStat("Error: "+e.message,"err");}
+
+    // safety clamp (prevents drawing outside page)
+    for (const e of edits) {
+      if (e.y < 0) e.y = 0;
+      if (e.y > pageHeightPts) e.y = pageHeightPts;
+    }
+
+    // send to backend
+    const r = await fetch(API_EDIT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: fileB64, edits })
+    });
+
+    if (!r.ok) {
+      const t = await r.text();
+      throw new Error(t || r.statusText);
+    }
+
+    const { pdf } = await r.json();
+    const blob = new Blob(
+      [Uint8Array.from(atob(pdf), c => c.charCodeAt(0))],
+      { type: 'application/pdf' }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'PDF_Forge_Output.pdf';
+    a.click();
+
+    setStat("Done ✓ File downloaded.", "ok");
+  } catch (e) {
+    console.error(e);
+    setStat("Error: " + e.message, "err");
+  }
 };
 
 /* =========================

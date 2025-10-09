@@ -470,20 +470,10 @@ if (!tc.items || tc.items.length < 10) {
     const w      = it.width * vp.scale;           // width (px)
     const h      = sizePx * 1.2;                  // generous box (px)
 
-    // Color sample just below baseline (robust to anti-alias)
+    // Color sample using the robust median function
     let colorHex = '#000000';
     try {
-      const sx = Math.max(0, Math.round(x));
-      const sy = Math.max(0, Math.round(y + h * 0.7));
-      const sw = Math.min(3, Math.max(1, $('cv').width  - sx));
-      const sh = Math.min(3, Math.max(1, $('cv').height - sy));
-      const data = ctx.getImageData(sx, sy, sw, sh).data;
-      const rs = [], gs = [], bs = [];
-      for (let i=0;i<data.length;i+=4){ rs.push(data[i]); gs.push(data[i+1]); bs.push(data[i+2]); }
-      const r = med(rs), g = med(gs), b = med(bs);
-      colorHex = '#' + r.toString(16).padStart(2,'0')
-                     + g.toString(16).padStart(2,'0')
-                     + b.toString(16).padStart(2,'0');
+      colorHex = sampleColorMedianAtPx(x + w*0.5, y + h*0.7);
     } catch {}
 
     const fontName = it.fontName || 'Times-Roman';
@@ -535,7 +525,8 @@ function buildLinesPx(itemsPx){
     }
     L.text=text.trimEnd();
     L.xMin=left; L.xMax=right; L.top=top; L.bottom=bottom;
-    L.sizePx=med(sizes); L.font=mode(fonts)||'Times-Roman'; L.colorHex=mode(colors)||'#000000';
+    L.sizePx=med(sizes); L.font=mode(fonts)||'Times-Roman'; 
+    L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
     L.fauxBold=med(bolds)>=1?1:0; L.skewDeg=med(ital)>=6?12:0;
   }
   // sort top-to-bottom
@@ -547,7 +538,7 @@ function buildColumns(lines){
   if(!lines.length) return [];
   const lefts=lines.map(L=>L.xMin).sort((a,b)=>a-b);
   const leftGaps=lefts.slice(1).map((v,i)=>v-lefts[i]);
-  const colGap=Math.max(16, (leftGaps.length?med(leftGaps):20) * 1.25);
+  const colGap=Math.max(30, (leftGaps.length?med(leftGaps):20) * 2.5);
 
   const cols=[];
   for(const L of lines){
@@ -588,8 +579,10 @@ function buildBlocks(cols){
     b.sizePx=Math.round(med(b.sizes));
     b.font=mode(b.fonts)||b.font;
     b.colorHex=mode(b.colors)||b.colorHex;
-    b.fauxBold=(b.bolds.filter(x=>x>=1).length > b.bolds.length*0.3) ? 1 : 0;
-    b.skewDeg=(b.ital.filter(x=>x>=6).length > b.ital.length*0.3) ? 12 : 0;
+    const boldCount = b.bolds.filter(x=>x>=1).length;
+    const italCount = b.ital.filter(x=>x>=6).length;
+    b.fauxBold=(boldCount > b.bolds.length*0.5) ? 1 : 0;
+    b.skewDeg=(italCount > b.ital.length*0.5) ? 12 : 0;
   }
   return blocks;
 }

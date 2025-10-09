@@ -511,50 +511,51 @@ if (!tc.items || tc.items.length < 10) {
     const fontName = it.fontName || 'Times-Roman';
     
     // Check transform matrix for skew (italic detection)
-    const hasSkew = Math.abs(m[2]) > 0.01; // detect even slight skew
-    
-    // Pixel-based bold detection - sample multiple points
-    let isBoldByPixels = false;
+    // Italic detection: measure actual pixel slant
+    let isItalicByPixels = false;
     try {
       const cv = $('cv');
       const ctx = cv.getContext('2d', { willReadFrequently: true });
       
-      // Sample 3 horizontal lines through the glyph
-      const samplePoints = [
-        { x: x + w * 0.35, y: yBase - sizePx * 0.25 }, // upper stroke
-        { x: x + w * 0.35, y: yBase - sizePx * 0.50 }, // middle stroke  
-        { x: x + w * 0.35, y: yBase - sizePx * 0.75 }  // lower stroke
-      ];
+      // Sample vertical line of pixels on left and right edges
+      const leftX = Math.round(x + w * 0.15);
+      const rightX = Math.round(x + w * 0.85);
+      const topY = Math.round(y + h * 0.2);
+      const botY = Math.round(y + h * 0.8);
       
-      let totalDark = 0;
-      let totalSamples = 0;
-      const sampleWidth = Math.min(12, Math.ceil(sizePx * 0.8));
-      
-      for (const point of samplePoints) {
-        for (let dx = 0; dx < sampleWidth; dx++) {
-          const px = Math.round(point.x + dx);
-          const py = Math.round(point.y);
-          if (px < 0 || py < 0 || px >= cv.width || py >= cv.height) continue;
-          
-          const d = ctx.getImageData(px, py, 1, 1).data;
-          const lum = 0.2126*d[0] + 0.7152*d[1] + 0.0722*d[2];
-          if (lum < 120) totalDark++;
-          totalSamples++;
+      let leftDark = 0, rightDark = 0, samples = 0;
+      for (let dy = 0; dy < Math.round(h * 0.6); dy += 2) {
+        const py = topY + dy;
+        if (py >= cv.height) break;
+        
+        // Left edge
+        if (leftX >= 0 && leftX < cv.width) {
+          const dL = ctx.getImageData(leftX, py, 1, 1).data;
+          const lumL = 0.2126*dL[0] + 0.7152*dL[1] + 0.0722*dL[2];
+          if (lumL < 120) leftDark++;
         }
+        
+        // Right edge
+        if (rightX >= 0 && rightX < cv.width) {
+          const dR = ctx.getImageData(rightX, py, 1, 1).data;
+          const lumR = 0.2126*dR[0] + 0.7152*dR[1] + 0.0722*dR[2];
+          if (lumR < 120) rightDark++;
+        }
+        samples++;
       }
       
-      const darkRatio = totalSamples > 0 ? totalDark / totalSamples : 0;
-      isBoldByPixels = darkRatio > 0.20; // >20% dark = bold
+      // If right edge darker than left = slanted right (italic)
+      const slantRatio = samples > 0 ? (rightDark - leftDark) / samples : 0;
+      isItalicByPixels = slantRatio > 0.15; // 15% more ink on right = italic
       
-      if (it.str.includes('Takeaway') || it.str.includes('Seneca') || it.str.includes('Brevity') || it.str.includes('When you speak')) {
-  console.log(`DEBUG Bold "${it.str.substring(0,40)}": totalDark=${totalDark}, totalSamples=${totalSamples}, darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);
-}
+      if (it.str.includes('Associate') || it.str.includes('likely')) {
+        console.log(`ITALIC PIXEL "${it.str}": leftDark=${leftDark}, rightDark=${rightDark}, samples=${samples}, slantRatio=${slantRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
+      }
     } catch (e) {
-      console.error('Bold detection error:', e);
+      console.error('Italic detection error:', e);
     }
     
-    const fauxBold = isBoldByPixels ? 1 : 0;
-    const skewDeg  = hasSkew ? 12 : 0;
+    const skewDeg = isItalicByPixels ? 12 : 0;
     
     // Debug italic detection
     if (it.str.includes('Associate') || it.str.includes('likely')) {
@@ -612,15 +613,12 @@ function buildLinesPx(itemsPx){
     L.sizePx=Math.round(med(sizes)); 
     L.font=mode(fonts)||'Times-Roman'; 
     L.colorHex=mode(colors.filter(c=>c!=='#ffffff'))||'#000000';
-    const boldCount = bolds.filter(x=>x>=1).length;
-    const italCount = ital.filter(x=>x>=6).length;
+    // Use the MOST COMMON style in the line (mode)
+    const modeBold = mode(bolds);
+    const modeItalic = mode(ital);
     
-    // Use majority vote for line-level styling
-    const avgBold = bolds.reduce((a,b)=>a+b, 0) / bolds.length;
-    const avgItalic = ital.reduce((a,b)=>a+b, 0) / ital.length;
-    
-    L.fauxBold = boldCount > L.segs.length * 0.60 ? 1 : 0;  // 60% of chars must be bold
-    L.skewDeg = italCount > L.segs.length * 0.50 ? 12 : 0;  // 50% of chars must be italic
+    L.fauxBold = modeBold >= 1 ? 1 : 0;
+    L.skewDeg = modeItalic >= 6 ? 12 : 0;
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }
   // sort top-to-bottom

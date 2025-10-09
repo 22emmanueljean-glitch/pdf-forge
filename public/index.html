@@ -547,7 +547,7 @@ function buildColumns(lines){
   if(!lines.length) return [];
   const lefts=lines.map(L=>L.xMin).sort((a,b)=>a-b);
   const leftGaps=lefts.slice(1).map((v,i)=>v-lefts[i]);
-  const colGap=Math.max(30, (leftGaps.length?med(leftGaps):20) * 2.5);
+  const colGap=Math.max(16, (leftGaps.length?med(leftGaps):20) * 1.25);
 
   const cols=[];
   for(const L of lines){
@@ -588,10 +588,8 @@ function buildBlocks(cols){
     b.sizePx=Math.round(med(b.sizes));
     b.font=mode(b.fonts)||b.font;
     b.colorHex=mode(b.colors)||b.colorHex;
-    const boldCount = b.bolds.filter(x=>x>=1).length;
-    const italCount = b.ital.filter(x=>x>=6).length;
-    b.fauxBold=(boldCount > b.bolds.length*0.5) ? 1 : 0;
-    b.skewDeg=(italCount > b.ital.length*0.5) ? 12 : 0;
+    b.fauxBold=(b.bolds.filter(x=>x>=1).length > b.bolds.length*0.3) ? 1 : 0;
+    b.skewDeg=(b.ital.filter(x=>x>=6).length > b.ital.length*0.3) ? 12 : 0;
   }
   return blocks;
 }

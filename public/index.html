@@ -511,7 +511,7 @@ if (!tc.items || tc.items.length < 10) {
     const fontName = it.fontName || 'Times-Roman';
     
     // Check transform matrix for skew (italic detection)
-    const hasSkew = Math.abs(m[2]) > 0.05;
+    const hasSkew = Math.abs(m[2]) > 0.01; // detect even slight skew
     
     // Pixel-based bold detection - sample multiple points
     let isBoldByPixels = false;
@@ -619,8 +619,8 @@ function buildLinesPx(itemsPx){
     const avgBold = bolds.reduce((a,b)=>a+b, 0) / bolds.length;
     const avgItalic = ital.reduce((a,b)=>a+b, 0) / ital.length;
     
-    L.fauxBold = boldCount > L.segs.length * 0.4 ? 1 : 0; 
-    L.skewDeg = italCount > L.segs.length * 0.3 ? 12 : 0;
+    L.fauxBold = boldCount > L.segs.length * 0.60 ? 1 : 0;  // 60% of chars must be bold
+    L.skewDeg = italCount > L.segs.length * 0.50 ? 12 : 0;  // 50% of chars must be italic
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);
   }
   // sort top-to-bottom

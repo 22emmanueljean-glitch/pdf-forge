@@ -549,12 +549,13 @@ if (!tc.items || tc.items.length < 10) {
       isItalicByPixels = slantRatio > 0.15; // 15% more ink on right = italic
       
     } catch (e) {
-      console.error('Italic detection error:', e);
-    }
-    
-    const skewDeg = isItalicByPixels ? 12 : 0;
+    console.error('Italic detection error:', e);
+  }
+  
+  const fauxBold = isBoldByPixels ? 1 : 0;
+  const skewDeg = isItalicByPixels ? 12 : 0;
 
-    return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
+  return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });
 }
 

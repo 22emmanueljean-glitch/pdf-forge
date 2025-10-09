@@ -360,12 +360,29 @@ function sampleColorMedianAtPx(pxX, pxY){
 ========================= */
 async function getPageTextItemsPx(){
   const page = await pdfDoc.getPage(pageNum);
-  const tc = await page.getTextContent({
-    includeMarkedContent: true,
-    disableCombineTextItems: true
-  });
+  let tc;
+  try {
+    tc = await page.getTextContent({
+      includeMarkedContent: true,
+      disableCombineTextItems: true
+    });
+  } catch (err) {
+    console.warn('⚠️ pdf.js text extraction failed, falling back to vector OCR.', err);
+    tc = { items: [] };
+  }
+
   const ctx = $('cv').getContext('2d', { willReadFrequently: true });
   const vp  = viewport; // current rendered viewport
+
+  // Fallback when PDF.js finds almost nothing
+  if (!tc.items || tc.items.length < 3) {
+    console.warn('⚠️ Low text density detected. Running vectorTextFallback...');
+    const vec = await vectorTextFallback(page, vp, ctx);
+    if (vec && vec.length) {
+      tc.items = tc.items.concat(vec);
+      console.info(`✅ Recovered ${vec.length} vector-text segments.`);
+    }
+  }
 
   return tc.items.map(it => {
     // Map text matrix -> viewport (canvas px)
@@ -1019,6 +1036,45 @@ $('apply').onclick = async () => {
 $('quickRed').onclick=()=>{$('color').value='#c62828';updateSelectedFromSidebar();};
 $('quickBlue').onclick=()=>{$('color').value='#1565c0';updateSelectedFromSidebar();};
 $('quickBody').onclick=()=>{$('color').value='#000000';updateSelectedFromSidebar();};
+/* =========================
+   Vector-based text fallback (pseudo OCR)
+========================= */
+async function vectorTextFallback(page, viewport, ctx) {
+  try {
+    const cv = $('cv');
+    const { width, height } = cv;
+    const data = ctx.getImageData(0, 0, width, height).data;
+    const segments = [];
+    const step = 12; // sampling step in pixels
+
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const i = (y * width + x) * 4;
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (lum < 50) { // very dark pixel cluster → assume vector glyph
+          segments.push({
+            str: '█',
+            x,
+            y,
+            w: step,
+            h: step,
+            fontName: 'Helvetica-Bold',
+            colorHex: '#000000',
+            fauxBold: 1,
+            skewDeg: 0,
+            sizePx: 10
+          });
+        }
+      }
+    }
+
+    return segments.length ? segments : [];
+  } catch (err) {
+    console.error('vectorTextFallback error:', err);
+    return [];
+  }
+}
 
 </script>
 </body>

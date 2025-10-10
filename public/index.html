@@ -586,6 +586,9 @@ try {
       // If right edge darker than left = slanted right (italic)
       const slantRatio = samples > 0 ? (rightDark - leftDark) / samples : 0;
       isItalicByPixels = slantRatio > 0.35; // 35% slant = italic (stricter than before)
+      if (it.str.includes('Associate') || it.str.includes('Brevity') || it.str.includes('mind')) {
+  console.log(`ITALIC DETECT "${it.str}": slantRatio=${slantRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
+}
       
     } catch (e) {
     console.error('Italic detection error:', e);

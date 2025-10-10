@@ -575,7 +575,7 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
   
   if (topY >= 0 && topY < cv.height) {
     const dTop = ctx.getImageData(px, topY, 1, 1).data;
-    const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dBot[2];
+    const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dTop[2];
     if (lumTop < topMinLum) { topMinLum = lumTop; topDarkX = px; }
   }
   

@@ -564,7 +564,9 @@ try {
       // Find darkest pixel (text) at top and bottom rows
       let topDarkX = -1, botDarkX = -1;
       const searchWidth = Math.min(Math.round(w * 0.8), 20);
-      
+      if (it.str.includes('Associate')) {
+  console.log(`ITALIC SETUP: centerX=${centerX}, topY=${topY}, botY=${botY}, searchWidth=${searchWidth}, w=${w}, h=${h}`);
+}
       for (let dx = -searchWidth; dx <= searchWidth; dx++) {
         const px = centerX + dx;
         if (px < 0 || px >= cv.width) continue;

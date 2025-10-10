@@ -1,121 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ATTENTION ECONOMY — GRAVITY OF WEALTH — COMPOUNDING TIME</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>⚡ ATTENTION ECONOMY — A Doctrine for Builders</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg1:#070c14; --bg2:#13243c;
-  --gold:#e9cd7a; --aqua:#7de7ff; --indigo:#8aa6ff;
-  --ink:#f2f6ff; --muted:#8ba0b8;
-  --glow-gold:0 0 24px rgba(233,205,122,.25);
-  --glow-blue:0 0 30px rgba(125,231,255,.25);
+:root{
+  --bg:#090f15;--bg2:#0b121a;--gold:#e9cd7a;--aqua:#7de7ff;
+  --ink:#f4f8ff;--muted:#8fa2ba;--panel:#0f1823;--border:#1e2c40;
+  --g-gold:rgba(247,236,191,.3);--g-blue:rgba(158,224,255,.3);
 }
-body {
-  margin:0;
-  font-family:"Lora", serif;
-  color:var(--ink);
-  background:linear-gradient(180deg,var(--bg1),var(--bg2));
-  background-attachment:fixed;
-  -webkit-font-smoothing:antialiased;
-}
-.container {max-width:960px;margin:auto;padding:80px 40px;}
-h1,h2,h3{font-family:"Montserrat",sans-serif;font-weight:900;letter-spacing:.5px;margin:0;}
-.title{
-  text-align:center;
-  font-size:3rem;
+html,body{margin:0;height:100%;color:var(--ink);
+  background:radial-gradient(1600px 900px at 50% -10%,#18283d 0%,var(--bg) 60%),
+             linear-gradient(180deg,var(--bg2),var(--bg));
+  font-family:"Lora",serif;-webkit-font-smoothing:antialiased;}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.1;
+  background-image:linear-gradient(transparent 31px,#111a27 32px),
+                    linear-gradient(90deg,transparent 31px,#111a27 32px);
+  background-size:32px 32px;mix-blend-mode:overlay;}
+.wrap{max-width:1180px;margin:auto;padding:100px 40px 140px;position:relative;}
+section{margin:100px 0;}
+.panel{
+  background:linear-gradient(180deg,#0d1521 0%,#0b111a 100%);
+  border:1px solid var(--border);border-radius:32px;padding:46px;
+  box-shadow:0 40px 100px rgba(0,0,0,.6),0 0 80px rgba(158,224,255,.08);
+  backdrop-filter:blur(8px);}
+h1,h2{font-family:"Montserrat",sans-serif;text-transform:uppercase;}
+h1{
+  text-align:center;font-size:4rem;font-weight:900;margin:0 0 1rem;
   background:linear-gradient(90deg,var(--gold),var(--aqua));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  text-shadow:0 0 20px rgba(255,255,255,.15);
-}
-.subtitle{
-  text-align:center;margin-top:10px;font-weight:700;font-size:1.1rem;
-  color:var(--ink);text-transform:uppercase;letter-spacing:.2em;
-}
-.section{
-  margin:100px 0;position:relative;
-}
-.section::before{
-  content:"";position:absolute;top:-40px;left:50%;transform:translateX(-50%);
-  width:160px;height:5px;border-radius:999px;
-  background:linear-gradient(90deg,transparent,var(--gold),var(--aqua),transparent);
-  box-shadow:var(--glow-gold),var(--glow-blue);
-}
-.section h2{
-  font-size:2rem;
-  background:linear-gradient(90deg,var(--aqua),var(--indigo));
+  text-shadow:0 0 30px var(--g-blue);}
+.subtitle{text-align:center;font-family:"Montserrat";color:var(--muted);
+  letter-spacing:.2em;margin-bottom:60px;}
+h2{
+  text-align:center;font-size:2.4rem;font-weight:800;margin:0 0 2rem;
+  background:linear-gradient(90deg,var(--aqua),var(--gold));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  margin-bottom:18px;text-align:center;
-}
-.section p{
-  font-size:1.2rem;line-height:1.8;color:var(--ink);
-  text-align:justify;margin:12px 0;
-}
-.quote{
-  margin:100px auto;text-align:center;
-  font-style:italic;font-size:1.2rem;color:var(--gold);
-  text-shadow:0 0 20px rgba(233,205,122,.25);
-}
-footer{
-  text-align:center;margin-top:120px;font-size:.9rem;color:var(--muted);
-}
+  text-shadow:0 0 18px var(--g-gold);}
+p{font-size:1.1rem;line-height:1.8;margin:12px 0;color:var(--ink);}
+b{color:var(--gold);}
+ul{padding-left:20px;}
+li{margin:6px 0;}
+hr{height:1px;border:none;margin:60px auto;max-width:600px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.quote{font-style:italic;text-align:center;color:var(--aqua);
+  margin:40px auto;font-size:1.1rem;max-width:720px;}
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="container">
-  <h1 class="title">ATTENTION ECONOMY</h1>
-  <div class="subtitle">GRAVITY OF WEALTH — COMPOUNDING TIME</div>
-  <div style="text-align:center;margin-top:20px;font-weight:600;">by Emmanuel Dessallien</div>
-  <div style="text-align:center;color:var(--muted);margin-top:6px;">Part of the Discipline → Assets Master Framework</div>
+<section class="cover">
+  <h1>⚡ ATTENTION ECONOMY</h1>
+  <div class="subtitle">A doctrine for builders who convert focus into force</div>
+</section>
 
-  <div class="section">
-    <h2>I. ATTENTION IS ENERGY</h2>
-    <p>Attention is stored energy. Where focus goes, motion begins. Every glance is a micro-transaction of power. Those who learn to gather, store, and redirect it become magnetic. They don’t chase — they bend space around themselves.</p>
-  </div>
+<section class="panel">
+<h2>I. PRINCIPLE ONE — ATTENTION IS ENERGY</h2>
+<p>Attention is stored energy. Where focus goes, motion begins. Every scroll, click, or glance is a <b>micro-transaction of power</b>.</p>
+<p>The ones who learn to <b>gather, store, and redirect attention</b> become magnetic. They don’t chase — they bend space around themselves.</p>
+</section>
 
-  <div class="section">
-    <h2>II. PLATFORM PHYSICS — MASS, GRAVITY, ORBIT</h2>
-    <p>Each platform is an orbit. Each message has mass. Each audience forms gravity. Mass = clarity × conviction × consistency. Gravity = repetition that bends algorithms. Orbit = community that stays near your signal.</p>
-  </div>
+<section class="panel">
+<h2>II. PLATFORM PHYSICS — MASS, GRAVITY, ORBIT</h2>
+<p>Every platform is an <b>orbit</b>. Every message has <b>mass</b>. Every audience forms <b>gravity</b>.</p>
+<ul>
+<li><b>Mass</b> = clarity × conviction × consistency</li>
+<li><b>Gravity</b> = repetition that bends algorithms</li>
+<li><b>Orbit</b> = community that stays near your signal</li>
+</ul>
+<p>When your mass increases (through truth and precision), your orbit expands. The algorithm simply measures <b>force</b> — not fame.</p>
+</section>
 
-  <div class="section">
-    <h2>III. ATTENTION ARBITRAGE</h2>
-    <p>Markets misprice attention daily. Find where it’s cheap and where trust is expensive. Acquire fast attention, transfer it to depth, then monetize trust. The spread is your margin.</p>
-  </div>
+<section class="panel">
+<h2>III. ATTENTION ARBITRAGE</h2>
+<p>Markets misprice attention daily. Your leverage is spotting <b>where attention is cheap</b> and <b>where trust is expensive</b>.</p>
+<ol>
+<li>Acquire attention where content spreads fast (short-form).</li>
+<li>Transfer it where relationship deepens (long-form, community).</li>
+<li>Monetize where decision happens (offer, product, or call).</li>
+</ol>
+<p>The spread between <i>cheap attention</i> and <i>expensive trust</i> — that’s your margin.</p>
+</section>
 
-  <div class="section">
-    <h2>IV. THE FUNCTION OF MEDIA</h2>
-    <p>All systems — SaaS, courses, or services — sell outcomes. Without attention, they’re empty. Operating as media means owning your distribution and compounding trust.</p>
-  </div>
+<section class="panel">
+<h2>IV. THE FUNCTION OF MEDIA</h2>
+<p>All systems — SaaS, courses, products, services — exist to <b>sell outcomes</b>. They’re monetization containers for trust. Without attention, they’re empty code and design.</p>
+<p>Operating as <b>media</b> means:</p>
+<ul>
+<li>You create signal, not noise.</li>
+<li>You design trust loops, not ads.</li>
+<li>You compound visibility until your market orbits you.</li>
+</ul>
+<p>You stop fighting for reach — you <b>own distribution</b>.</p>
+</section>
 
-  <div class="section">
-    <h2>V. THE FLYWHEEL OF COMPOUND VISIBILITY</h2>
-    <p>Signal attracts. Trust retains. Conversion monetizes. Reinvestment amplifies. Treat attention as capital; compound it through creation, teaching, and transformation.</p>
-  </div>
+<section class="panel">
+<h2>V. THE FLYWHEEL OF COMPOUND VISIBILITY</h2>
+<ol>
+<li><b>Signal</b> → attracts.</li>
+<li><b>Trust</b> → retains.</li>
+<li><b>Conversion</b> → monetizes.</li>
+<li><b>Reinvestment</b> → amplifies.</li>
+</ol>
+<p>The flywheel spins when you treat attention as <b>capital</b> — not dopamine. It compounds when your intent stays pure: create, teach, transform.</p>
+</section>
 
-  <div class="section">
-    <h2>VI. ENERGY FLOW</h2>
-    <p>Energy, Signal, and Trust move every market. Energy starts the wave. Signal directs it. Trust locks it into orbit. Lose one, and gravity breaks.</p>
-  </div>
+<section class="panel">
+<h2>VI. ENERGY FLOW</h2>
+<p>There are only three things that move markets:</p>
+<ul>
+<li><b>Energy</b> — emotion and authenticity.</li>
+<li><b>Signal</b> — clarity of value.</li>
+<li><b>Trust</b> — duration of belief.</li>
+</ul>
+<p>Energy starts the wave. Signal directs it. Trust locks it into orbit. Lose one, and gravity breaks.</p>
+</section>
 
-  <div class="section">
-    <h2>VII. FROM SELLING PRODUCTS TO CREATING MARKETS</h2>
-    <p>The old game: push product, buy traffic. The new game: own narrative, attract gravity. When people follow your philosophy, not your offer, you become irreplaceable. Markets arise from shared belief, not price.</p>
-  </div>
+<section class="panel">
+<h2>VII. FROM SELLING PRODUCTS TO CREATING MARKETS</h2>
+<p>The old game: push product, buy traffic. The new game: <b>own narrative, attract gravity</b>.</p>
+<p>When people follow your philosophy, not your offer, you become irreplaceable. Markets are born from <b>shared belief</b> — not price.</p>
+<p>Attention turns to culture. Culture turns to capital. Capital funds expansion. That’s how builders create worlds.</p>
+</section>
 
-  <div class="section">
-    <h2>VIII. CLOSING DOCTRINE</h2>
-    <p>The attention economy is not about virality. It’s about sustained energy that compounds into trust, wealth, and impact.</p>
-  </div>
+<section class="panel">
+<h2>VIII. CLOSING</h2>
+<p>The attention economy isn’t about virality. It’s about <b>frequency and force</b> — sustained energy that compounds into trust, wealth, and impact.</p>
+<p>The mission isn’t to be seen. It’s to <b>reshape the field</b> so others rise inside your orbit.</p>
+<div class="quote">Attention is not something you get. It’s something you earn — by carrying meaning long enough to bend reality.</div>
+</section>
 
-  <div class="quote">“Attention is not something you get. It’s something you earn — by carrying meaning long enough to bend reality.”</div>
-
-  <footer>Discipline → Assets Master Framework © Emmanuel Dessallien</footer>
 </div>
-
 </body>
 </html>

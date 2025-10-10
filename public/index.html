@@ -651,6 +651,9 @@ const boldCount = bolds.filter(b => b >= 1).length;
 const italCount = ital.filter(i => i >= 6).length;
 
 L.fauxBold = boldCount >= bolds.length * 0.5 ? 1 : 0; // 50% or more = bold
+if (L.text.includes('Seneca') || L.text.includes('Takeaway')) {
+  console.log(`LINE AGGREGATION "${L.text.substring(0,20)}": bolds=${JSON.stringify(bolds)}, boldCount=${boldCount}/${bolds.length}, result=${L.fauxBold}`);
+}
 L.skewDeg = italCount >= ital.length * 0.5 ? 12 : 0;   // 50% or more = italic
 
     console.log(`Line: "${L.text.substring(0,30)}" | Color: ${L.colorHex} | Bold: ${L.fauxBold} | Italic: ${L.skewDeg} | Font: ${L.font}`);

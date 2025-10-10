@@ -590,7 +590,7 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
       if (topDarkX !== -1 && botDarkX !== -1) {
         const shift = botDarkX - topDarkX;
         const shiftRatio = Math.abs(shift) / h;
-        isItalicByPixels = shiftRatio > 0.30;
+        isItalicByPixels = (shiftRatio > 0.05 && shiftRatio < 1.5);
         
         if (it.str.includes('Associate') || it.str.includes('Brevity') || it.str.includes('mind')) {
           console.log(`ITALIC DETECT "${it.str.substring(0,30)}": shift=${shift}px, ratio=${shiftRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);

@@ -6,32 +6,43 @@
 <title>ATTENTION ECONOMY — The Gravity of Wealth</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ===================== COSMIC LUXE v3 — AURORA PINK EDITION ===================== */
-:root{
-  /* Base */
-  --bg:#0b1118; --bg-2:#0c1521; --bg-3:#0a1420;
-  --ink:#f7fbff; --ink-2:#eaf1ff; --muted:#b0c1d9;
+/* ======================================================================
+   COSMIC LUXE • DARK/NAVY • BLUE–GOLD–PINK AURAS • HIGH CONTRAST
+   - Gravitational sigil cover
+   - Hook panel with Einstein ×2, Nietzsche, Jobs
+   - Sections I–VIII (full doctrine)
+   - Larger readable body, bold/underline/shine accents
+   - Subtle animated shimmer on titles & quote bars
+   ====================================================================== */
 
+/* ===================== BASE & PALETTE ===================== */
+:root{
+  /* Backdrop */
+  --bg:#0b1118; --bg-2:#0c1521; --bg-3:#0a1420;
+  /* Ink */
+  --ink:#f7faff; --ink-2:#e9f1ff; --muted:#afc0d9;
   /* Palette */
   --gold:#f2df9e; --gold-2:#f7ecbf; --amber:#ffd59a; --champ:#ffe7c0;
-  --blue:#63caff; --blue-2:#a5e6ff; --ice:#dbf3ff;
+  --blue:#63caff; --blue-2:#a5e6ff; --ice:#e3f5ff;
   --aqua:#86f2ff; --cyan:#7de7ff;
-  --indigo:#9aa9ff; --inkblue:#6c8aff; --violet:#d7c3ff;
-  --rose:#ffb7d8; --magenta:#ff7cc4; --copper:#ffb37a;
+  --indigo:#95a8ff; --inkblue:#6c8aff; --violet:#cfbaff; --rose:#ffb7d8; --hotpink:#ff7ec3; --copper:#ffb37a;
 
   /* Glows */
   --g-blue:rgba(165,230,255,.42);
   --g-gold:rgba(247,236,191,.42);
   --g-indigo:rgba(149,168,255,.32);
-  --g-rose:rgba(255,183,216,.30);
+  --g-pink:rgba(255,126,195,.28);
 
   /* Surfaces */
-  --panel-deep:#102036; --panel-darker:#0f1b2c; --panel-glow:#11263c;
+  --panel-deep:#102036; --panel-darker:#0f1b2c; --panel-glow:#12273f;
   --border:#1b2f49; --grid:#142238;
 
+  /* Content width */
   --maxw:1180px;
 }
 
+/* ===================== GLOBAL ===================== */
+*{box-sizing:border-box}
 html,body{height:100%;}
 body{
   margin:0; color:var(--ink);
@@ -44,7 +55,7 @@ body{
   print-color-adjust: exact; -webkit-print-color-adjust: exact;
 }
 
-/* faint blueprint grid */
+/* blueprint grid */
 body::before{
   content:""; position:fixed; inset:0; pointer-events:none; opacity:.12;
   background-image:
@@ -59,42 +70,54 @@ body::before{
 .wrap::before{
   content:""; position:fixed; top:6vh; bottom:6vh; left:clamp(8px, calc((100vw - var(--maxw))/2 - 18px), 40px);
   width:3px; border-radius:999px;
-  background:linear-gradient(180deg, rgba(165,230,255,.35), rgba(247,236,191,.35), rgba(255,183,216,.35));
-  box-shadow:0 0 22px var(--g-blue), 0 0 28px var(--g-gold), 0 0 22px var(--g-rose) inset;
-  opacity:.65;
+  background:linear-gradient(180deg, rgba(165,230,255,.38), rgba(247,236,191,.38), rgba(165,230,255,.38));
+  box-shadow:0 0 22px var(--g-blue), 0 0 28px var(--g-gold);
+  opacity:.66;
 }
 @media (max-width: 980px){ .wrap::before{display:none;} }
 
+/* ===================== ANIMATIONS ===================== */
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 32px rgba(165,230,255,.25), 0 0 12px rgba(255,126,195,.15); }
+  100% { box-shadow: 0 0 44px rgba(165,230,255,.38), 0 0 18px rgba(255,126,195,.24); }
+}
+
 /* ============================== COVER ============================== */
 .cover{
-  position:relative; margin:74px auto 128px; padding:188px 54px; border-radius:52px;
+  position:relative; margin:74px auto 96px; padding:188px 54px; border-radius:52px;
   background:
-    radial-gradient(1500px 720px at 50% -18%, rgba(165,230,255,.32), transparent 70%),
-    radial-gradient(1000px 520px at 24% 110%, rgba(247,236,191,.18), transparent 75%),
-    radial-gradient(1200px 900px at 120% -40%, rgba(215,195,255,.14), transparent 72%),
+    radial-gradient(1500px 720px at 50% -18%, rgba(165,230,255,.30), transparent 70%),
+    radial-gradient(1000px 520px at 24% 110%, rgba(247,236,191,.16), transparent 75%),
+    radial-gradient(1200px 900px at 120% -40%, rgba(207,186,255,.12), transparent 72%),
     linear-gradient(180deg, rgba(16,26,40,.96), rgba(14,22,34,.93));
   box-shadow:0 82px 210px rgba(0,0,0,.66), inset 0 0 0 1px #17263a, 0 0 160px 22px rgba(165,230,255,.14);
   overflow:hidden;
 }
-.sigil{position:absolute; inset:-10% -10% auto auto; width:120%; opacity:.16; filter:drop-shadow(0 0 28px var(--g-gold));}
+.sigil{position:absolute; inset:-10% -10% auto auto; width:120%; opacity:.14; filter:drop-shadow(0 0 28px var(--g-gold));}
 
 .title{position:relative; text-align:center; font-family:"Montserrat",ui-sans-serif; letter-spacing:.3px;}
-.kicker{color:var(--muted); font-weight:900; text-transform:uppercase; font-size:.9rem; letter-spacing:.28em; margin-bottom:24px;}
+.kicker{color:var(--muted); font-weight:900; text-transform:uppercase; font-size:.95rem; letter-spacing:.28em; margin-bottom:24px;}
 h1{
   margin:0; font-weight:900; line-height:1.03;
-  font-size:clamp(3.2rem, 5.8vw, 5.2rem);
-  background:linear-gradient(95deg, var(--champ) 0%, var(--blue-2) 40%, var(--indigo) 70%, var(--violet) 100%);
+  font-size:clamp(3.2rem, 5.8vw, 5.4rem);
+  background:linear-gradient(95deg, var(--champ) 0%, var(--blue-2) 35%, var(--indigo) 62%, var(--violet) 82%, var(--hotpink) 100%);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  text-shadow:0 0 2px rgba(255,255,255,.28), 0 0 34px var(--g-blue), 0 2px 0 rgba(0,0,0,.35);
+  background-size:200% 100%;
+  animation: shimmer 6s linear infinite;
+  text-shadow:0 0 2px rgba(255,255,255,.22), 0 0 34px var(--g-blue), 0 2px 0 rgba(0,0,0,.35);
   letter-spacing:.2px;
 }
-.subtitle{margin-top:18px; font-size:1.18rem; color:#eef6ff; text-shadow:0 0 22px var(--g-blue); opacity:.96;}
+.subtitle{margin-top:18px; font-size:1.18rem; color:#eef6ff; text-shadow:0 0 22px var(--g-blue); opacity:.97;}
 .byline{margin-top:42px; font-family:"Montserrat"; font-weight:900; color:var(--gold-2); letter-spacing:.1em; text-shadow:0 0 20px var(--g-gold);}
 
 /* ========================== SECTION THEMES ========================== */
-.section{position:relative; margin:106px 0;}
+.section{position:relative; margin:96px 0;}
 .section .head{display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:36px; text-align:center; position:relative;}
-
+/* color lanes */
 .section{--A:var(--blue-2); --B:var(--blue); --H:rgba(165,230,255,.22);}
 .section:nth-of-type(2){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);}
 .section:nth-of-type(3){--A:var(--gold-2); --B:var(--amber); --H:rgba(247,236,191,.22);}
@@ -105,29 +128,30 @@ h1{
 .section:nth-of-type(8){--A:var(--violet); --B:var(--indigo); --H:rgba(207,186,255,.22);}
 
 .bar{
-  width:148px; height:16px; border-radius:999px;
+  width:160px; height:16px; border-radius:999px;
   background:linear-gradient(90deg, var(--A), var(--B));
   box-shadow:0 0 42px var(--g-blue), 0 0 30px color-mix(in oklab, var(--B) 40%, transparent);
+  animation: glow-pulse 2.5s ease-in-out infinite alternate;
 }
 .section h2{
   margin:0; font-family:"Montserrat"; font-weight:900; letter-spacing:.24px;
-  font-size:clamp(2.1rem, 3.2vw, 2.9rem); line-height:1.12;
+  font-size:clamp(2.1rem, 3.2vw, 3rem); line-height:1.12;
   background:linear-gradient(90deg, var(--A), var(--ice));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
   text-shadow:0 0 22px rgba(255,255,255,.08);
 }
 .section h2::after{
-  content:""; display:block; height:5px; width:min(420px, 62%);
+  content:""; display:block; height:5px; width:min(420px, 60%);
   margin:16px auto 0; border-radius:999px;
   background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent);
-  opacity:.94;
+  opacity:.92;
 }
 
 /* Roman index glow */
 .section .head::after{
   position:absolute; top:-46px; content:"";
   font-family:"Montserrat"; font-weight:900; letter-spacing:.08em;
-  font-size:clamp(3.9rem, 8.4vw, 6.1rem);
+  font-size:clamp(3.8rem, 8.2vw, 6rem);
   background:linear-gradient(90deg, color-mix(in oklab, var(--A) 55%, transparent), color-mix(in oklab, var(--B) 55%, transparent));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; opacity:.12; filter:blur(.25px);
 }
@@ -152,14 +176,14 @@ h1{
 .panel{
   position:relative;
   background:
-    radial-gradient(1200px 600px at 15% -20%, rgba(99,202,255,.14), transparent 70%),
-    radial-gradient(900px 460px at 110% 120%, rgba(207,186,255,.12), transparent 70%),
+    radial-gradient(1200px 600px at 15% -20%, rgba(99,202,255,.12), transparent 70%),
+    radial-gradient(900px 460px at 110% 120%, rgba(207,186,255,.10), transparent 70%),
     linear-gradient(180deg, color-mix(in oklab, var(--panel-deep) 88%, #000 12%) 0%, color-mix(in oklab, var(--panel-darker) 92%, #000 8%) 100%);
-  border:1px solid var(--border); border-radius:36px; padding:48px 46px;
+  border:1px solid var(--border); border-radius:36px; padding:52px 48px;
   box-shadow:
-    inset 0 0 0 1px rgba(165,230,255,.12),
+    inset 0 0 0 1px rgba(165,230,255,.10),
     0 40px 110px rgba(0,0,0,.56),
-    0 0 80px rgba(165,230,255,.10);
+    0 0 80px rgba(165,230,255,.12);
   backdrop-filter: blur(9px);
 }
 /* gilded top band */
@@ -167,7 +191,7 @@ h1{
   content:""; position:absolute; inset:0 0 auto 0; height:12px;
   border-top-left-radius:36px; border-top-right-radius:36px;
   background:linear-gradient(90deg, color-mix(in oklab, var(--A) 85%, transparent), color-mix(in oklab, var(--B) 85%, transparent));
-  opacity:.82; box-shadow:0 0 16px color-mix(in oklab, var(--B) 24%, transparent);
+  opacity:.78; box-shadow:0 0 16px color-mix(in oklab, var(--B) 24%, transparent);
 }
 /* jeweled corner studs */
 .panel::after{
@@ -182,63 +206,71 @@ h1{
     radial-gradient(12px 12px at calc(100% - 10px) 10px, var(--B), transparent 65%),
     radial-gradient(12px 12px at calc(100% - 10px) calc(100% - 10px), color-mix(in oklab, var(--A) 50%, var(--B) 50%), transparent 65%),
     radial-gradient(12px 12px at 10px calc(100% - 10px), color-mix(in oklab, var(--A) 25%, var(--B) 75%), transparent 65%);
-  opacity:.36;
+  opacity:.34;
 }
 
 /* =========================== TYPOGRAPHY & ACCENTS =========================== */
-p, .panel li{
-  font-size:1.22rem;  /* UNIFORM larger paragraph text */
-  line-height:1.96;
-  color:var(--ink-2);
-}
+p{margin:16px 0; font-size:1.22rem; line-height:1.98; color:var(--ink-2);}
 .panel p:first-of-type::first-letter{
-  font-family:"Montserrat"; font-weight:900; font-size:2.05rem; line-height:1; margin-right:.18rem;
+  font-family:"Montserrat"; font-weight:900; font-size:2.05rem; line-height:1; margin-right:.2rem;
   color:var(--ice); text-shadow:0 0 14px var(--g-blue);
 }
-ul{margin:16px 0 0 0; padding-left:0; list-style:none;}
+b{color:var(--gold);}
+i{color:var(--aqua);}
+u{text-decoration-color:var(--aqua); text-underline-offset:3px; text-decoration-thickness:2px;}
+.key{font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;}
+.shine{
+  background:linear-gradient(90deg, var(--gold-2), var(--aqua));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:900;
+  text-shadow:0 0 18px rgba(165,230,255,.18);
+}
+.pink{
+  background:linear-gradient(90deg, var(--hotpink), var(--violet));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:800;
+  text-shadow:0 0 16px var(--g-pink);
+}
+small.hint{color:var(--muted); font-style:italic}
+
+/* bullets */
+.panel ul{list-style:none; padding-left:0; margin:16px 0 6px;}
 .panel li{position:relative; padding-left:30px; margin:12px 0;}
 .panel li::before{
-  content:""; position:absolute; left:0; top:.72em; width:11px; height:11px; border-radius:50%;
+  content:""; position:absolute; left:0; top:.75em; width:11px; height:11px; border-radius:50%;
   background:linear-gradient(180deg, var(--A), var(--B)); box-shadow:0 0 12px var(--g-blue);
 }
 .panel li:nth-child(2n)::before{background:linear-gradient(180deg, var(--gold-2), var(--gold)); box-shadow:0 0 12px var(--g-gold);}
-.panel li:nth-child(3n)::before{background:linear-gradient(180deg, var(--rose), var(--violet)); box-shadow:0 0 12px var(--g-rose);}
+.panel li:nth-child(3n)::before{background:linear-gradient(180deg, var(--hotpink), var(--violet)); box-shadow:0 0 12px var(--g-pink);}
 
-b{color:var(--gold);}
-i{color:var(--aqua);}
-u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
-.shine{
-  background:linear-gradient(90deg, var(--gold-2), var(--aqua), var(--rose));
-  background-size:200% 100%;
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:900;
-  text-shadow:0 0 18px rgba(165,230,255,.18);
-  animation: auroraPulse 10s ease-in-out infinite;
-}
-.rose{
-  background:linear-gradient(90deg, var(--rose), var(--magenta), var(--violet));
-  background-size:180% 100%;
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:800;
-  text-shadow:0 0 14px var(--g-rose);
-  animation: auroraPulse 12s ease-in-out infinite;
-}
-.key{font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;}
-
-/* Pull quote */
+/* quote block */
 .quote{
-  margin:28px 0; padding:28px 30px; border-left:5px solid var(--gold);
-  background:linear-gradient(90deg, rgba(235,207,122,.18), transparent 60%), radial-gradient(720px 130px at 0% 50%, rgba(247,236,191,.10), transparent 72%);
+  margin:28px 0; padding:28px 28px; border-left:5px solid var(--gold);
+  background:
+    linear-gradient(90deg, rgba(235,207,122,.20), transparent 60%),
+    radial-gradient(720px 130px at 0% 50%, rgba(247,236,191,.10), transparent 72%);
   border-radius:16px; color:#fffdf8; font-style:italic;
-  box-shadow:0 0 24px rgba(165,230,255,.10), 0 0 24px rgba(255,183,216,.10) inset;
 }
 
-/* Aurora animation */
-@keyframes auroraPulse{
-  0%{background-position:0% 50%; filter:drop-shadow(0 0 0 rgba(255,183,216,0));}
-  50%{background-position:100% 50%; filter:drop-shadow(0 0 6px rgba(255,183,216,.25));}
-  100%{background-position:0% 50%; filter:drop-shadow(0 0 0 rgba(255,183,216,0));}
+/* hook quotes grid */
+.hook-quotes{
+  display:grid; grid-template-columns:1fr; gap:16px; margin-top:6px;
+}
+@media (min-width:920px){
+  .hook-quotes{ grid-template-columns:1fr 1fr; }
+}
+.hook{
+  border:1px solid #243a57; border-radius:20px; padding:18px 18px 16px;
+  background:
+    radial-gradient(540px 220px at 0% -10%, rgba(99,202,255,.14), transparent 70%),
+    radial-gradient(520px 240px at 120% 120%, rgba(255,183,216,.12), transparent 72%),
+    linear-gradient(180deg, rgba(22,36,56,.66), rgba(16,28,44,.55));
+  box-shadow:0 18px 46px rgba(0,0,0,.46), inset 0 0 0 1px rgba(165,230,255,.06);
+}
+.hook .who{
+  font-family:"Montserrat"; font-weight:900; letter-spacing:.08em; font-size:.82rem; text-transform:uppercase;
+  color:#ffe9c8; opacity:.9; margin-top:10px;
 }
 
-/* Print */
+/* print tweaks */
 @page{size: Letter; margin: 16mm 14mm;}
 @media print{
   body{background:#0b1118 !important;}
@@ -282,12 +314,38 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
       </div>
     </section>
 
+    <!-- ============================== HOOK: LEGEND QUOTES ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>Prologue — Gravity of Attention</h2></div>
+      <div class="panel">
+        <div class="hook-quotes">
+          <div class="hook">
+            <p class="quote"><em>“<b>Don’t listen to their words</b>, fix your <span class="pink">attention</span> on their deeds.”</em></p>
+            <div class="who">— Albert Einstein</div>
+          </div>
+          <div class="hook">
+            <p class="quote"><em>“<b>Don’t listen to their words</b>, fix your <span class="pink">attention</span> on their deeds.”</em></p>
+            <div class="who">— Albert Einstein</div>
+          </div>
+          <div class="hook">
+            <p class="quote"><em>“The value of a thing sometimes lies not in what one attains with it, but in what one <u>pays</u> for it — what it <span class="pink">costs</span> us.”</em></p>
+            <div class="who">— Friedrich Nietzsche</div>
+          </div>
+          <div class="hook">
+            <p class="quote"><em>“<b>Focusing</b> is about <u>saying no</u>.”</em></p>
+            <div class="who">— Steve Jobs</div>
+          </div>
+        </div>
+        <p style="margin-top:20px"><small class="hint">Attention is the <b class="shine">price</b> and the <b class="shine">power</b>. Spend it with precision.</small></p>
+      </div>
+    </section>
+
     <!-- ============================== I ============================== -->
     <section class="section">
       <div class="head"><div class="bar"></div><h2>I — PRINCIPLE ONE: ATTENTION IS ENERGY</h2></div>
       <div class="panel">
-        <p><b class="key">Attention</b> is stored <i class="aurora">energy</i>. Where <u>focus</u> goes, <span class="shine">motion</span> begins. Every scroll, click, or glance is a <b><span class="shine">micro-transaction of power</span></b>.</p>
-        <p>Those who learn to <b>gather</b>, <i class="rose">store</i>, and <u>redirect attention</u> become magnetic. They don’t chase — they <span class="shine">bend space</span> around themselves.</p>
+        <p><b class="key">Attention</b> is stored <i>energy</i>. Where <u>focus</u> goes, <span class="shine">motion</span> begins. Every scroll, click, or glance is a <b><span class="shine">micro-transaction of power</span></b>.</p>
+        <p>Those who learn to <b>gather</b>, <i>store</i>, and <u>redirect attention</u> become magnetic. They don’t chase — they <span class="shine">bend space</span> around themselves.</p>
       </div>
     </section>
 
@@ -295,13 +353,13 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
     <section class="section">
       <div class="head"><div class="bar"></div><h2>II — PLATFORM PHYSICS: MASS • GRAVITY • ORBIT</h2></div>
       <div class="panel">
-        <p>Every platform is an <b class="rose">orbit</b>. Every message has <b>mass</b>. Every audience forms <b class="shine">gravity</b>.</p>
+        <p>Every platform is an <b>orbit</b>. Every message has <b>mass</b>. Every audience forms <b>gravity</b>.</p>
         <ul>
-          <li><b>Mass</b> = <u>clarity</u> × <b>conviction</b> × <i class="rose">consistency</i></li>
-          <li><b>Gravity</b> = repetition that <u class="aurora">bends algorithms</u></li>
-          <li><b>Orbit</b> = community that stays near your <span class="shine">signal</span></li>
+          <li><b>Mass</b> = <u>clarity</u> × <b>conviction</b> × <i>consistency</i></li>
+          <li><b>Gravity</b> = repetition that <u class="pink">bends algorithms</u></li>
+          <li><b>Orbit</b> = community that stays near your <span class="pink">signal</span></li>
         </ul>
-        <p>When your <u>mass increases</u> (through <b class="rose">truth</b> and <i>precision</i>), your orbit expands. The algorithm simply measures <span class="shine">force — not fame</span>.</p>
+        <p>When your <u>mass increases</u> (through <b>truth</b> and <i>precision</i>), your orbit expands. The algorithm simply measures <span class="shine">force — not fame</span>.</p>
       </div>
     </section>
 
@@ -309,14 +367,14 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
     <section class="section">
       <div class="head"><div class="bar"></div><h2>III — ATTENTION ARBITRAGE</h2></div>
       <div class="panel">
-        <p>Markets <b class="shine">misprice attention</b> daily. Your leverage is spotting <i class="rose">where attention is cheap</i> and <b>where trust is expensive</b>.</p>
+        <p>Markets <b>misprice attention</b> daily. Your leverage is spotting <i>where attention is cheap</i> and <b>where trust is expensive</b>.</p>
         <p><b>Example:</b></p>
         <ul>
-          <li>Acquire attention where content <u class="aurora">spreads fast</u> (short-form).</li>
-          <li>Transfer it where relationship <b class="rose">deepens</b> (long-form, community).</li>
+          <li>Acquire attention where content <u>spreads fast</u> (short-form).</li>
+          <li>Transfer it where relationship <b>deepens</b> (long-form, community).</li>
           <li>Monetize where <i>decision happens</i> (offer, product, or call).</li>
         </ul>
-        <p>The spread between <span class="shine">cheap attention</span> and <span class="shine">expensive trust</span> — that’s your <b class="rose">margin</b>.</p>
+        <p>The spread between <span class="shine">cheap attention</span> and <span class="shine">expensive trust</span> — that’s your <b class="pink">margin</b>.</p>
       </div>
     </section>
 
@@ -324,14 +382,14 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
     <section class="section">
       <div class="head"><div class="bar"></div><h2>IV — THE FUNCTION OF MEDIA</h2></div>
       <div class="panel">
-        <p>All systems — SaaS, courses, products, services — exist to <b class="shine">sell outcomes</b>. They’re <i class="rose">monetization containers for trust</i>. Without attention, they’re empty code and design.</p>
+        <p>All systems — SaaS, courses, products, services — exist to <b>sell outcomes</b>. They’re <i>monetization containers for trust</i>. Without attention, they’re empty code and design.</p>
         <p>Operating as <b>media</b> means:</p>
         <ul>
           <li>You create <span class="shine">signal</span>, not noise.</li>
-          <li>You design <u class="aurora">trust loops</u>, not ads.</li>
-          <li>You compound visibility until your market <b class="rose">orbits</b> you.</li>
+          <li>You design <u>trust loops</u>, not ads.</li>
+          <li>You compound visibility until your market <b>orbits</b> you.</li>
         </ul>
-        <p>You stop fighting for reach — you <span class="shine">own distribution</span>.</p>
+        <p>You stop fighting for reach — you <span class="shine pink">own distribution</span>.</p>
       </div>
     </section>
 
@@ -340,12 +398,12 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
       <div class="head"><div class="bar"></div><h2>V — THE FLYWHEEL OF COMPOUND VISIBILITY</h2></div>
       <div class="panel">
         <ul>
-          <li><b>Signal</b> → <i class="rose">attracts</i>.</li>
+          <li><b>Signal</b> → <i class="pink">attracts</i>.</li>
           <li><b>Trust</b> → <i>retains</i>.</li>
-          <li><b>Conversion</b> → <u class="aurora">monetizes</u>.</li>
+          <li><b>Conversion</b> → <u>monetizes</u>.</li>
           <li><b>Reinvestment</b> → <span class="shine">amplifies</span>.</li>
         </ul>
-        <p>The flywheel spins when you treat <b class="shine">attention as capital</b> — not dopamine. It compounds when your intent stays pure: <u>create</u>, <b class="rose">teach</b>, <i class="aurora">transform</i>.</p>
+        <p>The flywheel spins when you treat <b>attention as capital</b> — not dopamine. It compounds when your intent stays pure: <u>create</u>, <b>teach</b>, <i class="pink">transform</i>.</p>
       </div>
     </section>
 
@@ -355,11 +413,11 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
       <div class="panel">
         <p>There are only three things that move markets:</p>
         <ul>
-          <li><b class="rose">Energy</b> — emotion and authenticity.</li>
+          <li><b>Energy</b> — emotion and authenticity.</li>
           <li><b>Signal</b> — clarity of value.</li>
-          <li><b class="shine">Trust</b> — duration of belief.</li>
+          <li><b>Trust</b> — duration of belief.</li>
         </ul>
-        <p><span class="shine">Energy</span> starts the wave. <b>Signal</b> directs it. <i class="rose">Trust</i> locks it into orbit. Lose one, and <u class="aurora">gravity breaks</u>.</p>
+        <p><span class="shine">Energy</span> starts the wave. <b>Signal</b> directs it. <i>Trust</i> locks it into orbit. Lose one, and <u class="pink">gravity breaks</u>.</p>
       </div>
     </section>
 
@@ -367,9 +425,9 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
     <section class="section">
       <div class="head"><div class="bar"></div><h2>VII — FROM SELLING PRODUCTS TO CREATING MARKETS</h2></div>
       <div class="panel">
-        <p>The old game: <i>push product</i>, <b>buy traffic</b>. The new game: <span class="shine">own narrative</span>, <u class="aurora">attract gravity</u>.</p>
-        <p>When people follow your <b class="rose">philosophy</b>, not your offer, you become <i>irreplaceable</i>. Markets are born from <span class="shine">shared belief</span> — not price.</p>
-        <p><b>Attention</b> turns to <i class="rose">culture</i>. Culture turns to <u>capital</u>. Capital funds <span class="shine">expansion</span>. That’s how builders create <b>worlds</b>.</p>
+        <p>The old game: <i>push product</i>, <b>buy traffic</b>. The new game: <span class="shine">own narrative</span>, <u>attract gravity</u>.</p>
+        <p>When people follow your <b>philosophy</b>, not your offer, you become <i class="pink">irreplaceable</i>. Markets are born from <span class="shine">shared belief</span> — not price.</p>
+        <p><b>Attention</b> turns to <i>culture</i>. Culture turns to <u>capital</u>. Capital funds <span class="shine">expansion</span>. That’s how builders create <b>worlds</b>.</p>
       </div>
     </section>
 
@@ -377,47 +435,12 @@ u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
     <section class="section">
       <div class="head"><div class="bar"></div><h2>VIII — CLOSING</h2></div>
       <div class="panel">
-        <p>The attention economy isn’t about <i>virality</i>. It’s about <span class="shine">frequency and force</span> — sustained energy that compounds into <b>trust</b>, <i class="rose">wealth</i>, and <u class="aurora">impact</u>.</p>
-        <p>The mission isn’t to be seen. It’s to <b class="shine">reshape the field</b> so others rise inside your <span class="rose">orbit</span>.</p>
-        <div class="quote"><em>“<b>Attention</b> is not something you get. It’s something you <u class="aurora">earn</u> — by carrying meaning long enough to <span class="shine">bend reality</span>.”</em></div>
+        <p>The attention economy isn’t about <i>virality</i>. It’s about <span class="shine">frequency and force</span> — sustained energy that compounds into <b>trust</b>, <i>wealth</i>, and <u class="pink">impact</u>.</p>
+        <p>The mission isn’t to be seen. It’s to <b class="shine">reshape the field</b> so others rise inside your <span class="shine pink">orbit</span>.</p>
+        <div class="quote"><em>“<b>Attention</b> is not something you get. It’s something you <u>earn</u> — by carrying meaning long enough to <span class="shine">bend reality</span>.”</em></div>
       </div>
     </section>
 
   </div>
-
-  <!-- ============================== AURORA TOKENIZER ============================== -->
-  <script>
-    // Randomly shimmer certain trigger words across paragraphs for subtle rose/cyan accents
-    (function(){
-      const triggers = [
-        'energy','focus','signal','gravity','orbit','mass','trust',
-        'create','teach','transform','force','capital','belief','narrative'
-      ];
-      const scope = document.querySelectorAll('.panel');
-      const re = new RegExp('\\b(' + triggers.join('|') + ')\\b','gi');
-
-      function wrapNode(node){
-        const txt = node.nodeValue;
-        if(!txt || !txt.trim()) return;
-        // ~30% chance to apply rose class, otherwise shine
-        const html = txt.replace(re,(m)=>{
-          const cls = Math.random()<0.3 ? 'rose' : 'shine';
-          return `<span class="${cls}">${m}</span>`;
-        });
-        if(html !== txt){
-          const span = document.createElement('span');
-          span.innerHTML = html;
-          node.parentNode.replaceChild(span,node);
-        }
-      }
-      function traverse(el){
-        for (const n of Array.from(el.childNodes)){
-          if (n.nodeType === 3) wrapNode(n);
-          else if (n.nodeType === 1 && n.tagName !== 'SPAN') traverse(n);
-        }
-      }
-      scope.forEach(traverse);
-    })();
-  </script>
 </body>
 </html>

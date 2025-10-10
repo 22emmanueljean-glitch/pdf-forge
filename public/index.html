@@ -550,49 +550,53 @@ try {
   console.error('Bold detection error:', e);
 }
 
-    // Italic detection: measure actual pixel slant
+    // Italic detection: measure horizontal shift between top and bottom
     let isItalicByPixels = false;
     try {
       const cv = $('cv');
       const ctx = cv.getContext('2d', { willReadFrequently: true });
       
-      // Sample vertical line of pixels on left and right edges
-      const leftX = Math.round(x + w * 0.25);  // sample closer to center
-      const rightX = Math.round(x + w * 0.75);
-      const topY = Math.round(y + h * 0.35);   // sample middle of glyph
+      // Sample center vertical line at top vs bottom
+      const centerX = Math.round(x + w * 0.5);
+      const topY = Math.round(y + h * 0.2);
       const botY = Math.round(y + h * 0.8);
       
-      let leftDark = 0, rightDark = 0, samples = 0;
-      for (let dy = 0; dy < Math.round(h * 0.6); dy += 2) {
-        const py = topY + dy;
-        if (py >= cv.height) break;
+      // Find darkest pixel (text) at top and bottom rows
+      let topDarkX = -1, botDarkX = -1;
+      const searchWidth = Math.min(Math.round(w * 0.8), 20);
+      
+      for (let dx = -searchWidth; dx <= searchWidth; dx++) {
+        const px = centerX + dx;
+        if (px < 0 || px >= cv.width) continue;
         
-        // Left edge
-        if (leftX >= 0 && leftX < cv.width) {
-          const dL = ctx.getImageData(leftX, py, 1, 1).data;
-          const lumL = 0.2126*dL[0] + 0.7152*dL[1] + 0.0722*dL[2];
-          if (lumL < 120) leftDark++;
+        // Top row
+        if (topY >= 0 && topY < cv.height) {
+          const dTop = ctx.getImageData(px, topY, 1, 1).data;
+          const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dTop[2];
+          if (lumTop < 120 && topDarkX === -1) topDarkX = px;
         }
         
-        // Right edge
-        if (rightX >= 0 && rightX < cv.width) {
-          const dR = ctx.getImageData(rightX, py, 1, 1).data;
-          const lumR = 0.2126*dR[0] + 0.7152*dR[1] + 0.0722*dR[2];
-          if (lumR < 120) rightDark++;
+        // Bottom row
+        if (botY >= 0 && botY < cv.height) {
+          const dBot = ctx.getImageData(px, botY, 1, 1).data;
+          const lumBot = 0.2126*dBot[0] + 0.7152*dBot[1] + 0.0722*dBot[2];
+          if (lumBot < 120 && botDarkX === -1) botDarkX = px;
         }
-        samples++;
       }
       
-      // If right edge darker than left = slanted right (italic)
-      const slantRatio = samples > 0 ? (rightDark - leftDark) / samples : 0;
-      isItalicByPixels = slantRatio > 0.35; // 35% slant = italic (stricter than before)
-      if (it.str.includes('Associate') || it.str.includes('Brevity') || it.str.includes('mind')) {
-  console.log(`ITALIC DETECT "${it.str}": slantRatio=${slantRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
-}
-      
+      // If top is shifted left of bottom = right-leaning italic
+      if (topDarkX !== -1 && botDarkX !== -1) {
+        const shift = botDarkX - topDarkX;
+        const shiftRatio = Math.abs(shift) / h;
+        isItalicByPixels = shiftRatio > 0.15;
+        
+        if (it.str.includes('Associate') || it.str.includes('Brevity') || it.str.includes('mind')) {
+          console.log(`ITALIC DETECT "${it.str.substring(0,30)}": shift=${shift}px, ratio=${shiftRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
+        }
+      }
     } catch (e) {
-    console.error('Italic detection error:', e);
-  }
+      console.error('Italic detection error:', e);
+    }
   
   const fauxBold = isBoldByPixels ? 1 : 0;
 // Check font name for italic/oblique

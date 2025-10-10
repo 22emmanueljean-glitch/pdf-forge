@@ -543,9 +543,9 @@ try {
   const darkRatio = totalSamples > 0 ? totalDark / totalSamples : 0;
   isBoldByPixels = darkRatio > 0.20;
   
-  if (it.str.includes('Seneca') || it.str.includes('Takeaway') || it.str.includes('Brevity')) {
-    console.log(`BOLD DETECT "${it.str}": darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);
-  }
+  if (it.str.includes('Seneca') || it.str.includes('Takeaway') || it.str.includes('Brevity') || it.str === '—' || it.str === 'Letters') {
+  console.log(`BOLD DETECT SEGMENT "${it.str}": darkRatio=${darkRatio.toFixed(3)}, isBold=${isBoldByPixels}`);
+}
 } catch (e) {
   console.error('Bold detection error:', e);
 }

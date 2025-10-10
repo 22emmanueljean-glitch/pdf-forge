@@ -632,7 +632,9 @@ function buildLinesPx(itemsPx){
       prev=s;
       left=Math.min(left,s.x); right=Math.max(right,s.x+s.w);
       top=Math.min(top,s.y); bottom=Math.max(bottom,s.y+s.h);
-      sizes.push(s.sizePx); fonts.push(guessFontFromName(s.fontName)); colors.push(s.colorHex); bolds.push(Number(s.fauxBold) || 0); ital.push(s.skewDeg?12:0);
+      if(s.str.trim().length > 0) {
+  sizes.push(s.sizePx); fonts.push(guessFontFromName(s.fontName)); colors.push(s.colorHex); bolds.push(Number(s.fauxBold) || 0); ital.push(s.skewDeg?12:0);
+}
     }
     L.text=text.trimEnd();
     

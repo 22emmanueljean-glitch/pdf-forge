@@ -3,138 +3,357 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>⚡ ATTENTION ECONOMY — A Doctrine for Builders</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<title>ATTENTION ECONOMY — The Gravity of Wealth</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+/* ===================== COSMIC LUXE — BRIGHTER CONTRAST ===================== */
 :root{
-  --bg:#0d141e;--bg2:#111b27;--gold:#f7e8ac;--aqua:#7de7ff;
-  --ink:#f6f9ff;--muted:#a8b9d1;--panel:#142033;--border:#1f3047;
-  --shine:linear-gradient(90deg,#f7e8ac 0%,#7de7ff 100%);
+  /* Base ink & backdrop (slightly brighter than the “Time to Assets” doc) */
+  --bg:#0b1118; --bg-2:#0c1521; --bg-3:#0a1420;
+  --ink:#f6f9ff; --ink-2:#e6efff; --muted:#a9bad3;
+
+  /* Palette */
+  --gold:#f2df9e; --gold-2:#f7ecbf; --amber:#ffd59a; --champ:#ffe7c0;
+  --blue:#63caff; --blue-2:#a5e6ff; --ice:#dbf3ff;
+  --aqua:#86f2ff; --cyan:#7de7ff;
+  --indigo:#95a8ff; --inkblue:#6c8aff; --violet:#cfbaff; --rose:#ffb7d8; --copper:#ffb37a;
+
+  /* Glows */
+  --g-blue:rgba(165,230,255,.40);
+  --g-gold:rgba(247,236,191,.40);
+  --g-indigo:rgba(149,168,255,.30);
+
+  /* Space-blue surfaces */
+  --panel-deep:#102036;   /* midnight */
+  --panel-darker:#0f1b2c; /* abyss */
+  --panel-glow:#11263c;   /* halo */
+  --border:#1b2f49; --grid:#142238;
+
+  --maxw:1180px;
 }
-html,body{margin:0;color:var(--ink);
-  background:radial-gradient(1800px 1200px at 50% -20%,#1a2a40 0%,var(--bg) 70%),linear-gradient(180deg,var(--bg2),var(--bg));
-  font-family:"Lora",serif;-webkit-font-smoothing:antialiased;}
+
+html,body{height:100%;}
+body{
+  margin:0; color:var(--ink);
+  background:
+    radial-gradient(2600px 1600px at 64% -20%, #1a2b43 0%, var(--bg) 58%) fixed,
+    radial-gradient(1400px 900px at -10% 120%, #152234 0%, transparent 68%) fixed,
+    linear-gradient(180deg, var(--bg-2), var(--bg-3)) fixed;
+  font-family:"Lora", ui-serif, Georgia, serif;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+
+/* faint blueprint grid */
 body::before{
-  content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;
-  background-image:linear-gradient(transparent 31px,#16253b 32px),
-                   linear-gradient(90deg,transparent 31px,#16253b 32px);
-  background-size:32px 32px;mix-blend-mode:overlay;}
-.wrap{max-width:1180px;margin:auto;padding:100px 40px 140px;}
-section{margin:90px 0;}
-h1,h2{font-family:"Montserrat",sans-serif;text-transform:uppercase;}
-h1{text-align:center;font-size:4rem;font-weight:900;margin:0 0 1rem;
-  background:var(--shine);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.subtitle{text-align:center;color:var(--muted);letter-spacing:.15em;margin-bottom:60px;}
-h2{text-align:center;font-size:2.3rem;font-weight:800;margin:0 0 1.5rem;
-  background:var(--shine);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.12;
+  background-image:
+    linear-gradient(transparent 31px, var(--grid) 32px),
+    linear-gradient(90deg, transparent 31px, var(--grid) 32px);
+  background-size:32px 32px; mix-blend-mode:overlay;
+}
+
+.wrap{max-width:var(--maxw); margin-inline:auto; padding:84px 42px 160px; position:relative;}
+
+/* luxury vertical rail */
+.wrap::before{
+  content:""; position:fixed; top:6vh; bottom:6vh; left:clamp(8px, calc((100vw - var(--maxw))/2 - 18px), 40px);
+  width:3px; border-radius:999px;
+  background:linear-gradient(180deg, rgba(165,230,255,.35), rgba(247,236,191,.35), rgba(165,230,255,.35));
+  box-shadow:0 0 22px var(--g-blue), 0 0 28px var(--g-gold);
+  opacity:.6;
+}
+@media (max-width: 980px){ .wrap::before{display:none;} }
+
+/* ============================== COVER ============================== */
+.cover{
+  position:relative; margin:74px auto 128px; padding:188px 54px; border-radius:52px;
+  background:
+    radial-gradient(1500px 720px at 50% -18%, rgba(165,230,255,.30), transparent 70%),
+    radial-gradient(1000px 520px at 24% 110%, rgba(247,236,191,.16), transparent 75%),
+    radial-gradient(1200px 900px at 120% -40%, rgba(207,186,255,.12), transparent 72%),
+    linear-gradient(180deg, rgba(16,26,40,.96), rgba(14,22,34,.93));
+  box-shadow:0 82px 210px rgba(0,0,0,.66), inset 0 0 0 1px #17263a, 0 0 160px 22px rgba(165,230,255,.14);
+  overflow:hidden;
+}
+.sigil{position:absolute; inset:-10% -10% auto auto; width:120%; opacity:.14; filter:drop-shadow(0 0 28px var(--g-gold));}
+
+.title{position:relative; text-align:center; font-family:"Montserrat",ui-sans-serif; letter-spacing:.3px;}
+.kicker{color:var(--muted); font-weight:900; text-transform:uppercase; font-size:.9rem; letter-spacing:.28em; margin-bottom:24px;}
+h1{
+  margin:0; font-weight:900; line-height:1.03;
+  font-size:clamp(3.2rem, 5.8vw, 5.2rem);
+  background:linear-gradient(95deg, var(--champ) 0%, var(--blue-2) 44%, var(--indigo) 70%, var(--violet) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  text-shadow:0 0 2px rgba(255,255,255,.28), 0 0 34px var(--g-blue), 0 2px 0 rgba(0,0,0,.35);
+  letter-spacing:.2px;
+}
+.subtitle{margin-top:18px; font-size:1.12rem; color:#eef6ff; text-shadow:0 0 22px var(--g-blue); opacity:.95;}
+.byline{margin-top:42px; font-family:"Montserrat"; font-weight:900; color:var(--gold-2); letter-spacing:.1em; text-shadow:0 0 20px var(--g-gold);}
+
+/* ========================== SECTION THEMES ========================== */
+.section{position:relative; margin:106px 0;}
+.section .head{display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:36px; text-align:center; position:relative;}
+
+/* color lanes */
+.section{--A:var(--blue-2); --B:var(--blue); --H:rgba(165,230,255,.22);}
+.section:nth-of-type(2){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);}
+.section:nth-of-type(3){--A:var(--gold-2); --B:var(--amber); --H:rgba(247,236,191,.22);}
+.section:nth-of-type(4){--A:var(--aqua); --B:var(--blue-2); --H:rgba(134,242,255,.22);}
+.section:nth-of-type(5){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);}
+.section:nth-of-type(6){--A:var(--aqua); --B:var(--blue-2); --H:rgba(134,242,255,.22);}
+.section:nth-of-type(7){--A:var(--gold-2); --B:var(--amber); --H:rgba(255,213,154,.24);}
+.section:nth-of-type(8){--A:var(--violet); --B:var(--indigo); --H:rgba(207,186,255,.22);}
+
+.bar{
+  width:148px; height:16px; border-radius:999px;
+  background:linear-gradient(90deg, var(--A), var(--B));
+  box-shadow:0 0 42px var(--g-blue), 0 0 30px color-mix(in oklab, var(--B) 40%, transparent);
+}
+.section h2{
+  margin:0; font-family:"Montserrat"; font-weight:900; letter-spacing:.24px;
+  font-size:clamp(2.05rem, 3.1vw, 2.8rem); line-height:1.12;
+  background:linear-gradient(90deg, var(--A), var(--ice));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  text-shadow:0 0 22px rgba(255,255,255,.08);
+}
+.section h2::after{
+  content:""; display:block; height:5px; width:min(380px, 58%);
+  margin:16px auto 0; border-radius:999px;
+  background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent);
+  opacity:.92;
+}
+
+/* Roman index glow */
+.section .head::after{
+  position:absolute; top:-46px; content:"";
+  font-family:"Montserrat"; font-weight:900; letter-spacing:.08em;
+  font-size:clamp(3.8rem, 8.2vw, 6rem);
+  background:linear-gradient(90deg, color-mix(in oklab, var(--A) 55%, transparent), color-mix(in oklab, var(--B) 55%, transparent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; opacity:.12; filter:blur(.25px);
+}
+.section:nth-of-type(2) .head::after{content:"I";}
+.section:nth-of-type(3) .head::after{content:"II";}
+.section:nth-of-type(4) .head::after{content:"III";}
+.section:nth-of-type(5) .head::after{content:"IV";}
+.section:nth-of-type(6) .head::after{content:"V";}
+.section:nth-of-type(7) .head::after{content:"VI";}
+.section:nth-of-type(8) .head::after{content:"VII";}
+.section:nth-of-type(9) .head::after{content:"VIII";}
+
+/* section ambient halo */
+.section::before{
+  content:""; position:absolute; inset:-90px -64px -90px -64px; z-index:-1; opacity:.24; filter:blur(32px);
+  background:
+    radial-gradient(820px 300px at 50% -10%, var(--H), transparent 70%),
+    radial-gradient(1200px 420px at 50% 110%, color-mix(in oklab, var(--B) 22%, transparent), transparent 78%);
+}
+
+/* ================================ PANELS ================================ */
 .panel{
-  background:linear-gradient(180deg,#17253b 0%,#0e1727 100%);
-  border:1px solid var(--border);border-radius:28px;padding:44px;
-  box-shadow:0 40px 100px rgba(0,0,0,.55),0 0 80px rgba(158,224,255,.08);}
-p{font-size:1.15rem;line-height:1.9;margin:14px 0;}
+  position:relative;
+  background:
+    radial-gradient(1200px 600px at 15% -20%, rgba(99,202,255,.12), transparent 70%),
+    radial-gradient(900px 460px at 110% 120%, rgba(207,186,255,.10), transparent 70%),
+    linear-gradient(180deg, color-mix(in oklab, var(--panel-deep) 88%, #000 12%) 0%, color-mix(in oklab, var(--panel-darker) 92%, #000 8%) 100%);
+  border:1px solid var(--border); border-radius:36px; padding:46px 44px;
+  box-shadow:
+    inset 0 0 0 1px rgba(165,230,255,.10),
+    0 40px 110px rgba(0,0,0,.56),
+    0 0 80px rgba(165,230,255,.10);
+  backdrop-filter: blur(9px);
+}
+/* gilded top band */
+.panel::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:12px;
+  border-top-left-radius:36px; border-top-right-radius:36px;
+  background:linear-gradient(90deg, color-mix(in oklab, var(--A) 85%, transparent), color-mix(in oklab, var(--B) 85%, transparent));
+  opacity:.78; box-shadow:0 0 16px color-mix(in oklab, var(--B) 24%, transparent);
+}
+/* jeweled corner studs */
+.panel::after{
+  content:""; position:absolute; inset:14px; pointer-events:none; border-radius:28px;
+  mask:
+    conic-gradient(from 0deg at 0 0, transparent 90deg, #000 0) 0 0 / 38px 38px no-repeat,
+    conic-gradient(from 90deg at 100% 0, transparent 90deg, #000 0) 100% 0 / 38px 38px no-repeat,
+    conic-gradient(from 180deg at 100% 100%, transparent 90deg, #000 0) 100% 100% / 38px 38px no-repeat,
+    conic-gradient(from 270deg at 0 100%, transparent 90deg, #000 0) 0 100% / 38px 38px no-repeat;
+  background:
+    radial-gradient(12px 12px at 10px 10px, var(--A), transparent 65%),
+    radial-gradient(12px 12px at calc(100% - 10px) 10px, var(--B), transparent 65%),
+    radial-gradient(12px 12px at calc(100% - 10px) calc(100% - 10px), color-mix(in oklab, var(--A) 50%, var(--B) 50%), transparent 65%),
+    radial-gradient(12px 12px at 10px calc(100% - 10px), color-mix(in oklab, var(--A) 25%, var(--B) 75%), transparent 65%);
+  opacity:.34;
+}
+
+/* =========================== TYPOGRAPHY & ACCENTS =========================== */
+p{margin:14px 0; font-size:1.14rem; line-height:1.92; color:var(--ink-2);}
+.panel p:first-of-type::first-letter{
+  font-family:"Montserrat"; font-weight:900; font-size:1.9rem; line-height:1; margin-right:.18rem;
+  color:var(--ice); text-shadow:0 0 14px var(--g-blue);
+}
 b{color:var(--gold);}
 i{color:var(--aqua);}
-u{text-decoration-color:var(--aqua);}
-.shine{background:var(--shine);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;}
-ul{padding-left:22px;}
-li{margin:6px 0;}
-.quote{font-style:italic;text-align:center;color:var(--aqua);margin:40px auto;font-size:1.1rem;max-width:720px;}
-hr{height:1px;border:none;margin:60px auto;max-width:600px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
+.shine{
+  background:linear-gradient(90deg, var(--gold-2), var(--aqua));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:900;
+  text-shadow:0 0 18px rgba(165,230,255,.18);
+}
+.key{font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;}
+
+/* Pull quote */
+.quote{
+  margin:26px 0; padding:26px 28px; border-left:5px solid var(--gold);
+  background:linear-gradient(90deg, rgba(235,207,122,.18), transparent 60%), radial-gradient(720px 130px at 0% 50%, rgba(247,236,191,.09), transparent 72%);
+  border-radius:16px; color:#fffdf8; font-style:italic;
+}
+
+/* Print */
+@page{size: Letter; margin: 16mm 14mm;}
+@media print{
+  body{background:#0b1118 !important;}
+  .cover{break-after: page;}
+  .section{break-inside: avoid;}
+  .panel{box-shadow:none; border-color:#22354d;}
+  h1, .section h2{-webkit-text-fill-color:#111 !important; color:#111 !important; background:none !important; text-shadow:none;}
+  .kicker, .byline, .subtitle{color:#222 !important; text-shadow:none !important;}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
+  <div class="wrap">
 
-<section class="cover">
-  <h1>⚡ ATTENTION ECONOMY</h1>
-  <div class="subtitle">A doctrine for builders who convert focus into force.</div>
-</section>
+    <!-- ============================== COVER ============================== -->
+    <section class="cover">
+      <!-- gravitational circle sigil -->
+      <svg class="sigil" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(400 400) rotate(90) scale(360)">
+            <stop offset="0%" stop-color="#f7ecbf"/>
+            <stop offset="60%" stop-color="#e9cd7a"/>
+            <stop offset="100%" stop-color="#e9cd7a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <g stroke="url(#g1)" stroke-width="1.2">
+          <circle cx="400" cy="400" r="320"/>
+          <circle cx="400" cy="400" r="260"/>
+          <circle cx="400" cy="400" r="200"/>
+          <circle cx="400" cy="400" r="140"/>
+          <path d="M80 400h640M400 80v640M160 160l480 480M640 160 160 640"/>
+          <path d="M400 200l120 200H280l120-200Z"/>
+          <path d="M320 480h160l-80 120-80-120Z"/>
+        </g>
+      </svg>
+      <div class="title">
+        <div class="kicker">A Discipline → Assets Doctrine</div>
+        <h1>ATTENTION ECONOMY</h1>
+        <div class="subtitle">The Gravity of Wealth — a doctrine for builders who convert focus into force.</div>
+        <div class="byline">Created by Emmanuel Dessallien</div>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>I. PRINCIPLE ONE — ATTENTION IS ENERGY</h2>
-<p><b>Attention</b> is stored <i>energy</i>. Where <u>focus</u> goes, <span class="shine">motion</span> begins.  
-Every scroll, click, or glance is a <b><span class="shine">micro-transaction of power</span></b>.</p>
-<p>Those who learn to <b>gather</b>, <i>store</i>, and <u>redirect attention</u> become magnetic.  
-They don’t chase — they <span class="shine">bend space</span> around themselves.</p>
-</section>
+    <!-- ============================== I ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>I — PRINCIPLE ONE: ATTENTION IS ENERGY</h2></div>
+      <div class="panel">
+        <p><b class="key">Attention</b> is stored <i>energy</i>. Where <u>focus</u> goes, <span class="shine">motion</span> begins. Every scroll, click, or glance is a <b><span class="shine">micro-transaction of power</span></b>.</p>
+        <p>Those who learn to <b>gather</b>, <i>store</i>, and <u>redirect attention</u> become magnetic. They don’t chase — they <span class="shine">bend space</span> around themselves.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>II. PLATFORM PHYSICS — MASS, GRAVITY, ORBIT</h2>
-<p>Every platform is an <b>orbit</b>. Every message has <b>mass</b>. Every audience forms <b>gravity</b>.</p>
-<ul>
-<li><b>Mass</b> = clarity × conviction × consistency</li>
-<li><b>Gravity</b> = repetition that <i>bends algorithms</i></li>
-<li><b>Orbit</b> = community that stays near your signal</li>
-</ul>
-<p>When your <u>mass increases</u> (through <b>truth</b> and <i>precision</i>), your orbit expands.  
-The algorithm simply measures <span class="shine">force — not fame</span>.</p>
-</section>
+    <!-- ============================== II ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>II — PLATFORM PHYSICS: MASS • GRAVITY • ORBIT</h2></div>
+      <div class="panel">
+        <p>Every platform is an <b>orbit</b>. Every message has <b>mass</b>. Every audience forms <b>gravity</b>.</p>
+        <ul>
+          <li><b>Mass</b> = <u>clarity</u> × <b>conviction</b> × <i>consistency</i></li>
+          <li><b>Gravity</b> = repetition that <u>bends algorithms</u></li>
+          <li><b>Orbit</b> = community that stays near your signal</li>
+        </ul>
+        <p>When your <u>mass increases</u> (through <b>truth</b> and <i>precision</i>), your orbit expands. The algorithm simply measures <span class="shine">force — not fame</span>.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>III. ATTENTION ARBITRAGE</h2>
-<p>Markets <b>misprice attention</b> daily. Your leverage is spotting <i>where attention is cheap</i> and <b>where trust is expensive</b>.</p>
-<p><b>Example:</b></p>
-<ul>
-<li>Acquire attention where content <u>spreads fast</u> (short-form).</li>
-<li>Transfer it where relationship <b>deepens</b> (community, long-form).</li>
-<li>Monetize where <i>decision happens</i> (offer, product, call).</li>
-</ul>
-<p>The spread between <span class="shine">cheap attention</span> and <span class="shine">expensive trust</span> — that’s your <b>margin</b>.</p>
-</section>
+    <!-- ============================== III ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>III — ATTENTION ARBITRAGE</h2></div>
+      <div class="panel">
+        <p>Markets <b>misprice attention</b> daily. Your leverage is spotting <i>where attention is cheap</i> and <b>where trust is expensive</b>.</p>
+        <p><b>Example:</b></p>
+        <ul>
+          <li>Acquire attention where content <u>spreads fast</u> (short-form).</li>
+          <li>Transfer it where relationship <b>deepens</b> (long-form, community).</li>
+          <li>Monetize where <i>decision happens</i> (offer, product, or call).</li>
+        </ul>
+        <p>The spread between <span class="shine">cheap attention</span> and <span class="shine">expensive trust</span> — that’s your <b>margin</b>.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>IV. THE FUNCTION OF MEDIA</h2>
-<p>All systems — SaaS, courses, products, services — exist to <b>sell outcomes</b>.  
-They’re <i>containers for trust</i>; without attention they’re empty code.</p>
-<ul>
-<li>You create <span class="shine">signal</span>, not noise.</li>
-<li>You design <u>trust loops</u>, not ads.</li>
-<li>You compound visibility until your market <b>orbits</b> you.</li>
-</ul>
-<p>You stop fighting for reach — you <span class="shine">own distribution</span>.</p>
-</section>
+    <!-- ============================== IV ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>IV — THE FUNCTION OF MEDIA</h2></div>
+      <div class="panel">
+        <p>All systems — SaaS, courses, products, services — exist to <b>sell outcomes</b>. They’re <i>monetization containers for trust</i>. Without attention, they’re empty code and design.</p>
+        <p>Operating as <b>media</b> means:</p>
+        <ul>
+          <li>You create <span class="shine">signal</span>, not noise.</li>
+          <li>You design <u>trust loops</u>, not ads.</li>
+          <li>You compound visibility until your market <b>orbits</b> you.</li>
+        </ul>
+        <p>You stop fighting for reach — you <span class="shine">own distribution</span>.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>V. THE FLYWHEEL OF COMPOUND VISIBILITY</h2>
-<ul>
-<li><b>Signal</b> → <i>attracts</i>.</li>
-<li><b>Trust</b> → <i>retains</i>.</li>
-<li><b>Conversion</b> → <u>monetizes</u>.</li>
-<li><b>Reinvestment</b> → <span class="shine">amplifies</span>.</li>
-</ul>
-<p>The flywheel spins when you treat <b>attention as capital</b> — not dopamine.  
-It compounds when your intent stays pure: <u>create</u>, <b>teach</b>, <i>transform</i>.</p>
-</section>
+    <!-- ============================== V ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>V — THE FLYWHEEL OF COMPOUND VISIBILITY</h2></div>
+      <div class="panel">
+        <ul>
+          <li><b>Signal</b> → <i>attracts</i>.</li>
+          <li><b>Trust</b> → <i>retains</i>.</li>
+          <li><b>Conversion</b> → <u>monetizes</u>.</li>
+          <li><b>Reinvestment</b> → <span class="shine">amplifies</span>.</li>
+        </ul>
+        <p>The flywheel spins when you treat <b>attention as capital</b> — not dopamine. It compounds when your intent stays pure: <u>create</u>, <b>teach</b>, <i>transform</i>.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>VI. ENERGY FLOW</h2>
-<p>Three forces move markets:</p>
-<ul>
-<li><b>Energy</b> — emotion + authenticity</li>
-<li><b>Signal</b> — clarity of value</li>
-<li><b>Trust</b> — duration of belief</li>
-</ul>
-<p><span class="shine">Energy</span> starts the wave. <b>Signal</b> directs it. <i>Trust</i> locks it into orbit.  
-Lose one, and <u>gravity breaks</u>.</p>
-</section>
+    <!-- ============================== VI ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>VI — ENERGY FLOW</h2></div>
+      <div class="panel">
+        <p>There are only three things that move markets:</p>
+        <ul>
+          <li><b>Energy</b> — emotion and authenticity.</li>
+          <li><b>Signal</b> — clarity of value.</li>
+          <li><b>Trust</b> — duration of belief.</li>
+        </ul>
+        <p><span class="shine">Energy</span> starts the wave. <b>Signal</b> directs it. <i>Trust</i> locks it into orbit. Lose one, and <u>gravity breaks</u>.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>VII. FROM SELLING PRODUCTS TO CREATING MARKETS</h2>
-<p>The old game: <i>push product</i>, <b>buy traffic</b>.  
-The new game: <span class="shine">own narrative</span>, <u>attract gravity</u>.</p>
-<p>When people follow your <b>philosophy</b>, not just your offer, you become <i>irreplaceable</i>.  
-Markets are born from <span class="shine">shared belief</span> — not price.</p>
-<p><b>Attention</b> turns to <i>culture</i>. Culture turns to <u>capital</u>.  
-Capital funds <span class="shine">expansion</span>. That’s how builders create <b>worlds</b>.</p>
-</section>
+    <!-- ============================== VII ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>VII — FROM SELLING PRODUCTS TO CREATING MARKETS</h2></div>
+      <div class="panel">
+        <p>The old game: <i>push product</i>, <b>buy traffic</b>. The new game: <span class="shine">own narrative</span>, <u>attract gravity</u>.</p>
+        <p>When people follow your <b>philosophy</b>, not your offer, you become <i>irreplaceable</i>. Markets are born from <span class="shine">shared belief</span> — not price.</p>
+        <p><b>Attention</b> turns to <i>culture</i>. Culture turns to <u>capital</u>. Capital funds <span class="shine">expansion</span>. That’s how builders create <b>worlds</b>.</p>
+      </div>
+    </section>
 
-<section class="panel">
-<h2>VIII. CLOSING</h2>
-<p>The attention economy isn’t about <i>virality</i>; it’s about <span class="shine">frequency and force</span> — sustained energy that compounds into <b>trust</b>, <i>wealth</i>, and <u>impact</u>.</p>
-<p>The mission isn’t to be seen — it’s to <b>reshape the field</b> so others rise inside your <span class="shine">orbit</span>.</p>
-<div class="quote">“<b>Attention</b> is not something you get; it’s something you <u>earn</u> — by carrying meaning long enough to <span class="shine">bend reality</span>.”</div>
-</section>
+    <!-- ============================== VIII ============================== -->
+    <section class="section">
+      <div class="head"><div class="bar"></div><h2>VIII — CLOSING</h2></div>
+      <div class="panel">
+        <p>The attention economy isn’t about <i>virality</i>. It’s about <span class="shine">frequency and force</span> — sustained energy that compounds into <b>trust</b>, <i>wealth</i>, and <u>impact</u>.</p>
+        <p>The mission isn’t to be seen. It’s to <b>reshape the field</b> so others rise inside your <span class="shine">orbit</span>.</p>
+        <div class="quote"><em>“<b>Attention</b> is not something you get. It’s something you <u>earn</u> — by carrying meaning long enough to <span class="shine">bend reality</span>.”</em></div>
+      </div>
+    </section>
 
-</div>
+  </div>
 </body>
 </html>

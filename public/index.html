@@ -585,7 +585,7 @@ try {
       
       // If right edge darker than left = slanted right (italic)
       const slantRatio = samples > 0 ? (rightDark - leftDark) / samples : 0;
-      isItalicByPixels = false; // disabled - too many false positives
+      isItalicByPixels = slantRatio > 0.35; // 35% slant = italic (stricter than before)
       
     } catch (e) {
     console.error('Italic detection error:', e);

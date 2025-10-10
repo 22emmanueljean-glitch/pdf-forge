@@ -573,14 +573,20 @@ try {
         if (topY >= 0 && topY < cv.height) {
           const dTop = ctx.getImageData(px, topY, 1, 1).data;
           const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dTop[2];
-          if (lumTop < 120 && topDarkX === -1) topDarkX = px;
+          if (lumTop < 180 && topDarkX === -1) {
+  topDarkX = px;
+  if (it.str.includes('Associate')) console.log(`Top found at px=${px}, lum=${lumTop.toFixed(1)}`);
+}
         }
         
         // Bottom row
         if (botY >= 0 && botY < cv.height) {
           const dBot = ctx.getImageData(px, botY, 1, 1).data;
           const lumBot = 0.2126*dBot[0] + 0.7152*dBot[1] + 0.0722*dBot[2];
-          if (lumBot < 120 && botDarkX === -1) botDarkX = px;
+          if (lumBot < 180 && botDarkX === -1) {
+  botDarkX = px;
+  if (it.str.includes('Associate')) console.log(`Bot found at px=${px}, lum=${lumBot.toFixed(1)}`);
+}
         }
       }
       

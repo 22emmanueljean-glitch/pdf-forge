@@ -595,7 +595,9 @@ try {
   }
   
   const fauxBold = isBoldByPixels ? 1 : 0;
-  const skewDeg = isItalicByPixels ? 12 : 0;
+// Check font name for italic/oblique
+const hasItalicInName = /italic|oblique/i.test(fontName);
+const skewDeg = hasItalicInName ? 12 : 0;
 
   return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });

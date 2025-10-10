@@ -567,28 +567,22 @@ try {
       if (it.str.includes('Associate')) {
   console.log(`ITALIC SETUP: centerX=${centerX}, topY=${topY}, botY=${botY}, searchWidth=${searchWidth}, w=${w}, h=${h}`);
 }
+let topMinLum = 999, botMinLum = 999;
+
 for (let dx = -searchWidth; dx <= searchWidth; dx++) {
   const px = centerX + dx;
   if (px < 0 || px >= cv.width) continue;
   
-  // Top row
   if (topY >= 0 && topY < cv.height) {
     const dTop = ctx.getImageData(px, topY, 1, 1).data;
-    const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dTop[2];
-    if (lumTop < 240) {
-      topDarkX = px;
-      if (it.str.includes('Associate')) console.log(`Top found at px=${px}, lum=${lumTop.toFixed(1)}`);
-    }
+    const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dBot[2];
+    if (lumTop < topMinLum) { topMinLum = lumTop; topDarkX = px; }
   }
   
-  // Bottom row
   if (botY >= 0 && botY < cv.height) {
     const dBot = ctx.getImageData(px, botY, 1, 1).data;
     const lumBot = 0.2126*dBot[0] + 0.7152*dBot[1] + 0.0722*dBot[2];
-    if (lumBot < 240) {
-      botDarkX = px;
-      if (it.str.includes('Associate')) console.log(`Bot found at px=${px}, lum=${lumBot.toFixed(1)}`);
-    }
+    if (lumBot < botMinLum) { botMinLum = lumBot; botDarkX = px; }
   }
 }
       

@@ -598,6 +598,9 @@ try {
 // Check font name for italic/oblique
 const hasItalicInName = /italic|oblique/i.test(fontName);
 const skewDeg = hasItalicInName ? 12 : 0;
+if (it.str.includes('Associate') || it.str.includes('mind')) {
+  console.log(`FONT CHECK "${it.str.substring(0,30)}": fontName="${fontName}", hasItalic=${hasItalicInName}`);
+}
 
   return { str: it.str, x, y, w, h, sizePx, fontName, colorHex, fauxBold, skewDeg };
   });

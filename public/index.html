@@ -572,7 +572,7 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
   if (px < 0 || px >= cv.width) continue;
   
   // Top row
-  if (topY >= 0 && topY < cv.height && topDarkX === -1) {
+  if (topY >= 0 && topY < cv.height) {
     const dTop = ctx.getImageData(px, topY, 1, 1).data;
     const lumTop = 0.2126*dTop[0] + 0.7152*dTop[1] + 0.0722*dTop[2];
     if (lumTop < 240) {
@@ -582,7 +582,7 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
   }
   
   // Bottom row
-  if (botY >= 0 && botY < cv.height && botDarkX === -1) {
+  if (botY >= 0 && botY < cv.height) {
     const dBot = ctx.getImageData(px, botY, 1, 1).data;
     const lumBot = 0.2126*dBot[0] + 0.7152*dBot[1] + 0.0722*dBot[2];
     if (lumBot < 240) {
@@ -596,7 +596,7 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
       if (topDarkX !== -1 && botDarkX !== -1) {
         const shift = botDarkX - topDarkX;
         const shiftRatio = Math.abs(shift) / h;
-        isItalicByPixels = shiftRatio > 0.15;
+        isItalicByPixels = shiftRatio > 0.30;
         
         if (it.str.includes('Associate') || it.str.includes('Brevity') || it.str.includes('mind')) {
           console.log(`ITALIC DETECT "${it.str.substring(0,30)}": shift=${shift}px, ratio=${shiftRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);

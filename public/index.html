@@ -667,9 +667,9 @@ const boldCount = bolds.filter(b => b >= 1).length;
 const italCount = ital.filter(i => i >= 6).length;
 
 L.fauxBold = boldCount >= bolds.length * 0.5 ? 1 : 0; // 50% or more = bold
-if (L.text.includes('Seneca') || L.text.includes('Takeaway')) {
-  const segInfo = L.segs.map(s => `"${s.str}":${s.fauxBold}`).join(', ');
-  console.log(`LINE AGGREGATION "${L.text.substring(0,20)}": segments=[${segInfo}], bolds=${JSON.stringify(bolds)}, boldCount=${boldCount}/${bolds.length}, result=${L.fauxBold}`);
+if (L.text.includes('Associate') || L.text.includes('Takeaway')) {
+  const segInfo = L.segs.map(s => `"${s.str}":b${s.fauxBold}i${s.skewDeg}`).join(', ');
+  console.log(`LINE AGGREGATION "${L.text.substring(0,20)}": segments=[${segInfo}], ital=${JSON.stringify(ital)}, italCount=${italCount}/${ital.length}, result=${L.skewDeg}`);
 }
 L.skewDeg = italCount >= ital.length * 0.5 ? 12 : 0;   // 50% or more = italic
 

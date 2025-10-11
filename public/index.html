@@ -603,7 +603,7 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
   const fauxBold = isBoldByPixels ? 1 : 0;
 // Check font name for italic/oblique
 const hasItalicInName = /italic|oblique/i.test(fontName);
-const skewDeg = (hasItalicInName || isItalicByPixels) ? 12 : 0;
+const skewDeg = hasItalicInName ? 12 : 0;
 if (it.str.includes('Associate') || it.str.includes('mind')) {
   console.log(`FONT CHECK "${it.str.substring(0,30)}": fontName="${fontName}", hasItalic=${hasItalicInName}`);
 }

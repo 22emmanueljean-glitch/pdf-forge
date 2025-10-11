@@ -592,9 +592,9 @@ for (let dx = -searchWidth; dx <= searchWidth; dx++) {
         const shiftRatio = Math.abs(shift) / h;
         isItalicByPixels = (shiftRatio > 0.05 && shiftRatio < 1.0);
         
-        if (it.str.includes('Associate') || it.str.includes('Brevity') || it.str.includes('mind')) {
-          console.log(`ITALIC DETECT "${it.str.substring(0,30)}": shift=${shift}px, ratio=${shiftRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
-        }
+        if (it.str.length > 3) {
+  console.log(`ITALIC DETECT "${it.str.substring(0,30)}": shift=${shift}px, ratio=${shiftRatio.toFixed(3)}, isItalic=${isItalicByPixels}`);
+}
       }
     } catch (e) {
       console.error('Italic detection error:', e);

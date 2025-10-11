@@ -564,29 +564,37 @@ try {
       
       let leftDark = 0, rightDark = 0, samples = 0;
       
-      for (let dy = 0; dy < sampleH; dy++) {
-        const py = midY - sampleH/2 + dy;
-        if (py < 0 || py >= cv.height) continue;
-        
-        // Left column
-        if (leftX >= 0 && leftX < cv.width) {
-          const dL = ctx.getImageData(leftX, py, 1, 1).data;
-          const lumL = 0.2126*dL[0] + 0.7152*dL[1] + 0.0722*dL[2];
-          if (lumL < 180) leftDark++;
-        }
-        
-        // Right column  
-        if (rightX >= 0 && rightX < cv.width) {
-          const dR = ctx.getImageData(rightX, py, 1, 1).data;
-          const lumR = 0.2126*dR[0] + 0.7152*dR[1] + 0.0722*dR[2];
-          if (lumR < 180) rightDark++;
-        }
-        samples++;
+      // Sample THREE vertical lines on left and right for better accuracy
+const leftPositions = [0.20, 0.25, 0.30];
+const rightPositions = [0.70, 0.75, 0.80];
+
+for (const leftPct of leftPositions) {
+  for (const rightPct of rightPositions) {
+    const lx = Math.round(x + w * leftPct);
+    const rx = Math.round(x + w * rightPct);
+    
+    for (let dy = 0; dy < sampleH; dy++) {
+      const py = midY - sampleH/2 + dy;
+      if (py < 0 || py >= cv.height) continue;
+      
+      if (lx >= 0 && lx < cv.width) {
+        const dL = ctx.getImageData(lx, py, 1, 1).data;
+        const lumL = 0.2126*dL[0] + 0.7152*dL[1] + 0.0722*dL[2];
+        if (lumL < 180) leftDark++;
       }
       
-      // Italic text has more density on right edge (slants right)
-      const densityDiff = samples > 0 ? (rightDark - leftDark) / samples : 0;
-      isItalicByPixels = (densityDiff > 0.08 && densityDiff < 0.5);
+      if (rx >= 0 && rx < cv.width) {
+        const dR = ctx.getImageData(rx, py, 1, 1).data;
+        const lumR = 0.2126*dR[0] + 0.7152*dR[1] + 0.0722*dR[2];
+        if (lumR < 180) rightDark++;
+      }
+      samples++;
+    }
+  }
+}
+
+const densityDiff = samples > 0 ? (rightDark - leftDark) / samples : 0;
+isItalicByPixels = (densityDiff > 0.20);
       
       if (it.str.length > 3) {
         console.log(`ITALIC DETECT "${it.str.substring(0,30)}": leftDark=${leftDark}, rightDark=${rightDark}, diff=${densityDiff.toFixed(3)}, isItalic=${isItalicByPixels}`);

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>THE ASSET OPS MANUAL — Cosmic-Luxe Premium Investor Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      --bg1: #05070A; --bg2: #0b1220; --bg3: #0e1830;
+      --ink: #f1f6ff; --ink2: #e8efff; --muted: #9fb0c7;
+      --gold: #f2d87b; --gold2: #f9eab0; --blue: #77cfff; --indigo: #a4b4ff;
+      --panel: #0f1726; --border: #1a2740;
+      --shadow: rgba(0,0,0,.6);
+    }
+    
+    /* Base */
+    html, body {
+      height: 100%;
+      margin: 0;
+      scroll-behavior: smooth;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2) 50%, var(--bg3));
+      color: var(--ink);
+      font-family: "Lora", serif;
+      font-size: 1.15rem;
+      line-height: 2.05;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Make text pop */
+    b, strong { color: var(--gold2); font-weight: 800; }
+    em { color: var(--blue); }
+    
+    /* Sidebar */
+    #toggle-btn {
+      position: fixed; top: 14px; left: 14px; z-index: 999;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(10,16,30,0.85);
+      color: var(--gold);
+      font-family: "Montserrat"; font-weight: 900;
+      letter-spacing: .03em; cursor: pointer;
+      box-shadow: 0 8px 28px rgba(0,0,0,.5);
+    }
+    
+    /* Fixed sidebar behavior */
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 280px;
+      transform: translateX(-280px);
+      transition: transform .35s ease, opacity .35s ease;
+      background: rgba(11,18,34,.96);
+      border-right: 1px solid var(--border);
+      padding: 70px 20px;
+      overflow-y: auto;
+      z-index: 998;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    #sidebar.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    /* Sidebar content */
+    #sidebar h2 {
+      font-family: "Montserrat"; font-weight: 900;
+      text-transform: uppercase; font-size: 1rem;
+      letter-spacing: .25em; color: var(--gold2);
+      margin: 0 0 12px;
+    }
+    #sidebar a {
+      display: block; padding: .45rem .75rem; border-radius: 8px;
+      font-family: "Montserrat"; font-weight: 700; font-size: 1.05rem;
+      color: var(--muted); text-decoration: none;
+      transition: all .2s ease;
+    }
+    #sidebar a:hover {
+      background: linear-gradient(90deg, rgba(118,211,255,.1), rgba(118,211,255,.05));
+      color: var(--gold);
+    }
+    #sidebar a.active {
+      color: #111;
+      background: linear-gradient(90deg, var(--gold2), var(--blue));
+    }
+    
+    /* Headings */
+    h1, h2, h3 { font-family: "Montserrat"; margin: 0 0 12px; }
+    h1 {
+      font-size: clamp(3rem, 6vw, 4.3rem);
+      line-height: 1.1;
+      font-weight: 900;
+      background: linear-gradient(95deg, var(--gold2), var(--blue), var(--indigo));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 40px rgba(158,224,255,.35);
+    }
+    h2 {
+      font-size: clamp(2rem, 3vw, 2.4rem);
+      font-weight: 900;
+      margin-top: 64px;
+      background: linear-gradient(90deg, var(--gold2), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 20px rgba(118,211,255,.4);
+    }
+    h3 {
+      font-size: 1.5rem;
+      color: var(--gold2);
+      font-weight: 800;
+      margin-top: 36px;
+    }
+    
+    /* Panels */
+    .panel {
+      background: linear-gradient(180deg, rgba(16,28,44,.95), rgba(10,18,32,.92));
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 40px;
+      box-shadow: 0 40px 120px var(--shadow), inset 0 0 0 1px rgba(158,224,255,.08);
+      margin: 40px 0;
+    }
+    .panel.alt {
+      background: linear-gradient(180deg, rgba(20,30,50,.95), rgba(14,24,38,.9));
+    }
+    
+    /* Paragraphs */
+    p, li {
+      font-size: 1.12rem;
+      line-height: 2.05;
+      letter-spacing: .1px;
+    }
+    ul li::marker {
+      color: var(--gold);
+      font-size: 1.2em;
+    }
+    .sub {
+      font-size: .95rem;
+      text-transform: uppercase;
+      letter-spacing: .3em;
+      color: var(--blue);
+      font-weight: 800;
+    }
+    
+    /* Tables */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .table th {
+      background: linear-gradient(90deg, #15243b, #1d3355);
+      color: #f8faff;
+      font-family: "Montserrat"; font-weight: 900;
+      font-size: 1.05rem;
+      text-align: left;
+      padding: 16px;
+    }
+    .table td {
+      padding: 16px;
+      color: var(--ink2);
+      border-bottom: 1px solid #1c2f45;
+      font-size: 1.05rem;
+    }
+    .table tr:nth-child(even) { background: #101b2c; }
+    .table .num { color: var(--gold2); font-weight: 800; }
+    
+    /* Footer */
+    footer .small { font-size: 1.1rem; color: var(--muted); text-align: center; margin-top: 60px; }
+    </style>
+    
+    
+</head>
+<body>
+
+<!-- ===== Floating Index Toggle ===== -->
+<button id="toggle-btn" aria-label="Toggle navigation">☰ Menu</button>
+
+<!-- ===== Floating Sidebar (hover to open, or click ☰ to pin) ===== -->
+<nav id="sidebar" aria-label="Command Deck">
+  <h2>Command Deck</h2>
+  <div class="sec">
+    <a href="#top">Cover</a>
+    <a href="#exec">Executive Summary</a>
+    <a href="#portfolio">Portfolio</a>
+    <a href="#opening">Opening Statement</a>
+    <a href="#overview">Live Performance Index</a>
+    <a href="#map">System Flow</a>
+  </div>
+  <div class="sec">
+    <a href="#layer1">Layer 1 — Metrics</a>
+    <a href="#layer2">Layer 2 — Integration</a>
+    <a href="#hierarchy">System Hierarchy</a>
+    <a href="#decisions">Decision Protocols</a>
+    <a href="#provenance">Data Provenance</a>
+    <a href="#layer3">Layer 3 — Interpretation</a>
+    <a href="#layer4">Layer 4 — Data Flow</a>
+    <a href="#layer5">Layer 5 — Triggers</a>
+    <a href="#layer6">Layer 6 — Playbooks</a>
+    <a href="#layer7">Layer 7 — Automation</a>
+    <a href="#human">Human Interface Layer</a>
+    <a href="#risk">Layer 8 — Risk Controls</a>
+    <a href="#failures">Failure Modes & Recovery</a>
+    <a href="#layer9">Layer 9 — Capital Routing</a>
+    <a href="#yield">Yield Stack</a>
+    <a href="#compounding">Compounding Effect Map</a>
+    <a href="#layer10">Layer 10 — Duplication</a>
+    <a href="#exit">Exit Readiness</a>
+    <a href="#layer11">Layer 11 — Governance</a>
+    <a href="#charter">Ethical Automation Charter</a>
+    <a href="#timeline">Implementation Timeline</a>
+    <a href="#ctimeline">Compounding Timeline</a>
+    <a href="#glossary">Annex A — Operator Glossary</a>
+  </div>
+</nav>
+
+<!-- ========================= CONTENT ========================= -->
+<div class="wrap" id="top">
+  <div class="sub">Command Manual</div>
+  <h1>THE ASSET OPS MANUAL — Premium Investor Edition</h1>
+
+  <!-- Brand Bar -->
+  <div class="brandbar">
+    <span class="dot"></span><span class="tag">AssetOps Systems</span>
+    <span class="dot"></span><span class="tag">Mechanical Profitability</span>
+    <span class="dot"></span><span class="tag">Investor Command Deck</span>
+  </div>
+
+  <!-- Executive Summary -->
+  <section id="exec" class="panel">
+    <h3>Executive Summary</h3>
+    <ul>
+      <li><b>Objective:</b> Run automated businesses like a portfolio — measure, correct, and rebalance continuously.</li>
+      <li><b>How it makes money:</b> Reallocates spend to proven channels, fixes leaks fast, scales only validated systems.</li>
+      <li><b>Risk control:</b> Hard thresholds on CAC/LTV, churn, uptime, reserves; auto-safeguards on breach.</li>
+      <li><b>Proof cycle:</b> Detection → Correction → Rebalance inside <b>48 hours</b>.</li>
+    </ul>
+  </section>
+
+  <!-- Portfolio View -->
+  <section id="portfolio" class="panel alt">
+    <h3>Portfolio View</h3>
+    <div class="small">No fake data — connect sources to populate.</div>
+    <ul class="small" style="margin-top:6px">
+      <li>Brand Slot A — status: —</li>
+      <li>Brand Slot B — status: —</li>
+      <li>Brand Slot C — status: —</li>
+    </ul>
+  </section>
+
+  <!-- Opening Statement -->
+  <section id="opening" class="panel">
+    <p><b>The Asset Ops Manual is a command center.</b> It fuses every source of truth — ads, payments, customers, and automations — into one unified control panel that shows three things: 1) where money is coming in, 2) where it is leaking out, and 3) what corrections are already running. This is what investors call a <b>self-auditing profit engine</b>.</p>
+  </section>
+
+  <!-- Live Performance Index -->
+  <section id="overview" class="panel">
+    <h2><span class="sub">Overview</span> Live Performance Index</h2>
+    <p>Composite Health meter blends uptime, CAC/LTV, churn, and MER into a single, investor-grade signal with guardrails.</p>
+    <p class="small"><b>Investor View:</b> hides operational noise and surfaces ROI, liquidity, reserves, and governance readiness.</p>
+  </section>
+
+  <hr class="sep"/>
+
+  <!-- System Flow -->
+  <section id="map" class="panel alt">
+    <h2><span class="sub">Map</span> System Flow</h2>
+    <p class="small">Input → Signal → Trigger → Action → Capital → Proof → Feedback. Full closed loop.</p>
+  </section>
+
+  <!-- Layer 1 -->
+  <section id="layer1" class="panel">
+    <h2><span class="sub">Layer 1</span> Metric Command Layer</h2>
+    <p>Every metric verifies performance, detects waste, or confirms growth.</p>
+    <table class="table">
+      <thead><tr><th>Domain</th><th>Metric</th><th>What it verifies</th><th>Target</th><th>Cause → Effect → Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Revenue</td><td>Gross / Net</td><td>Total cash in; real after refunds/fees</td><td class="num">+5–10% WoW</td><td>Lead drop → Rev ↓ → audit ads/checkout</td></tr>
+        <tr><td>Marketing</td><td>CTR, CPA, ROAS, MER</td><td>Channel efficiency &amp; profit per click</td><td class="num">ROAS ≥ 3, MER ≥ 2</td><td>Creative fatigue → CTR ↓ → rotate creatives</td></tr>
+        <tr><td>Customer</td><td>CAC, LTV, LTV:CAC</td><td>Unit economics per buyer</td><td class="num">LTV:CAC ≥ 3</td><td>Targeting drift → CAC ↑ → pause low-ROAS adsets</td></tr>
+        <tr><td>Product</td><td>Refund %, Churn %</td><td>Retention &amp; satisfaction</td><td class="num">Churn &lt; 15%</td><td>Onboarding gap → churn ↑ → retention sequence</td></tr>
+        <tr><td>Ops</td><td>Uptime %, Fail Rate</td><td>System reliability</td><td class="num">Uptime &gt; 98%</td><td>Token expiry → fails ↑ → rotate, restart</td></tr>
+        <tr><td>Finance</td><td>Profit %, Reserves %</td><td>Liquidity &amp; durability</td><td class="num">Profit ≥ 25%</td><td>Costs ↑ → margin ↓ → vendor audit</td></tr>
+      </tbody>
+    </table>
+    <div class="small">Provenance: Ads APIs • Stripe/PayPal • CRM • Automation logs — Last update: —</div>
+    <p><b>Capital Impact:</b> each 1% improvement in uptime or CAC ratio compounds into +3–5% margin over 30 days.</p>
+  </section>
+
+  <!-- Layer 2 -->
+  <section id="layer2" class="panel alt">
+    <h2><span class="sub">Layer 2</span> Integration Layer Overview</h2>
+    <p><b>What feeds which metric:</b></p>
+    <ul>
+      <li>Ads APIs (Meta, Google, TikTok) → Marketing efficiency (CTR/CPA/ROAS/MER)</li>
+      <li>Stripe / PayPal → Revenue integrity, refunds, subscriptions (churn/retention)</li>
+      <li>Shopee / TikTok Shop → Marketplace GMV, refund %</li>
+      <li>CRM (Sheets/Airtable/HubSpot) → Lead quality &amp; conversion rate</li>
+      <li>Automation logs (n8n/Zapier) → Uptime %, fail rate</li>
+    </ul>
+    <div class="small">Provenance: API endpoints mapped in connection sheet — Last sync: —</div>
+    <p><b>Capital Impact:</b> direct API feeds remove data lag and reduce decision error windows.</p>
+  </section>
+
+  <!-- INSERTED: System Hierarchy, Decision Protocols, Data Provenance -->
+  <section id="hierarchy" class="panel">
+    <h3>System Hierarchy</h3>
+    <p><b>Control chain:</b> Inputs → Metrics → Triggers → Automations → Operator Oversight → Investor Reporting. Each layer produces verifiable signals and audits the layer beneath it.</p>
+    <ul class="small">
+      <li><b>Signals:</b> raw → normalized → composite (LPI)</li>
+      <li><b>Controls:</b> thresholds → triggers → actions</li>
+      <li><b>Assurance:</b> logs → receipts → monthly brief</li>
+    </ul>
+  </section>
+
+  <section id="decisions" class="panel alt">
+    <h3>Decision Protocols</h3>
+    <p><b>Protocol path:</b> Metric Breach (auto-detected) → Automated Response (playbook action) → Human Oversight (confirm/override) → Investor Report (weekly capital brief). Timing windows lock to 48 h end-to-end.</p>
+    <ul class="small">
+      <li><b>Escalation:</b> if 2× repeat within 72 h → incident review</li>
+      <li><b>Freeze rules:</b> ad expansion locked if reserves &lt; 10%</li>
+      <li><b>Rebalance:</b> capital shifts follow MER/CAC ladders</li>
+    </ul>
+  </section>
+
+  <section id="provenance" class="panel">
+    <h3>Data Provenance Chain</h3>
+    <p>Every KPI stores <b>source, timestamp, checksum, and transform</b>. Queries can reconstruct any dashboard value from raw API pulls. <b>Result:</b> investor-grade auditability.</p>
+  </section>
+
+  <!-- Layer 3 -->
+  <section id="layer3" class="panel">
+    <h2><span class="sub">Layer 3</span> Interpretation Layer</h2>
+    <p>Numbers arrive with a one-line diagnosis so you see <em>why</em>, not just <em>what</em>. (Examples shown; no live events until connected.)</p>
+    <ul>
+      <li>Revenue ↓ because top adset CTR dropped; system paused loser and duplicated winner.</li>
+      <li>Churn ↑ from a specific cohort; retention sequence adjusted for that cohort.</li>
+      <li>Uptime ↓ due to API auth; token rotated and workflow restarted.</li>
+    </ul>
+    <p><b>Capital Impact:</b> diagnosis collapses time from detection to correction.</p>
+  </section>
+
+  <!-- Layer 4 -->
+  <section id="layer4" class="panel alt">
+    <h2><span class="sub">Layer 4</span> Data Flow Architecture</h2>
+    <p>API → Normalize → Dashboard. All sources write to a normalized sheet/DB; the command center visualizes trend lines and trigger ranges.</p>
+    <p class="small">Implementation choice: serverless fetchers for light reads; automation engine for scheduled pulls, retries, and heartbeats.</p>
+  </section>
+
+  <!-- Layer 5 -->
+  <section id="layer5" class="panel">
+    <h2><span class="sub">Layer 5</span> Trigger Layer — From Metrics to Motion</h2>
+    <table class="table">
+      <thead><tr><th>Trigger</th><th>Condition</th><th>Automatic response</th><th>Financial effect</th></tr></thead>
+      <tbody>
+        <tr><td>Revenue Drop</td><td>−10% vs 7d avg</td><td>Audit leads &amp; checkout tests; open incident</td><td>Stops revenue bleed within 24h</td></tr>
+        <tr><td>CAC Spike</td><td>+25% vs 7d avg</td><td>Pause bottom 20% adsets; redistribute; duplicate winner</td><td>Prevents wasted spend</td></tr>
+        <tr><td>Churn Surge</td><td>&gt;15%</td><td>Win-back email + callback list; tag cohort</td><td>Recovers LTV</td></tr>
+        <tr><td>Uptime Low</td><td>&lt; 98%</td><td>Restart job; rotate token on 401; escalate if 2× fail</td><td>Restores hidden cashflow</td></tr>
+        <tr><td>MER Strong</td><td>&gt; 4× for 2 wks</td><td>Increase budget +10% after capacity check</td><td>Compounds growth</td></tr>
+      </tbody>
+    </table>
+    <p><b>Capital Impact:</b> enforcement within 48h preserves 5–10% monthly margin.</p>
+  </section>
+
+  <!-- Layer 6 -->
+  <section id="layer6" class="panel alt">
+    <h2><span class="sub">Layer 6</span> Playbooks — Profit Restoration Protocols</h2>
+    <h3>6.1 CAC Spike</h3>
+    <p>Rank by ROAS → pause bottom 20% → duplicate top creative to new audience → recheck in 48h.</p>
+    <h3>6.2 Churn Surge</h3>
+    <p>Export cancels → tag cohort → retention offer + support callback → measure 7d.</p>
+    <h3>6.3 Automation Failure</h3>
+    <p>Identify failing job → retry → fallback path → rotate token → verify heartbeat in 15m.</p>
+    <h3>6.4 Refund Spike</h3>
+    <p>Read reason codes → route to shipping/product/support → implement fix → recheck next cycle.</p>
+    <h3>6.5 Lead Drop</h3>
+    <p>CTR vs impressions → swap creative (fatigue) or widen audience (burnout).</p>
+    <h3>6.6 Margin Compression</h3>
+    <p>Profit ↓, revenue flat → audit SaaS, renegotiate vendors, refresh creatives.</p>
+    <h3>6.7 Scale Surge</h3>
+    <p>Revenue +25% → fulfillment audit + lock 10% to reserves → guard CX.</p>
+    <h3>6.8 Liquidity Lock</h3>
+    <p>Reserves &lt;10% → freeze ad expansion until reserve ≥15%.</p>
+    <p><b>Capital Impact:</b> converts detection → correction inside 48h; ROI protection in real time.</p>
+  </section>
+
+  <!-- Layer 7 -->
+  <section id="layer7" class="panel">
+    <h2><span class="sub">Layer 7</span> Automation Engine — Tasks &amp; Logic</h2>
+    <table class="table">
+      <thead><tr><th>Workflow</th><th>Frequency</th><th>Function</th><th>Verification</th><th>Failsafe</th></tr></thead>
+      <tbody>
+        <tr><td>Ad Sync</td><td>Hourly</td><td>Pull ROAS/CAC/MER</td><td>Row counts &amp; timestamps</td><td>Retry 3× → alert</td></tr>
+        <tr><td>Revenue Pull</td><td>Hourly</td><td>Charges/subscriptions</td><td>Totals match Stripe</td><td>Token refresh</td></tr>
+        <tr><td>Checkout Test</td><td>Daily</td><td>$1 charge + auto-refund</td><td>Refund confirmed</td><td>Pause worst adset</td></tr>
+        <tr><td>Heartbeat</td><td>5 min</td><td>Success log per job</td><td>Latest ≤ 15m</td><td>Restart job</td></tr>
+        <tr><td>Capital Brief</td><td>Fri 12:00</td><td>Compute KPIs + email</td><td>Delivered receipt</td><td>Backup SMTP</td></tr>
+      </tbody>
+    </table>
+    <div class="small">Provenance: Automation engine logs — Last run: —</div>
+    <p><b>Capital Impact:</b> removes manual dependency; saves 8–10 ops hours per week.</p>
+  </section>
+
+  <!-- INSERTED: Human Interface -->
+  <section id="human" class="panel alt">
+    <h3>Human Interface Layer</h3>
+    <p><b>Operator roles:</b> <i>Observer</i> (monitors &amp; acknowledges), <i>Controller</i> (approves escalations &amp; capital shifts), <i>Auditor</i> (weekly verification of triggers and outcomes). Every action produces a traceable log for the investor brief.</p>
+  </section>
+
+  <!-- Layer 8 -->
+  <section id="risk" class="panel">
+    <h2><span class="sub">Layer 8</span> Risk Controls</h2>
+    <table class="table">
+      <thead><tr><th>Risk</th><th>Detection</th><th>Automatic safeguard</th></tr></thead>
+      <tbody>
+        <tr><td>Overspend</td><td>CAC ↑ &gt;25%</td><td>Pause &amp; redistribute to winners</td></tr>
+        <tr><td>Uptime loss</td><td>Heartbeat missed 10m</td><td>Restart job + alert</td></tr>
+        <tr><td>Cash shortfall</td><td>Reserves &lt;10%</td><td>Freeze scale until restored</td></tr>
+        <tr><td>Refund spike</td><td>Refund % &gt;5%</td><td>Trigger QA &amp; supplier audit</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- INSERTED: Failure Modes -->
+  <section id="failures" class="panel alt">
+    <h3>Failure Modes &amp; Recovery Paths</h3>
+    <ul>
+      <li><b>Network/API:</b> backoff-retry (3/30/300s), token rotation on 401, fallback provider; incident only if 3 cycles fail.</li>
+      <li><b>Data drift:</b> rolling baseline recalculation; freeze anomaly until two consecutive confirmations.</li>
+      <li><b>Deadlocks:</b> watchdog restarts job; escalates if &gt;2 restarts in 1h.</li>
+      <li><b>Human delay:</b> secondary ping after 15m; auto-approve low-risk rebalance under $X threshold.</li>
+    </ul>
+  </section>
+
+  <!-- Layer 9 -->
+  <section id="layer9" class="panel">
+    <h2><span class="sub">Layer 9</span> Capital Routing Framework</h2>
+    <pre>Default Split → Ads 40% | Product 20% | Profit 25% | Reserve 15%</pre>
+    <ul>
+      <li>MER &gt; 4× → +5% to Ads</li>
+      <li>MER &lt; 2× → −10% Ads → +10% Product</li>
+      <li>Churn &gt; 15% → +5% Retention</li>
+    </ul>
+    <p><b>Capital Impact:</b> dynamic liquidity — every dollar gets a job with a threshold.</p>
+  </section>
+
+  <!-- INSERTED: Yield Stack + Compounding Effect Map -->
+  <section id="yield" class="panel alt">
+    <h3>Yield Stack</h3>
+    <p>Operating yield accumulates from <b>efficiency</b> (MER/CAC), <b>reliability</b> (uptime), and <b>retention</b> (churn/LTV). The stack orders capital to the highest verified yield first.</p>
+  </section>
+
+  <section id="compounding" class="panel">
+    <h3>Compounding Effect Map</h3>
+    <p>1% weekly performance gain compounds to ~67% annualized. Improvements propagate: <i>CTR ↑ → CAC ↓ → MER ↑ → budget ↑ → revenue ↑</i>. Enforce proof-based expansion to harvest nonlinear returns.</p>
+  </section>
+
+  <!-- Layer 10 -->
+  <section id="layer10" class="panel alt">
+    <h2><span class="sub">Layer 10</span> Duplication Protocol</h2>
+    <p>Clone only validated systems (MER ≥ 3 and Uptime ≥ 98%). Duplicate repo/env/workflows → run tests → register IP → redeploy to a new segment or brand.</p>
+    <p><b>Capital Impact:</b> adds capacity without new build cost; portfolio growth.</p>
+  </section>
+
+  <!-- INSERTED: Exit Readiness -->
+  <section id="exit" class="panel">
+    <h3>Exit Readiness</h3>
+    <p>A clean <b>proof cycle</b> (48h), auditable <b>provenance</b>, and enforced <b>governance</b> raise buyer confidence and valuation multiples. Package: runbooks, API scopes, license terms, and access logs.</p>
+  </section>
+
+  <!-- Layer 11 -->
+  <section id="layer11" class="panel">
+    <h2><span class="sub">Layer 11</span> Governance — The Valuation Multiplier</h2>
+    <table class="table">
+      <thead><tr><th>Asset</th><th>Purpose</th><th>Financial effect</th></tr></thead>
+      <tbody>
+        <tr><td>IP Assignment</td><td>Proves ownership</td><td>Turns automations into sellable IP</td></tr>
+        <tr><td>NDA</td><td>Prevents leakage</td><td>Protects margin &amp; edge</td></tr>
+        <tr><td>License Agreement</td><td>Defines use/royalty</td><td>Enables recurring license revenue</td></tr>
+        <tr><td>Access Log</td><td>Auditable keys</td><td>Investor-grade trust</td></tr>
+      </tbody>
+    </table>
+    <p><b>Capital Impact:</b> clean governance typically adds 10–20% to valuation multiples.</p>
+  </section>
+
+  <!-- INSERTED: Ethical Automation Charter -->
+  <section id="charter" class="panel alt">
+    <h3>Ethical Automation Charter</h3>
+    <ul>
+      <li>Transparent actions; every job leaves an auditable trail.</li>
+      <li>Human override is available at every decision point.</li>
+      <li>Customer data minimization; purpose-bound retention.</li>
+      <li>No exploitative patterns; fair attribution and licensing.</li>
+    </ul>
+  </section>
+
+  <!-- INSERTED: Implementation Timeline + Compounding Timeline -->
+  <section id="timeline" class="panel">
+    <h3>Implementation Timeline</h3>
+    <table class="table">
+      <thead><tr><th>Phase</th><th>Window</th><th>Deliverable</th><th>Proof</th></tr></thead>
+      <tbody>
+        <tr><td>Connect</td><td>Week 1</td><td>APIs + Normalization</td><td>Data parity receipts</td></tr>
+        <tr><td>Stabilize</td><td>Weeks 2–3</td><td>Heartbeat + Retry policy</td><td>Uptime ≥ 98%</td></tr>
+        <tr><td>Enforce</td><td>Weeks 4–5</td><td>Triggers + Playbooks</td><td>Breaches resolved &lt; 48h</td></tr>
+        <tr><td>Compound</td><td>Weeks 6–8</td><td>Capital routing</td><td>MER/CAC ladder in effect</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="ctimeline" class="panel alt">
+    <h3>Compounding Timeline</h3>
+    <table class="table">
+      <thead><tr><th>Phase</th><th>Duration</th><th>Focus</th><th>ROI lift</th></tr></thead>
+      <tbody>
+        <tr><td>Stabilization</td><td>Weeks 1–4</td><td>Uptime control</td><td>+15%</td></tr>
+        <tr><td>Optimization</td><td>Weeks 5–8</td><td>Ad tuning</td><td>+30%</td></tr>
+        <tr><td>Automation</td><td>Weeks 9–12</td><td>Trigger enforcement</td><td>+45%</td></tr>
+        <tr><td>Governance</td><td>Month 4+</td><td>IP &amp; reporting</td><td>Multiple ↑</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- INSERTED: Annex A -->
+  <section id="glossary" class="panel">
+    <h3>Annex A — Operator Command Glossary</h3>
+    <p><b>Alert:</b> threshold breach; opens incident.<br/>
+       <b>Audit:</b> human verification of automated action.<br/>
+       <b>Heartbeat:</b> scheduled success log per job; target ≤ 15m.<br/>
+       <b>Rebalance:</b> liquidity redistribution based on MER/CAC ladders.<br/>
+       <b>Proof Cycle:</b> Detection → Correction → Rebalance within 48h.</p>
+  </section>
+
+  <footer class="panel alt" style="text-align:center;">
+    <div class="small">© AssetOps Systems — Cosmic-Luxe Investor Edition</div>
+  </footer>
+</div>
+
+<!-- ========================= Scripts ========================= -->
+<script>
+/* Toggle pin/unpin for sidebar on small screens */
+const sidebar = document.getElementById('sidebar');
+const toggle = document.getElementById('toggle-btn');
+toggle.addEventListener('click', ()=> sidebar.classList.toggle('open'));
+
+/* Scrollspy: highlight active section */
+const links = Array.from(sidebar.querySelectorAll('a[href^="#"]'));
+const map = new Map(links.map(a => [a.getAttribute('href'), a]));
+const opts = {rootMargin:'-40% 0px -55% 0px', threshold:[0,1]};
+const obs = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    const id = '#'+e.target.id;
+    const link = map.get(id);
+    if(!link) return;
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+}, opts);
+document.querySelectorAll('section[id]').forEach(sec=>obs.observe(sec));
+
+/* Smooth-activate on click for keyboard users */
+links.forEach(a=>{
+  a.addEventListener('click', ()=>{
+    links.forEach(l=>l.classList.remove('active'));
+    a.classList.add('active');
+    if(window.innerWidth<900) sidebar.classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>

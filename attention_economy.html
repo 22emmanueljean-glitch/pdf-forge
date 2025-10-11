@@ -6,42 +6,34 @@
 <title>ATTENTION ECONOMY — The Gravity of Wealth</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* ======================================================================
-   COSMIC LUXE • DARK/NAVY • BLUE–GOLD–PINK AURAS • HIGH CONTRAST
-   - Gravitational sigil cover
-   - Hook panel with Einstein ×2, Nietzsche, Jobs
-   - Sections I–VIII (full doctrine)
-   - Larger readable body, bold/underline/shine accents
-   - Subtle animated shimmer on titles & quote bars
-   ====================================================================== */
-
-/* ===================== BASE & PALETTE ===================== */
+/* ==========================================================================
+   COSMIC LUXE — STATIC GLOW • GLOBAL BRUSHSTROKES • HIGH CONTRAST
+   ========================================================================== */
 :root{
-  /* Backdrop */
+  /* Base backdrop & ink (slightly brighter for contrast) */
   --bg:#0b1118; --bg-2:#0c1521; --bg-3:#0a1420;
-  /* Ink */
-  --ink:#f7faff; --ink-2:#e9f1ff; --muted:#afc0d9;
+  --ink:#f6f9ff; --ink-2:#e7f0ff; --muted:#a9bad3;
+
   /* Palette */
-  --gold:#f2df9e; --gold-2:#f7ecbf; --amber:#ffd59a; --champ:#ffe7c0;
-  --blue:#63caff; --blue-2:#a5e6ff; --ice:#e3f5ff;
+  --gold:#f3e6b0; --gold-2:#f7ecbf; --amber:#ffd59a; --champ:#ffe7c0;
+  --blue:#63caff; --blue-2:#a5e6ff; --ice:#dbf3ff;
   --aqua:#86f2ff; --cyan:#7de7ff;
-  --indigo:#95a8ff; --inkblue:#6c8aff; --violet:#cfbaff; --rose:#ffb7d8; --hotpink:#ff7ec3; --copper:#ffb37a;
+  --indigo:#9bb0ff; --inkblue:#6c8aff; --violet:#d5c2ff; --rose:#ffb7d8;
 
   /* Glows */
-  --g-blue:rgba(165,230,255,.42);
-  --g-gold:rgba(247,236,191,.42);
-  --g-indigo:rgba(149,168,255,.32);
-  --g-pink:rgba(255,126,195,.28);
+  --g-blue:rgba(165,230,255,.40);
+  --g-gold:rgba(247,236,191,.40);
+  --g-indigo:rgba(149,168,255,.30);
 
-  /* Surfaces */
-  --panel-deep:#102036; --panel-darker:#0f1b2c; --panel-glow:#12273f;
+  /* Panels */
+  --panel-deep:#102036;    /* midnight */
+  --panel-darker:#0f1b2c;  /* abyss */
+  --panel-glow:#11263c;    /* halo */
   --border:#1b2f49; --grid:#142238;
 
-  /* Content width */
   --maxw:1180px;
 }
 
-/* ===================== GLOBAL ===================== */
 *{box-sizing:border-box}
 html,body{height:100%;}
 body{
@@ -55,7 +47,14 @@ body{
   print-color-adjust: exact; -webkit-print-color-adjust: exact;
 }
 
-/* blueprint grid */
+/* GLOBAL FAINT CONSTELLATIONS — fixed behind everything (static, no motion) */
+.cosmic-constellations{
+  position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.06; /* ~6% */
+  filter:drop-shadow(0 0 12px rgba(165,230,255,.25));
+  mix-blend-mode:screen;
+}
+
+/* Faint grid */
 body::before{
   content:""; position:fixed; inset:0; pointer-events:none; opacity:.12;
   background-image:
@@ -64,31 +63,20 @@ body::before{
   background-size:32px 32px; mix-blend-mode:overlay;
 }
 
+/* Wrap + luxe rail */
 .wrap{max-width:var(--maxw); margin-inline:auto; padding:84px 42px 160px; position:relative;}
-
-/* luxury vertical rail */
 .wrap::before{
   content:""; position:fixed; top:6vh; bottom:6vh; left:clamp(8px, calc((100vw - var(--maxw))/2 - 18px), 40px);
   width:3px; border-radius:999px;
-  background:linear-gradient(180deg, rgba(165,230,255,.38), rgba(247,236,191,.38), rgba(165,230,255,.38));
+  background:linear-gradient(180deg, rgba(165,230,255,.35), rgba(247,236,191,.35), rgba(165,230,255,.35));
   box-shadow:0 0 22px var(--g-blue), 0 0 28px var(--g-gold);
-  opacity:.66;
+  opacity:.6;
 }
 @media (max-width: 980px){ .wrap::before{display:none;} }
 
-/* ===================== ANIMATIONS ===================== */
-@keyframes shimmer {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-@keyframes glow-pulse {
-  0% { box-shadow: 0 0 32px rgba(165,230,255,.25), 0 0 12px rgba(255,126,195,.15); }
-  100% { box-shadow: 0 0 44px rgba(165,230,255,.38), 0 0 18px rgba(255,126,195,.24); }
-}
-
 /* ============================== COVER ============================== */
 .cover{
-  position:relative; margin:74px auto 96px; padding:188px 54px; border-radius:52px;
+  position:relative; margin:74px auto 128px; padding:188px 54px; border-radius:52px;
   background:
     radial-gradient(1500px 720px at 50% -18%, rgba(165,230,255,.30), transparent 70%),
     radial-gradient(1000px 520px at 24% 110%, rgba(247,236,191,.16), transparent 75%),
@@ -97,54 +85,61 @@ body::before{
   box-shadow:0 82px 210px rgba(0,0,0,.66), inset 0 0 0 1px #17263a, 0 0 160px 22px rgba(165,230,255,.14);
   overflow:hidden;
 }
+
+/* gravitational sigil */
 .sigil{position:absolute; inset:-10% -10% auto auto; width:120%; opacity:.14; filter:drop-shadow(0 0 28px var(--g-gold));}
+/* Ox silhouette just for the cover (slightly stronger than global layer) */
+.cover-ox{
+  position:absolute; inset:auto -12% -8% auto; width:70%; opacity:.09; pointer-events:none;
+  filter:drop-shadow(0 0 10px rgba(165,230,255,.22));
+}
 
 .title{position:relative; text-align:center; font-family:"Montserrat",ui-sans-serif; letter-spacing:.3px;}
-.kicker{color:var(--muted); font-weight:900; text-transform:uppercase; font-size:.95rem; letter-spacing:.28em; margin-bottom:24px;}
+.kicker{color:var(--muted); font-weight:900; text-transform:uppercase; font-size:.9rem; letter-spacing:.28em; margin-bottom:24px;}
 h1{
   margin:0; font-weight:900; line-height:1.03;
-  font-size:clamp(3.2rem, 5.8vw, 5.4rem);
-  background:linear-gradient(95deg, var(--champ) 0%, var(--blue-2) 35%, var(--indigo) 62%, var(--violet) 82%, var(--hotpink) 100%);
+  font-size:clamp(3.2rem, 5.8vw, 5.2rem);
+  background:linear-gradient(95deg, var(--champ) 0%, var(--blue-2) 44%, var(--indigo) 70%, var(--violet) 100%);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  background-size:200% 100%;
-  animation: shimmer 6s linear infinite;
-  text-shadow:0 0 2px rgba(255,255,255,.22), 0 0 34px var(--g-blue), 0 2px 0 rgba(0,0,0,.35);
+  text-shadow:0 0 2px rgba(255,255,255,.28), 0 0 34px var(--g-blue), 0 2px 0 rgba(0,0,0,.35);
   letter-spacing:.2px;
 }
-.subtitle{margin-top:18px; font-size:1.18rem; color:#eef6ff; text-shadow:0 0 22px var(--g-blue); opacity:.97;}
+.subtitle{margin-top:18px; font-size:1.16rem; color:#eef6ff; text-shadow:0 0 22px var(--g-blue); opacity:.95;}
 .byline{margin-top:42px; font-family:"Montserrat"; font-weight:900; color:var(--gold-2); letter-spacing:.1em; text-shadow:0 0 20px var(--g-gold);}
 
 /* ========================== SECTION THEMES ========================== */
-.section{position:relative; margin:96px 0;}
+.section{position:relative; margin:106px 0;}
 .section .head{display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:36px; text-align:center; position:relative;}
+
 /* color lanes */
 .section{--A:var(--blue-2); --B:var(--blue); --H:rgba(165,230,255,.22);}
-.section:nth-of-type(2){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);}
-.section:nth-of-type(3){--A:var(--gold-2); --B:var(--amber); --H:rgba(247,236,191,.22);}
-.section:nth-of-type(4){--A:var(--aqua); --B:var(--blue-2); --H:rgba(134,242,255,.22);}
-.section:nth-of-type(5){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);}
-.section:nth-of-type(6){--A:var(--aqua); --B:var(--blue-2); --H:rgba(134,242,255,.22);}
-.section:nth-of-type(7){--A:var(--gold-2); --B:var(--amber); --H:rgba(255,213,154,.24);}
-.section:nth-of-type(8){--A:var(--violet); --B:var(--indigo); --H:rgba(207,186,255,.22);}
+.section:nth-of-type(2){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);} /* Quotes */
+.section:nth-of-type(3){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);} /* I */
+.section:nth-of-type(4){--A:var(--gold-2); --B:var(--amber); --H:rgba(247,236,191,.22);}   /* II */
+.section:nth-of-type(5){--A:var(--aqua); --B:var(--blue-2); --H:rgba(134,242,255,.22);}   /* III */
+.section:nth-of-type(6){--A:var(--indigo); --B:var(--blue-2); --H:rgba(149,168,255,.22);} /* IV */
+.section:nth-of-type(7){--A:var(--aqua); --B:var(--blue-2); --H:rgba(134,242,255,.22);}   /* V */
+.section:nth-of-type(8){--A:var(--gold-2); --B:var(--amber); --H:rgba(255,213,154,.24);}  /* VI */
+.section:nth-of-type(9){--A:var(--violet); --B:var(--indigo); --H:rgba(207,186,255,.22);} /* VII */
+.section:nth-of-type(10){--A:var(--blue-2); --B:var(--aqua); --H:rgba(165,230,255,.24);}  /* VIII */
 
 .bar{
-  width:160px; height:16px; border-radius:999px;
+  width:148px; height:16px; border-radius:999px;
   background:linear-gradient(90deg, var(--A), var(--B));
   box-shadow:0 0 42px var(--g-blue), 0 0 30px color-mix(in oklab, var(--B) 40%, transparent);
-  animation: glow-pulse 2.5s ease-in-out infinite alternate;
 }
 .section h2{
   margin:0; font-family:"Montserrat"; font-weight:900; letter-spacing:.24px;
-  font-size:clamp(2.1rem, 3.2vw, 3rem); line-height:1.12;
+  font-size:clamp(2.1rem, 3.2vw, 2.9rem); line-height:1.12;
   background:linear-gradient(90deg, var(--A), var(--ice));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
   text-shadow:0 0 22px rgba(255,255,255,.08);
 }
 .section h2::after{
-  content:""; display:block; height:5px; width:min(420px, 60%);
+  content:""; display:block; height:5px; width:min(420px, 62%);
   margin:16px auto 0; border-radius:999px;
   background:linear-gradient(90deg, transparent, var(--A), var(--B), transparent);
-  opacity:.92;
+  opacity:.94;
 }
 
 /* Roman index glow */
@@ -163,10 +158,11 @@ h1{
 .section:nth-of-type(7) .head::after{content:"VI";}
 .section:nth-of-type(8) .head::after{content:"VII";}
 .section:nth-of-type(9) .head::after{content:"VIII";}
+.section:nth-of-type(10) .head::after{content:"IX";}
 
 /* section ambient halo */
 .section::before{
-  content:""; position:absolute; inset:-90px -64px -90px -64px; z-index:-1; opacity:.26; filter:blur(32px);
+  content:""; position:absolute; inset:-90px -64px -90px -64px; z-index:-1; opacity:.24; filter:blur(32px);
   background:
     radial-gradient(820px 300px at 50% -10%, var(--H), transparent 70%),
     radial-gradient(1200px 420px at 50% 110%, color-mix(in oklab, var(--B) 22%, transparent), transparent 78%);
@@ -179,11 +175,11 @@ h1{
     radial-gradient(1200px 600px at 15% -20%, rgba(99,202,255,.12), transparent 70%),
     radial-gradient(900px 460px at 110% 120%, rgba(207,186,255,.10), transparent 70%),
     linear-gradient(180deg, color-mix(in oklab, var(--panel-deep) 88%, #000 12%) 0%, color-mix(in oklab, var(--panel-darker) 92%, #000 8%) 100%);
-  border:1px solid var(--border); border-radius:36px; padding:52px 48px;
+  border:1px solid var(--border); border-radius:36px; padding:46px 44px;
   box-shadow:
     inset 0 0 0 1px rgba(165,230,255,.10),
     0 40px 110px rgba(0,0,0,.56),
-    0 0 80px rgba(165,230,255,.12);
+    0 0 80px rgba(165,230,255,.10);
   backdrop-filter: blur(9px);
 }
 /* gilded top band */
@@ -210,67 +206,30 @@ h1{
 }
 
 /* =========================== TYPOGRAPHY & ACCENTS =========================== */
-p{margin:16px 0; font-size:1.22rem; line-height:1.98; color:var(--ink-2);}
+p{margin:14px 0; font-size:1.22rem; line-height:1.98; color:var(--ink-2);} /* slightly larger */
 .panel p:first-of-type::first-letter{
-  font-family:"Montserrat"; font-weight:900; font-size:2.05rem; line-height:1; margin-right:.2rem;
+  font-family:"Montserrat"; font-weight:900; font-size:1.95rem; line-height:1; margin-right:.18rem;
   color:var(--ice); text-shadow:0 0 14px var(--g-blue);
 }
 b{color:var(--gold);}
 i{color:var(--aqua);}
-u{text-decoration-color:var(--aqua); text-underline-offset:3px; text-decoration-thickness:2px;}
-.key{font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;}
+u{text-decoration-color:var(--aqua); text-underline-offset:3px;}
 .shine{
   background:linear-gradient(90deg, var(--gold-2), var(--aqua));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:900;
   text-shadow:0 0 18px rgba(165,230,255,.18);
 }
-.pink{
-  background:linear-gradient(90deg, var(--hotpink), var(--violet));
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-weight:800;
-  text-shadow:0 0 16px var(--g-pink);
-}
-small.hint{color:var(--muted); font-style:italic}
+.key{font-family:"Montserrat"; font-weight:900; letter-spacing:.02em;}
+.pink{color:var(--rose); font-weight:800;}
 
-/* bullets */
-.panel ul{list-style:none; padding-left:0; margin:16px 0 6px;}
-.panel li{position:relative; padding-left:30px; margin:12px 0;}
-.panel li::before{
-  content:""; position:absolute; left:0; top:.75em; width:11px; height:11px; border-radius:50%;
-  background:linear-gradient(180deg, var(--A), var(--B)); box-shadow:0 0 12px var(--g-blue);
-}
-.panel li:nth-child(2n)::before{background:linear-gradient(180deg, var(--gold-2), var(--gold)); box-shadow:0 0 12px var(--g-gold);}
-.panel li:nth-child(3n)::before{background:linear-gradient(180deg, var(--hotpink), var(--violet)); box-shadow:0 0 12px var(--g-pink);}
-
-/* quote block */
+/* quote panel */
 .quote{
-  margin:28px 0; padding:28px 28px; border-left:5px solid var(--gold);
-  background:
-    linear-gradient(90deg, rgba(235,207,122,.20), transparent 60%),
-    radial-gradient(720px 130px at 0% 50%, rgba(247,236,191,.10), transparent 72%);
+  margin:26px 0; padding:26px 28px; border-left:5px solid var(--gold);
+  background:linear-gradient(90deg, rgba(235,207,122,.18), transparent 60%), radial-gradient(720px 130px at 0% 50%, rgba(247,236,191,.09), transparent 72%);
   border-radius:16px; color:#fffdf8; font-style:italic;
 }
 
-/* hook quotes grid */
-.hook-quotes{
-  display:grid; grid-template-columns:1fr; gap:16px; margin-top:6px;
-}
-@media (min-width:920px){
-  .hook-quotes{ grid-template-columns:1fr 1fr; }
-}
-.hook{
-  border:1px solid #243a57; border-radius:20px; padding:18px 18px 16px;
-  background:
-    radial-gradient(540px 220px at 0% -10%, rgba(99,202,255,.14), transparent 70%),
-    radial-gradient(520px 240px at 120% 120%, rgba(255,183,216,.12), transparent 72%),
-    linear-gradient(180deg, rgba(22,36,56,.66), rgba(16,28,44,.55));
-  box-shadow:0 18px 46px rgba(0,0,0,.46), inset 0 0 0 1px rgba(165,230,255,.06);
-}
-.hook .who{
-  font-family:"Montserrat"; font-weight:900; letter-spacing:.08em; font-size:.82rem; text-transform:uppercase;
-  color:#ffe9c8; opacity:.9; margin-top:10px;
-}
-
-/* print tweaks */
+/* Print */
 @page{size: Letter; margin: 16mm 14mm;}
 @media print{
   body{background:#0b1118 !important;}
@@ -283,11 +242,64 @@ small.hint{color:var(--muted); font-style:italic}
 </style>
 </head>
 <body>
+
+  <!-- GLOBAL STATIC BACKGROUND: mythic brushstroke silhouettes -->
+  <svg class="cosmic-constellations" viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <!-- Frozen gradient mix (blue → aqua → violet → gold) -->
+      <linearGradient id="nebula" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%"  stop-color="#9ed9ff"/>
+        <stop offset="35%" stop-color="#86f2ff"/>
+        <stop offset="70%" stop-color="#d5c2ff"/>
+        <stop offset="100%" stop-color="#f7ecbf"/>
+      </linearGradient>
+    </defs>
+
+    <!-- soft nebulas -->
+    <g fill="url(#nebula)" opacity=".12">
+      <ellipse cx="250"  cy="160" rx="220" ry="120"/>
+      <ellipse cx="1360" cy="180" rx="260" ry="140"/>
+      <ellipse cx="1180" cy="760" rx="260" ry="150"/>
+      <ellipse cx="300"  cy="820" rx="280" ry="160"/>
+    </g>
+
+    <!-- Ox (brushline) -->
+    <g stroke="url(#nebula)" stroke-width="2.2" fill="none" opacity=".65">
+      <path d="M160 720 C 200 660, 260 640, 320 648 C 380 656, 420 692, 470 724 C 520 756, 590 760, 650 744" />
+      <path d="M650 744 C 690 730, 720 700, 730 662 C 738 626, 722 598, 700 580" />
+      <path d="M240 742 C 232 780, 230 820, 238 860" />
+      <path d="M460 742 C 452 780, 450 820, 456 858" />
+      <path d="M700 580 C 742 572, 776 544, 792 506" />
+      <path d="M792 506 C 820 512, 844 526, 864 548" />
+    </g>
+
+    <!-- Dragon (brushline) -->
+    <g stroke="url(#nebula)" stroke-width="1.8" fill="none" opacity=".6">
+      <path d="M980 200 C 1030 180, 1080 180, 1120 210 C 1160 240, 1160 290, 1128 320 C 1100 346, 1050 354, 1008 340 C 972 328, 948 300, 952 270 C 956 236, 980 220, 1010 230" />
+      <path d="M1128 320 C 1150 350, 1180 372, 1220 382" />
+      <path d="M1008 340 C 980 360, 956 392, 946 432" />
+    </g>
+
+    <!-- Rat (brushline) -->
+    <g stroke="url(#nebula)" stroke-width="1.6" fill="none" opacity=".58">
+      <path d="M1260 680 C 1300 650, 1360 648, 1400 672 C 1434 692, 1442 724, 1422 748 C 1398 776, 1350 786, 1308 772" />
+      <path d="M1308 772 C 1290 792, 1264 804, 1238 806" />
+      <path d="M1400 672 C 1422 652, 1440 628, 1448 604" />
+    </g>
+
+    <!-- Monkey (brushline) -->
+    <g stroke="url(#nebula)" stroke-width="1.9" fill="none" opacity=".62">
+      <path d="M420 230 C 456 206, 504 202, 540 218 C 574 234, 592 266, 584 292 C 574 330, 524 350, 476 340 C 440 332, 414 308, 412 282" />
+      <path d="M476 340 C 472 370, 472 400, 480 430" />
+      <path d="M412 282 C 388 280, 366 270, 352 254" />
+    </g>
+  </svg>
+
   <div class="wrap">
 
     <!-- ============================== COVER ============================== -->
     <section class="cover">
-      <!-- gravitational circle sigil -->
+      <!-- gravitational sigil -->
       <svg class="sigil" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(400 400) rotate(90) scale(360)">
@@ -306,6 +318,22 @@ small.hint{color:var(--muted); font-style:italic}
           <path d="M320 480h160l-80 120-80-120Z"/>
         </g>
       </svg>
+
+      <!-- Ox silhouette (cover emphasis) -->
+      <svg class="cover-ox" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="oxg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#9ed9ff"/><stop offset="60%" stop-color="#d5c2ff"/><stop offset="100%" stop-color="#f7ecbf"/>
+        </linearGradient></defs>
+        <g stroke="url(#oxg)" stroke-width="2.2" fill="none" opacity=".8">
+          <path d="M60 360 C 90 300, 160 280, 230 290 C 300 300, 350 340, 400 372 C 450 404, 520 410, 580 394" />
+          <path d="M580 394 C 620 380, 650 350, 660 312 C 668 276, 652 248, 630 230" />
+          <path d="M150 380 C 146 418, 146 452, 152 484" />
+          <path d="M360 380 C 354 418, 354 452, 360 484" />
+          <path d="M630 230 C 672 222, 706 194, 722 156" />
+          <path d="M722 156 C 750 162, 774 176, 794 198" />
+        </g>
+      </svg>
+
       <div class="title">
         <div class="kicker">A Discipline → Assets Doctrine</div>
         <h1>ATTENTION ECONOMY</h1>
@@ -314,35 +342,32 @@ small.hint{color:var(--muted); font-style:italic}
       </div>
     </section>
 
-    <!-- ============================== HOOK: LEGEND QUOTES ============================== -->
+    <!-- ============================== QUOTES HOOK (SAME PANEL) ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>Prologue — Gravity of Attention</h2></div>
+      <div class="head"><div class="bar"></div><h2>HOOK — GRAVITY OF ATTENTION</h2></div>
       <div class="panel">
-        <div class="hook-quotes">
-          <div class="hook">
-            <p class="quote"><em>“<b>Don’t listen to their words</b>, fix your <span class="pink">attention</span> on their deeds.”</em></p>
-            <div class="who">— Albert Einstein</div>
-          </div>
-          <div class="hook">
-            <p class="quote"><em>“<b>Don’t listen to their words</b>, fix your <span class="pink">attention</span> on their deeds.”</em></p>
-            <div class="who">— Albert Einstein</div>
-          </div>
-          <div class="hook">
-            <p class="quote"><em>“The value of a thing sometimes lies not in what one attains with it, but in what one <u>pays</u> for it — what it <span class="pink">costs</span> us.”</em></p>
-            <div class="who">— Friedrich Nietzsche</div>
-          </div>
-          <div class="hook">
-            <p class="quote"><em>“<b>Focusing</b> is about <u>saying no</u>.”</em></p>
-            <div class="who">— Steve Jobs</div>
-          </div>
+        <div class="quote">
+          <em>“<b>Don’t listen to their words</b>, <u>fix your attention on their deeds</u>.”</em>
+          <div class="pink" style="margin-top:6px; font-style:normal; font-weight:800;">— Albert Einstein</div>
         </div>
-        <p style="margin-top:20px"><small class="hint">Attention is the <b class="shine">price</b> and the <b class="shine">power</b>. Spend it with precision.</small></p>
+        <div class="quote">
+          <em>“<b>Not everything that counts can be counted</b>, and not everything that can be counted <u>counts</u>.”</em>
+          <div class="pink" style="margin-top:6px; font-style:normal; font-weight:800;">— Albert Einstein</div>
+        </div>
+        <div class="quote">
+          <em>“The value of a thing sometimes lies not in what one attains with it, but in what one <u>pays</u> for it — what it <b>costs</b> us.”</em>
+          <div class="pink" style="margin-top:6px; font-style:normal; font-weight:800;">— Friedrich Nietzsche</div>
+        </div>
+        <div class="quote">
+          <em>“<b>Focus</b> and simplicity. Once you get there, you can move <u>mountains</u>.”</em>
+          <div class="pink" style="margin-top:6px; font-style:normal; font-weight:800;">— Steve Jobs</div>
+        </div>
       </div>
     </section>
 
     <!-- ============================== I ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>I — PRINCIPLE ONE: ATTENTION IS ENERGY</h2></div>
+      <div class="head"><div class="bar"></div><h2>II — PRINCIPLE ONE: ATTENTION IS ENERGY</h2></div>
       <div class="panel">
         <p><b class="key">Attention</b> is stored <i>energy</i>. Where <u>focus</u> goes, <span class="shine">motion</span> begins. Every scroll, click, or glance is a <b><span class="shine">micro-transaction of power</span></b>.</p>
         <p>Those who learn to <b>gather</b>, <i>store</i>, and <u>redirect attention</u> become magnetic. They don’t chase — they <span class="shine">bend space</span> around themselves.</p>
@@ -351,13 +376,13 @@ small.hint{color:var(--muted); font-style:italic}
 
     <!-- ============================== II ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>II — PLATFORM PHYSICS: MASS • GRAVITY • ORBIT</h2></div>
+      <div class="head"><div class="bar"></div><h2>III — PLATFORM PHYSICS: MASS • GRAVITY • ORBIT</h2></div>
       <div class="panel">
         <p>Every platform is an <b>orbit</b>. Every message has <b>mass</b>. Every audience forms <b>gravity</b>.</p>
         <ul>
           <li><b>Mass</b> = <u>clarity</u> × <b>conviction</b> × <i>consistency</i></li>
-          <li><b>Gravity</b> = repetition that <u class="pink">bends algorithms</u></li>
-          <li><b>Orbit</b> = community that stays near your <span class="pink">signal</span></li>
+          <li><b>Gravity</b> = repetition that <u>bends algorithms</u></li>
+          <li><b>Orbit</b> = community that stays near your signal</li>
         </ul>
         <p>When your <u>mass increases</u> (through <b>truth</b> and <i>precision</i>), your orbit expands. The algorithm simply measures <span class="shine">force — not fame</span>.</p>
       </div>
@@ -365,7 +390,7 @@ small.hint{color:var(--muted); font-style:italic}
 
     <!-- ============================== III ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>III — ATTENTION ARBITRAGE</h2></div>
+      <div class="head"><div class="bar"></div><h2>IV — ATTENTION ARBITRAGE</h2></div>
       <div class="panel">
         <p>Markets <b>misprice attention</b> daily. Your leverage is spotting <i>where attention is cheap</i> and <b>where trust is expensive</b>.</p>
         <p><b>Example:</b></p>
@@ -374,13 +399,13 @@ small.hint{color:var(--muted); font-style:italic}
           <li>Transfer it where relationship <b>deepens</b> (long-form, community).</li>
           <li>Monetize where <i>decision happens</i> (offer, product, or call).</li>
         </ul>
-        <p>The spread between <span class="shine">cheap attention</span> and <span class="shine">expensive trust</span> — that’s your <b class="pink">margin</b>.</p>
+        <p>The spread between <span class="shine">cheap attention</span> and <span class="shine">expensive trust</span> — that’s your <b>margin</b>.</p>
       </div>
     </section>
 
     <!-- ============================== IV ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>IV — THE FUNCTION OF MEDIA</h2></div>
+      <div class="head"><div class="bar"></div><h2>V — THE FUNCTION OF MEDIA</h2></div>
       <div class="panel">
         <p>All systems — SaaS, courses, products, services — exist to <b>sell outcomes</b>. They’re <i>monetization containers for trust</i>. Without attention, they’re empty code and design.</p>
         <p>Operating as <b>media</b> means:</p>
@@ -389,27 +414,27 @@ small.hint{color:var(--muted); font-style:italic}
           <li>You design <u>trust loops</u>, not ads.</li>
           <li>You compound visibility until your market <b>orbits</b> you.</li>
         </ul>
-        <p>You stop fighting for reach — you <span class="shine pink">own distribution</span>.</p>
+        <p>You stop fighting for reach — you <span class="shine">own distribution</span>.</p>
       </div>
     </section>
 
     <!-- ============================== V ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>V — THE FLYWHEEL OF COMPOUND VISIBILITY</h2></div>
+      <div class="head"><div class="bar"></div><h2>VI — THE FLYWHEEL OF COMPOUND VISIBILITY</h2></div>
       <div class="panel">
         <ul>
-          <li><b>Signal</b> → <i class="pink">attracts</i>.</li>
+          <li><b>Signal</b> → <i>attracts</i>.</li>
           <li><b>Trust</b> → <i>retains</i>.</li>
           <li><b>Conversion</b> → <u>monetizes</u>.</li>
           <li><b>Reinvestment</b> → <span class="shine">amplifies</span>.</li>
         </ul>
-        <p>The flywheel spins when you treat <b>attention as capital</b> — not dopamine. It compounds when your intent stays pure: <u>create</u>, <b>teach</b>, <i class="pink">transform</i>.</p>
+        <p>The flywheel spins when you treat <b>attention as capital</b> — not dopamine. It compounds when your intent stays pure: <u>create</u>, <b>teach</b>, <i>transform</i>.</p>
       </div>
     </section>
 
     <!-- ============================== VI ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>VI — ENERGY FLOW</h2></div>
+      <div class="head"><div class="bar"></div><h2>VII — ENERGY FLOW</h2></div>
       <div class="panel">
         <p>There are only three things that move markets:</p>
         <ul>
@@ -417,26 +442,26 @@ small.hint{color:var(--muted); font-style:italic}
           <li><b>Signal</b> — clarity of value.</li>
           <li><b>Trust</b> — duration of belief.</li>
         </ul>
-        <p><span class="shine">Energy</span> starts the wave. <b>Signal</b> directs it. <i>Trust</i> locks it into orbit. Lose one, and <u class="pink">gravity breaks</u>.</p>
+        <p><span class="shine">Energy</span> starts the wave. <b>Signal</b> directs it. <i>Trust</i> locks it into orbit. Lose one, and <u>gravity breaks</u>.</p>
       </div>
     </section>
 
     <!-- ============================== VII ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>VII — FROM SELLING PRODUCTS TO CREATING MARKETS</h2></div>
+      <div class="head"><div class="bar"></div><h2>VIII — FROM SELLING PRODUCTS TO CREATING MARKETS</h2></div>
       <div class="panel">
         <p>The old game: <i>push product</i>, <b>buy traffic</b>. The new game: <span class="shine">own narrative</span>, <u>attract gravity</u>.</p>
-        <p>When people follow your <b>philosophy</b>, not your offer, you become <i class="pink">irreplaceable</i>. Markets are born from <span class="shine">shared belief</span> — not price.</p>
+        <p>When people follow your <b>philosophy</b>, not your offer, you become <i>irreplaceable</i>. Markets are born from <span class="shine">shared belief</span> — not price.</p>
         <p><b>Attention</b> turns to <i>culture</i>. Culture turns to <u>capital</u>. Capital funds <span class="shine">expansion</span>. That’s how builders create <b>worlds</b>.</p>
       </div>
     </section>
 
     <!-- ============================== VIII ============================== -->
     <section class="section">
-      <div class="head"><div class="bar"></div><h2>VIII — CLOSING</h2></div>
+      <div class="head"><div class="bar"></div><h2>IX — CLOSING</h2></div>
       <div class="panel">
-        <p>The attention economy isn’t about <i>virality</i>. It’s about <span class="shine">frequency and force</span> — sustained energy that compounds into <b>trust</b>, <i>wealth</i>, and <u class="pink">impact</u>.</p>
-        <p>The mission isn’t to be seen. It’s to <b class="shine">reshape the field</b> so others rise inside your <span class="shine pink">orbit</span>.</p>
+        <p>The attention economy isn’t about <i>virality</i>. It’s about <span class="shine">frequency and force</span> — sustained energy that compounds into <b>trust</b>, <i>wealth</i>, and <u>impact</u>.</p>
+        <p>The mission isn’t to be seen. It’s to <b>reshape the field</b> so others rise inside your <span class="shine">orbit</span>.</p>
         <div class="quote"><em>“<b>Attention</b> is not something you get. It’s something you <u>earn</u> — by carrying meaning long enough to <span class="shine">bend reality</span>.”</em></div>
       </div>
     </section>

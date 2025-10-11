@@ -586,7 +586,7 @@ try {
       
       // Italic text has more density on right edge (slants right)
       const densityDiff = samples > 0 ? (rightDark - leftDark) / samples : 0;
-      isItalicByPixels = densityDiff > 0.15;
+      isItalicByPixels = (densityDiff > 0.08 && densityDiff < 0.5);
       
       if (it.str.length > 3) {
         console.log(`ITALIC DETECT "${it.str.substring(0,30)}": leftDark=${leftDark}, rightDark=${rightDark}, diff=${densityDiff.toFixed(3)}, isItalic=${isItalicByPixels}`);
